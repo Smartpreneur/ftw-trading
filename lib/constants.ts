@@ -1,8 +1,10 @@
-import type { AssetClass, TradeDirection, TradeStatus } from './types'
+import type { AssetClass, TradeDirection, TradeStatus, TradingProfile } from './types'
 
 export const ASSET_CLASSES: AssetClass[] = ['Index', 'Rohstoff', 'Krypto', 'Aktie', 'FX']
 
 export const TRADE_DIRECTIONS: TradeDirection[] = ['LONG', 'SHORT']
+
+export const TRADING_PROFILES: TradingProfile[] = ['MB', 'SJ']
 
 export const TRADE_STATUSES: TradeStatus[] = [
   'Aktiv',
@@ -10,6 +12,7 @@ export const TRADE_STATUSES: TradeStatus[] = [
   'Ausgestoppt',
   'Ungültig',
   'Einstand',
+  'Geschlossen',
 ]
 
 export const STATUS_COLORS: Record<TradeStatus, string> = {
@@ -18,6 +21,7 @@ export const STATUS_COLORS: Record<TradeStatus, string> = {
   Ausgestoppt: 'bg-red-100 text-red-800',
   'Ungültig': 'bg-gray-100 text-gray-600',
   Einstand: 'bg-yellow-100 text-yellow-800',
+  Geschlossen: 'bg-slate-100 text-slate-700',
 }
 
 export const DIRECTION_COLORS: Record<TradeDirection, string> = {

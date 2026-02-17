@@ -3,11 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { BarChart2, BookOpen, LayoutDashboard } from 'lucide-react'
+import { BookOpen, LayoutDashboard } from 'lucide-react'
+import Image from 'next/image'
+import { ProfileFilter } from '@/components/profile-filter'
 
 const links = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/trades', label: 'Trade-Buch', icon: BookOpen },
+  { href: '/trades', label: 'Trades', icon: BookOpen },
 ]
 
 export function Nav() {
@@ -18,9 +20,15 @@ export function Nav() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center gap-6">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 font-bold text-foreground">
-            <BarChart2 className="h-5 w-5 text-primary" />
-            <span>FTW Trading</span>
+          <Link href="/" className="flex items-center shrink-0">
+            <Image
+              src="/fmw-logo.svg"
+              alt="FMW Logo"
+              width={160}
+              height={38}
+              priority
+              className="h-8 w-auto"
+            />
           </Link>
 
           {/* Nav links */}
@@ -41,6 +49,11 @@ export function Nav() {
               </Link>
             ))}
           </nav>
+
+          {/* Profile Filter */}
+          <div className="ml-auto">
+            <ProfileFilter />
+          </div>
         </div>
       </div>
     </header>

@@ -3,24 +3,34 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { differenceInCalendarDays, parseISO } from 'date-fns'
-import type { Trade, TradeFormData, TradeWithPerformance } from './types'
+import type { Trade, TradeFormData, TradeWithPerformance, TradingProfile } from './types'
 
 function enrichTrade(trade: Trade): TradeWithPerformance {
   let performance_pct: number | null = null
   let risiko_pct: number | null = null
   let risk_reward: number | null = null
 
-  // Performance
-  if (trade.ausstiegspreis !== null && trade.ausstiegspreis !== undefined) {
+  // Performance - calculate from prices if available, otherwise parse from bemerkungen
+  if (trade.ausstiegspreis !== null && trade.ausstiegspreis !== undefined && trade.einstiegspreis !== null && trade.einstiegspreis !== undefined && trade.richtung !== null) {
     const raw =
       trade.richtung === 'LONG'
         ? ((trade.ausstiegspreis - trade.einstiegspreis) / trade.einstiegspreis) * 100
         : ((trade.einstiegspreis - trade.ausstiegspreis) / trade.einstiegspreis) * 100
     performance_pct = Math.round(raw * 100) / 100
+  } else if (trade.bemerkungen) {
+    // Parse performance from bemerkungen field (format: "Performance: -4,631 %")
+    const perfMatch = trade.bemerkungen.match(/Performance:\s*(-?[\d,]+)\s*%/)
+    if (perfMatch) {
+      const perfStr = perfMatch[1].replace(',', '.')
+      const perfValue = parseFloat(perfStr)
+      if (!isNaN(perfValue)) {
+        performance_pct = Math.round(perfValue * 100) / 100
+      }
+    }
   }
 
-  // Risk %
-  if (trade.stop_loss !== null && trade.stop_loss !== undefined) {
+  // Risk % - only calculate if we have einstiegspreis, stop_loss, and richtung
+  if (trade.stop_loss !== null && trade.stop_loss !== undefined && trade.einstiegspreis !== null && trade.einstiegspreis !== undefined && trade.richtung !== null) {
     const rawRisk =
       trade.richtung === 'LONG'
         ? ((trade.einstiegspreis - trade.stop_loss) / trade.einstiegspreis) * 100
@@ -46,12 +56,19 @@ function enrichTrade(trade: Trade): TradeWithPerformance {
   return { ...trade, performance_pct, risiko_pct, risk_reward, haltedauer_tage }
 }
 
-export async function getTrades(): Promise<TradeWithPerformance[]> {
+export async function getTrades(profiles?: TradingProfile[]): Promise<TradeWithPerformance[]> {
   const supabase = await createClient()
-  const { data, error } = await supabase
+  let query = supabase
     .from('trades')
     .select('*')
     .order('datum_eroeffnung', { ascending: false })
+
+  // Filter by profiles if specified
+  if (profiles && profiles.length > 0) {
+    query = query.in('profil', profiles)
+  }
+
+  const { data, error } = await query
 
   if (error) throw new Error(error.message)
   return ((data as Trade[]) ?? []).map(enrichTrade)

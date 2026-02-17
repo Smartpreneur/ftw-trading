@@ -26,9 +26,12 @@ import { deleteTrade } from '@/lib/actions'
 import { ASSET_CLASSES, TRADE_STATUSES } from '@/lib/constants'
 import { formatDate, formatPrice, formatPercent, formatRR } from '@/lib/formatters'
 import type { TradeWithPerformance } from '@/lib/types'
-import { Pencil, Trash2, Plus, Search, X } from 'lucide-react'
+import { Pencil, Trash2, Plus, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+
+type SortField = 'id' | 'asset' | 'klasse' | 'richtung' | 'status' | 'performance'
+type SortOrder = 'asc' | 'desc'
 
 interface TradeTableProps {
   trades: TradeWithPerformance[]
@@ -39,16 +42,58 @@ export function TradeTable({ trades }: TradeTableProps) {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterDirection, setFilterDirection] = useState<string>('all')
   const [filterAssetClass, setFilterAssetClass] = useState<string>('all')
+  const [sortBy, setSortBy] = useState<SortField>('id')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
   const filtered = useMemo(() => {
-    return trades.filter((t) => {
+    // Filter
+    let result = trades.filter((t) => {
       if (search && !t.asset.toLowerCase().includes(search.toLowerCase())) return false
       if (filterStatus !== 'all' && t.status !== filterStatus) return false
       if (filterDirection !== 'all' && t.richtung !== filterDirection) return false
       if (filterAssetClass !== 'all' && t.asset_klasse !== filterAssetClass) return false
       return true
     })
-  }, [trades, search, filterStatus, filterDirection, filterAssetClass])
+
+    // Sort
+    result.sort((a, b) => {
+      let comparison = 0
+
+      switch (sortBy) {
+        case 'id': {
+          const aId = a.trade_id || ''
+          const bId = b.trade_id || ''
+          comparison = aId.localeCompare(bId)
+          break
+        }
+        case 'asset':
+          comparison = a.asset.localeCompare(b.asset)
+          break
+        case 'klasse':
+          comparison = a.asset_klasse.localeCompare(b.asset_klasse)
+          break
+        case 'richtung': {
+          const aDir = a.richtung || ''
+          const bDir = b.richtung || ''
+          comparison = aDir.localeCompare(bDir)
+          break
+        }
+        case 'status':
+          comparison = a.status.localeCompare(b.status)
+          break
+        case 'performance': {
+          const aPerf = a.performance_pct ?? -Infinity
+          const bPerf = b.performance_pct ?? -Infinity
+          comparison = aPerf - bPerf
+          break
+        }
+      }
+
+      return sortOrder === 'asc' ? comparison : -comparison
+    })
+
+    return result
+  }, [trades, search, filterStatus, filterDirection, filterAssetClass, sortBy, sortOrder])
 
   const hasFilters =
     search || filterStatus !== 'all' || filterDirection !== 'all' || filterAssetClass !== 'all'
@@ -58,6 +103,26 @@ export function TradeTable({ trades }: TradeTableProps) {
     setFilterStatus('all')
     setFilterDirection('all')
     setFilterAssetClass('all')
+  }
+
+  function toggleSort(field: SortField) {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(field)
+      setSortOrder('asc')
+    }
+  }
+
+  function SortIcon({ field }: { field: SortField }) {
+    if (sortBy !== field) {
+      return <ArrowUpDown className="h-3.5 w-3.5 ml-1 text-muted-foreground" />
+    }
+    return sortOrder === 'asc' ? (
+      <ArrowUp className="h-3.5 w-3.5 ml-1" />
+    ) : (
+      <ArrowDown className="h-3.5 w-3.5 ml-1" />
+    )
   }
 
   async function handleDelete(id: string, asset: string) {
@@ -154,17 +219,65 @@ export function TradeTable({ trades }: TradeTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-20">ID</TableHead>
+              <TableHead className="w-20">
+                <button
+                  onClick={() => toggleSort('id')}
+                  className="flex items-center hover:text-foreground transition-colors"
+                >
+                  ID
+                  <SortIcon field="id" />
+                </button>
+              </TableHead>
               <TableHead>Datum</TableHead>
-              <TableHead>Asset</TableHead>
-              <TableHead>Klasse</TableHead>
-              <TableHead>Richtung</TableHead>
+              <TableHead>
+                <button
+                  onClick={() => toggleSort('asset')}
+                  className="flex items-center hover:text-foreground transition-colors"
+                >
+                  Asset
+                  <SortIcon field="asset" />
+                </button>
+              </TableHead>
+              <TableHead>
+                <button
+                  onClick={() => toggleSort('klasse')}
+                  className="flex items-center hover:text-foreground transition-colors"
+                >
+                  Klasse
+                  <SortIcon field="klasse" />
+                </button>
+              </TableHead>
+              <TableHead>
+                <button
+                  onClick={() => toggleSort('richtung')}
+                  className="flex items-center hover:text-foreground transition-colors"
+                >
+                  Richtung
+                  <SortIcon field="richtung" />
+                </button>
+              </TableHead>
               <TableHead className="text-right">Einstieg</TableHead>
               <TableHead className="text-right">SL</TableHead>
               <TableHead className="text-right">TP1</TableHead>
               <TableHead className="text-right">R/R</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Performance</TableHead>
+              <TableHead>
+                <button
+                  onClick={() => toggleSort('status')}
+                  className="flex items-center hover:text-foreground transition-colors"
+                >
+                  Status
+                  <SortIcon field="status" />
+                </button>
+              </TableHead>
+              <TableHead className="text-right">
+                <button
+                  onClick={() => toggleSort('performance')}
+                  className="flex items-center ml-auto hover:text-foreground transition-colors"
+                >
+                  Performance
+                  <SortIcon field="performance" />
+                </button>
+              </TableHead>
               <TableHead className="text-right">Aktionen</TableHead>
             </TableRow>
           </TableHeader>

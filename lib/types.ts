@@ -1,6 +1,7 @@
 export type AssetClass = 'Index' | 'Rohstoff' | 'Krypto' | 'Aktie' | 'FX'
 export type TradeDirection = 'LONG' | 'SHORT'
-export type TradeStatus = 'Aktiv' | 'Erfolgreich' | 'Ausgestoppt' | 'Ungültig' | 'Einstand'
+export type TradeStatus = 'Aktiv' | 'Erfolgreich' | 'Ausgestoppt' | 'Ungültig' | 'Einstand' | 'Geschlossen'
+export type TradingProfile = 'MB' | 'SJ'
 
 export interface Trade {
   id: string
@@ -8,8 +9,8 @@ export interface Trade {
   datum_eroeffnung: string
   asset: string
   asset_klasse: AssetClass
-  richtung: TradeDirection
-  einstiegspreis: number
+  richtung: TradeDirection | null
+  einstiegspreis: number | null
   stop_loss: number | null
   tp1: number | null
   tp2: number | null
@@ -19,6 +20,7 @@ export interface Trade {
   datum_schliessung: string | null
   ausstiegspreis: number | null
   bemerkungen: string | null
+  profil: TradingProfile
   created_at: string
   updated_at: string
 }
@@ -35,8 +37,8 @@ export type TradeFormData = {
   datum_eroeffnung: string
   asset: string
   asset_klasse: AssetClass
-  richtung: TradeDirection
-  einstiegspreis: number
+  richtung: TradeDirection | null
+  einstiegspreis: number | null
   stop_loss: number | null
   tp1: number | null
   tp2: number | null
@@ -46,6 +48,7 @@ export type TradeFormData = {
   datum_schliessung: string | null
   ausstiegspreis: number | null
   bemerkungen: string | null
+  profil: TradingProfile
 }
 
 export interface PerformanceKPIs {
@@ -73,4 +76,12 @@ export interface AssetClassPerformance {
   win_count: number
   win_rate: number
   avg_pct: number
+}
+
+export interface EquityCurvePoint {
+  date: string
+  cumulative_pct: number
+  asset: string
+  richtung: TradeDirection
+  trade_pct: number
 }

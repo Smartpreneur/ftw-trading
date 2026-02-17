@@ -3,6 +3,7 @@ import type {
   PerformanceKPIs,
   MonthlyPerformance,
   AssetClassPerformance,
+  EquityCurvePoint,
 } from './types'
 import { getMonthLabel } from './formatters'
 
@@ -100,4 +101,26 @@ export function calculateAssetClassPerformance(
     win_rate: Math.round((v.wins / v.count) * 1000) / 10,
     avg_pct: Math.round((v.sum / v.count) * 100) / 100,
   }))
+}
+
+export function calculateEquityCurve(
+  trades: TradeWithPerformance[]
+): EquityCurvePoint[] {
+  const closed = trades
+    .filter((t) => t.datum_schliessung && t.performance_pct !== null)
+    .sort((a, b) => a.datum_schliessung!.localeCompare(b.datum_schliessung!))
+
+  let cumulative = 0
+  return closed.map((t) => {
+    cumulative = Math.round((cumulative + (t.performance_pct ?? 0)) * 100) / 100
+    const date = t.datum_schliessung!
+    const [y, m, d] = date.split('-')
+    return {
+      date: `${d}.${m}.${y.slice(2)}`,
+      cumulative_pct: cumulative,
+      asset: t.asset,
+      richtung: t.richtung,
+      trade_pct: t.performance_pct ?? 0,
+    }
+  })
 }
