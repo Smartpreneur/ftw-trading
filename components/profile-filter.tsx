@@ -53,7 +53,7 @@ export function ProfileFilter() {
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5">
           <User className="h-4 w-4" />
-          <span className="hidden sm:inline">Profile</span>
+          <span className="hidden sm:inline">Trader</span>
           {selectedCount < TRADING_PROFILES.length && (
             <span className="ml-1 rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-semibold text-blue-700">
               {selectedCount}
@@ -63,7 +63,7 @@ export function ProfileFilter() {
       </PopoverTrigger>
       <PopoverContent className="w-48" align="end">
         <div className="space-y-3">
-          <p className="text-sm font-medium">Profile auswählen</p>
+          <p className="text-sm font-medium">Trader auswählen</p>
           <div className="space-y-2">
             {TRADING_PROFILES.map((profile) => (
               <div key={profile} className="flex items-center space-x-2">

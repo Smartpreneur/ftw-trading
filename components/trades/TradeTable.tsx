@@ -11,21 +11,15 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { MultiSelect } from '@/components/ui/multi-select'
 import { TradeDialog } from './TradeDialog'
 import { StatusBadge } from './StatusBadge'
 import { DirectionBadge } from './DirectionBadge'
 import { deleteTrade } from '@/lib/actions'
-import { ASSET_CLASSES, TRADE_STATUSES } from '@/lib/constants'
+import { ASSET_CLASSES, TRADE_STATUSES, TRADING_PROFILES } from '@/lib/constants'
 import { formatDate, formatPrice, formatPercent, formatRR } from '@/lib/formatters'
-import type { TradeWithPerformance } from '@/lib/types'
+import type { TradeWithPerformance, TradingProfile, TradeStatus, AssetClass } from '@/lib/types'
 import { Pencil, Trash2, Plus, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -39,9 +33,10 @@ interface TradeTableProps {
 
 export function TradeTable({ trades }: TradeTableProps) {
   const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [filterDirection, setFilterDirection] = useState<string>('all')
-  const [filterAssetClass, setFilterAssetClass] = useState<string>('all')
+  const [filterStatus, setFilterStatus] = useState<TradeStatus[]>([])
+  const [filterDirection, setFilterDirection] = useState<string[]>([])
+  const [filterAssetClass, setFilterAssetClass] = useState<AssetClass[]>([])
+  const [filterTrader, setFilterTrader] = useState<TradingProfile[]>([])
   const [sortBy, setSortBy] = useState<SortField>('id')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
@@ -49,9 +44,10 @@ export function TradeTable({ trades }: TradeTableProps) {
     // Filter
     let result = trades.filter((t) => {
       if (search && !t.asset.toLowerCase().includes(search.toLowerCase())) return false
-      if (filterStatus !== 'all' && t.status !== filterStatus) return false
-      if (filterDirection !== 'all' && t.richtung !== filterDirection) return false
-      if (filterAssetClass !== 'all' && t.asset_klasse !== filterAssetClass) return false
+      if (filterStatus.length > 0 && !filterStatus.includes(t.status)) return false
+      if (filterDirection.length > 0 && t.richtung && !filterDirection.includes(t.richtung)) return false
+      if (filterAssetClass.length > 0 && !filterAssetClass.includes(t.asset_klasse)) return false
+      if (filterTrader.length > 0 && !filterTrader.includes(t.profil)) return false
       return true
     })
 
@@ -93,16 +89,17 @@ export function TradeTable({ trades }: TradeTableProps) {
     })
 
     return result
-  }, [trades, search, filterStatus, filterDirection, filterAssetClass, sortBy, sortOrder])
+  }, [trades, search, filterStatus, filterDirection, filterAssetClass, filterTrader, sortBy, sortOrder])
 
   const hasFilters =
-    search || filterStatus !== 'all' || filterDirection !== 'all' || filterAssetClass !== 'all'
+    search || filterStatus.length > 0 || filterDirection.length > 0 || filterAssetClass.length > 0 || filterTrader.length > 0
 
   function clearFilters() {
     setSearch('')
-    setFilterStatus('all')
-    setFilterDirection('all')
-    setFilterAssetClass('all')
+    setFilterStatus([])
+    setFilterDirection([])
+    setFilterAssetClass([])
+    setFilterTrader([])
   }
 
   function toggleSort(field: SortField) {
@@ -151,42 +148,43 @@ export function TradeTable({ trades }: TradeTableProps) {
         </div>
 
         {/* Status filter */}
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="h-9 w-36">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Alle Status</SelectItem>
-            {TRADE_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MultiSelect
+          options={TRADE_STATUSES.map((s) => ({ value: s, label: s }))}
+          selected={filterStatus}
+          onChange={setFilterStatus}
+          placeholder="Status"
+          className="w-36"
+        />
 
         {/* Direction filter */}
-        <Select value={filterDirection} onValueChange={setFilterDirection}>
-          <SelectTrigger className="h-9 w-32">
-            <SelectValue placeholder="Richtung" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Alle</SelectItem>
-            <SelectItem value="LONG">LONG</SelectItem>
-            <SelectItem value="SHORT">SHORT</SelectItem>
-          </SelectContent>
-        </Select>
+        <MultiSelect
+          options={[
+            { value: 'LONG', label: 'LONG' },
+            { value: 'SHORT', label: 'SHORT' },
+          ]}
+          selected={filterDirection}
+          onChange={setFilterDirection}
+          placeholder="Richtung"
+          className="w-32"
+        />
 
         {/* Asset class filter */}
-        <Select value={filterAssetClass} onValueChange={setFilterAssetClass}>
-          <SelectTrigger className="h-9 w-36">
-            <SelectValue placeholder="Klasse" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Alle Klassen</SelectItem>
-            {ASSET_CLASSES.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MultiSelect
+          options={ASSET_CLASSES.map((c) => ({ value: c, label: c }))}
+          selected={filterAssetClass}
+          onChange={setFilterAssetClass}
+          placeholder="Klasse"
+          className="w-36"
+        />
+
+        {/* Trader filter */}
+        <MultiSelect
+          options={TRADING_PROFILES.map((p) => ({ value: p, label: p }))}
+          selected={filterTrader}
+          onChange={setFilterTrader}
+          placeholder="Trader"
+          className="w-32"
+        />
 
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 gap-1">

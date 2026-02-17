@@ -1,23 +1,14 @@
 import { getTrades } from '@/lib/actions'
 import { TradeTable } from '@/components/trades/TradeTable'
-import type { TradingProfile } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
-export default async function TradesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ profiles?: string }>
-}) {
-  const params = await searchParams
-  const profilesParam = params.profiles
-  const selectedProfiles = profilesParam?.split(',') as TradingProfile[] | undefined
-
+export default async function TradesPage() {
   let trades: Awaited<ReturnType<typeof getTrades>> = []
   let error: string | null = null
 
   try {
-    trades = await getTrades(selectedProfiles)
+    trades = await getTrades()
   } catch (e: any) {
     error = e?.message ?? 'Fehler beim Laden'
   }
