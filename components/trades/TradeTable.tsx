@@ -33,10 +33,10 @@ interface TradeTableProps {
 
 export function TradeTable({ trades }: TradeTableProps) {
   const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState<TradeStatus[]>([])
-  const [filterDirection, setFilterDirection] = useState<string[]>([])
-  const [filterAssetClass, setFilterAssetClass] = useState<AssetClass[]>([])
-  const [filterTrader, setFilterTrader] = useState<TradingProfile[]>([])
+  const [filterStatus, setFilterStatus] = useState<TradeStatus[]>(TRADE_STATUSES)
+  const [filterDirection, setFilterDirection] = useState<string[]>(['LONG', 'SHORT'])
+  const [filterAssetClass, setFilterAssetClass] = useState<AssetClass[]>(ASSET_CLASSES)
+  const [filterTrader, setFilterTrader] = useState<TradingProfile[]>(TRADING_PROFILES)
   const [sortBy, setSortBy] = useState<SortField>('id')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
@@ -44,10 +44,10 @@ export function TradeTable({ trades }: TradeTableProps) {
     // Filter
     let result = trades.filter((t) => {
       if (search && !t.asset.toLowerCase().includes(search.toLowerCase())) return false
-      if (filterStatus.length > 0 && !filterStatus.includes(t.status)) return false
-      if (filterDirection.length > 0 && t.richtung && !filterDirection.includes(t.richtung)) return false
-      if (filterAssetClass.length > 0 && !filterAssetClass.includes(t.asset_klasse)) return false
-      if (filterTrader.length > 0 && !filterTrader.includes(t.profil)) return false
+      if (filterStatus.length > 0 && filterStatus.length < TRADE_STATUSES.length && !filterStatus.includes(t.status)) return false
+      if (filterDirection.length > 0 && filterDirection.length < 2 && t.richtung && !filterDirection.includes(t.richtung)) return false
+      if (filterAssetClass.length > 0 && filterAssetClass.length < ASSET_CLASSES.length && !filterAssetClass.includes(t.asset_klasse)) return false
+      if (filterTrader.length > 0 && filterTrader.length < TRADING_PROFILES.length && !filterTrader.includes(t.profil)) return false
       return true
     })
 
@@ -92,14 +92,18 @@ export function TradeTable({ trades }: TradeTableProps) {
   }, [trades, search, filterStatus, filterDirection, filterAssetClass, filterTrader, sortBy, sortOrder])
 
   const hasFilters =
-    search || filterStatus.length > 0 || filterDirection.length > 0 || filterAssetClass.length > 0 || filterTrader.length > 0
+    search ||
+    (filterStatus.length > 0 && filterStatus.length < TRADE_STATUSES.length) ||
+    (filterDirection.length > 0 && filterDirection.length < 2) ||
+    (filterAssetClass.length > 0 && filterAssetClass.length < ASSET_CLASSES.length) ||
+    (filterTrader.length > 0 && filterTrader.length < TRADING_PROFILES.length)
 
   function clearFilters() {
     setSearch('')
-    setFilterStatus([])
-    setFilterDirection([])
-    setFilterAssetClass([])
-    setFilterTrader([])
+    setFilterStatus(TRADE_STATUSES)
+    setFilterDirection(['LONG', 'SHORT'])
+    setFilterAssetClass(ASSET_CLASSES)
+    setFilterTrader(TRADING_PROFILES)
   }
 
   function toggleSort(field: SortField) {
