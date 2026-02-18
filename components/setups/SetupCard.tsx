@@ -33,13 +33,10 @@ interface SetupCardProps {
 
 export function SetupCard({ setup }: SetupCardProps) {
   const isLong = setup.richtung === 'LONG'
-  const formattedDate = new Date(setup.datum).toLocaleString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+
+  // Format date consistently to avoid hydration mismatch
+  const date = new Date(setup.datum)
+  const formattedDate = `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -60,7 +57,7 @@ export function SetupCard({ setup }: SetupCardProps) {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs text-muted-foreground">Kurs aktuell</p>
+            <p className="text-xs text-muted-foreground">Kurs bei Signal</p>
             <p className="text-base font-bold tabular-nums">{formatPrice(setup.aktueller_kurs)}</p>
           </div>
         </div>
@@ -137,7 +134,7 @@ export function SetupCard({ setup }: SetupCardProps) {
           <div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
               <Clock className="h-3 w-3" />
-              <span>Zeit</span>
+              <span>Zeiteinheit</span>
             </div>
             <p className="font-semibold text-sm">{setup.zeiteinheit}</p>
           </div>
