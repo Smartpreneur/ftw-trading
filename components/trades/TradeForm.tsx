@@ -69,7 +69,7 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
           tp2: trade.tp2 ?? undefined,
           tp3: trade.tp3 ?? undefined,
           tp4: trade.tp4 ?? undefined,
-          status: trade.status,
+          status: trade.status === 'Geschlossen' ? 'Erfolgreich' : trade.status,
           datum_schliessung: trade.datum_schliessung ?? undefined,
           ausstiegspreis: trade.ausstiegspreis ?? undefined,
           bemerkungen: trade.bemerkungen ?? undefined,
