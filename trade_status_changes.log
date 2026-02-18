@@ -1,0 +1,38 @@
+# Trade Status Changes Log
+# Automatische Synchronisation mit Strategie Stefan Jäger: Aktive Setups
+# Datum: 2026-02-18
+# Status: ✓ ERFOLGREICH DURCHGEFÜHRT
+
+## Änderungen von Aktiv → Geschlossen
+
+### T-0217 - DAX
+- Von: Aktiv
+- Nach: Geschlossen
+- Grund: Nicht mehr in aktiver Setup-Liste
+- Einstiegspreis: 19.65
+- Eröffnungsdatum: 2025-01-01
+
+### T-0291 - TecDAX
+- Von: Aktiv
+- Nach: Geschlossen
+- Grund: Nicht mehr in aktiver Setup-Liste
+- Einstiegspreis: 3.611
+- Eröffnungsdatum: 2025-09-29
+
+### T-0318 - DaVita
+- Von: Aktiv
+- Nach: Geschlossen
+- Grund: Im Dokument als "beendet" markiert (34,00%)
+- Einstiegspreis: 106.0
+- Eröffnungsdatum: 2025-01-12
+
+## Trades bleiben aktiv
+
+- T-0316 - SAP (Nr. 67)
+- T-0319 - Fortinet (Nr. 70)
+- T-0322 - LVMH (Nr. 71)
+- T-0324 - EURUSD (Nr. 72)
+
+## Hinweise
+
+- Amazon (Nr. 72 im Dokument) existiert nicht in der Datenbank

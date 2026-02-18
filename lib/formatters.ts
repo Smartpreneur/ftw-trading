@@ -18,7 +18,7 @@ export function formatPrice(value: number | null | undefined): string {
 export function formatDate(value: string | null | undefined): string {
   if (!value) return '–'
   try {
-    return format(parseISO(value), 'dd.MM.yyyy', { locale: de })
+    return format(parseISO(value), 'dd.MM.yy', { locale: de })
   } catch {
     return value
   }

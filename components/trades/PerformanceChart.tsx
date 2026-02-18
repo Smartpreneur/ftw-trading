@@ -24,8 +24,8 @@ function CustomTooltip({ active, payload, label }: any) {
   return (
     <div className="rounded-lg border bg-background p-3 shadow-md text-sm">
       <p className="font-semibold mb-1">{label}</p>
-      <p className={`font-medium ${d.total_pct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-        {d.total_pct >= 0 ? '+' : ''}{d.total_pct.toFixed(2)} %
+      <p className={`font-medium ${d.avg_pct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+        {d.avg_pct >= 0 ? '+' : ''}{d.avg_pct.toFixed(2)} %
       </p>
       <p className="text-muted-foreground">
         {d.win_count}/{d.trade_count} Trades gewonnen
@@ -51,7 +51,7 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Monatliche Performance (%)</CardTitle>
+        <CardTitle className="text-base">Durchschnitts-Performance pro Monat</CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={260}>
@@ -71,11 +71,11 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
             />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={0} stroke="hsl(var(--border))" />
-            <Bar dataKey="total_pct" radius={[4, 4, 0, 0]}>
+            <Bar dataKey="avg_pct" radius={[4, 4, 0, 0]}>
               {data.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
-                  fill={entry.total_pct >= 0 ? '#10b981' : '#f43f5e'}
+                  fill={entry.avg_pct >= 0 ? '#10b981' : '#f43f5e'}
                   fillOpacity={0.85}
                 />
               ))}

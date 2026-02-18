@@ -152,55 +152,43 @@ export function TradeTable({ trades }: TradeTableProps) {
         </div>
 
         {/* Status filter */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Status</label>
-          <MultiSelect
-            options={TRADE_STATUSES.map((s) => ({ value: s, label: s }))}
-            selected={filterStatus}
-            onChange={setFilterStatus}
-            placeholder="Status"
-            className="w-36"
-          />
-        </div>
+        <MultiSelect
+          options={TRADE_STATUSES.map((s) => ({ value: s, label: s }))}
+          selected={filterStatus}
+          onChange={setFilterStatus}
+          placeholder="Status"
+          className="w-36"
+        />
 
         {/* Direction filter */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Richtung</label>
-          <MultiSelect
-            options={[
-              { value: 'LONG', label: 'LONG' },
-              { value: 'SHORT', label: 'SHORT' },
-            ]}
-            selected={filterDirection}
-            onChange={setFilterDirection}
-            placeholder="Richtung"
-            className="w-32"
-          />
-        </div>
+        <MultiSelect
+          options={[
+            { value: 'LONG', label: 'LONG' },
+            { value: 'SHORT', label: 'SHORT' },
+          ]}
+          selected={filterDirection}
+          onChange={setFilterDirection}
+          placeholder="Richtung"
+          className="w-32"
+        />
 
         {/* Asset class filter */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Klasse</label>
-          <MultiSelect
-            options={ASSET_CLASSES.map((c) => ({ value: c, label: c }))}
-            selected={filterAssetClass}
-            onChange={setFilterAssetClass}
-            placeholder="Klasse"
-            className="w-36"
-          />
-        </div>
+        <MultiSelect
+          options={ASSET_CLASSES.map((c) => ({ value: c, label: c }))}
+          selected={filterAssetClass}
+          onChange={setFilterAssetClass}
+          placeholder="Klasse"
+          className="w-36"
+        />
 
         {/* Trader filter */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Trader</label>
-          <MultiSelect
-            options={TRADING_PROFILES.map((p) => ({ value: p, label: p }))}
-            selected={filterTrader}
-            onChange={setFilterTrader}
-            placeholder="Trader"
-            className="w-32"
-          />
-        </div>
+        <MultiSelect
+          options={TRADING_PROFILES.map((p) => ({ value: p, label: p }))}
+          selected={filterTrader}
+          onChange={setFilterTrader}
+          placeholder="Trader"
+          className="w-32"
+        />
 
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 gap-1">

@@ -10,7 +10,7 @@ import { getMonthLabel } from './formatters'
 export function calculateKPIs(trades: TradeWithPerformance[]): PerformanceKPIs {
   const closed = trades.filter(
     (t) =>
-      ['Erfolgreich', 'Ausgestoppt', 'Einstand'].includes(t.status) &&
+      t.status !== 'Aktiv' &&
       t.performance_pct !== null
   )
   const winners = closed.filter((t) => (t.performance_pct ?? 0) > 0)
@@ -50,29 +50,36 @@ export function calculateMonthlyPerformance(
   trades: TradeWithPerformance[]
 ): MonthlyPerformance[] {
   const closed = trades.filter(
-    (t) => t.datum_schliessung && t.performance_pct !== null
+    (t) => t.status !== 'Aktiv' && t.performance_pct !== null
   )
 
-  const byMonth: Record<string, MonthlyPerformance> = {}
+  const byMonth: Record<string, { month: string; sum: number; count: number; wins: number }> = {}
 
   for (const trade of closed) {
-    const key = trade.datum_schliessung!.slice(0, 7) // "2024-10"
+    // Use closing date if available, otherwise use opening date
+    const dateToUse = trade.datum_schliessung || trade.datum_eroeffnung
+    const key = dateToUse.slice(0, 7) // "2024-10"
     if (!byMonth[key]) {
       byMonth[key] = {
-        month: getMonthLabel(trade.datum_schliessung!),
-        total_pct: 0,
-        trade_count: 0,
-        win_count: 0,
+        month: getMonthLabel(dateToUse),
+        sum: 0,
+        count: 0,
+        wins: 0,
       }
     }
-    byMonth[key].total_pct += trade.performance_pct ?? 0
-    byMonth[key].trade_count++
-    if ((trade.performance_pct ?? 0) > 0) byMonth[key].win_count++
+    byMonth[key].sum += trade.performance_pct ?? 0
+    byMonth[key].count++
+    if ((trade.performance_pct ?? 0) > 0) byMonth[key].wins++
   }
 
   return Object.entries(byMonth)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([, v]) => ({ ...v, total_pct: Math.round(v.total_pct * 100) / 100 }))
+    .map(([, v]) => ({
+      month: v.month,
+      avg_pct: Math.round((v.sum / v.count) * 100) / 100,
+      trade_count: v.count,
+      win_count: v.wins,
+    }))
 }
 
 export function calculateAssetClassPerformance(
@@ -80,7 +87,7 @@ export function calculateAssetClassPerformance(
 ): AssetClassPerformance[] {
   const closed = trades.filter(
     (t) =>
-      ['Erfolgreich', 'Ausgestoppt', 'Einstand'].includes(t.status) &&
+      t.status !== 'Aktiv' &&
       t.performance_pct !== null
   )
 
@@ -107,17 +114,29 @@ export function calculateEquityCurve(
   trades: TradeWithPerformance[]
 ): EquityCurvePoint[] {
   const closed = trades
-    .filter((t) => t.datum_schliessung && t.performance_pct !== null)
-    .sort((a, b) => a.datum_schliessung!.localeCompare(b.datum_schliessung!))
+    .filter((t) => t.status !== 'Aktiv' && t.performance_pct !== null)
+    .map((t) => ({
+      ...t,
+      // Use closing date if available, otherwise use opening date
+      displayDate: t.datum_schliessung || t.datum_eroeffnung
+    }))
+    .sort((a, b) => a.displayDate.localeCompare(b.displayDate))
 
-  let cumulative = 0
+  // Equal weighting: assume each trade uses 10% of depot
+  const positionSize = 0.1
+  let depotValue = 100 // Start with 100%
+
   return closed.map((t) => {
-    cumulative = Math.round((cumulative + (t.performance_pct ?? 0)) * 100) / 100
-    const date = t.datum_schliessung!
+    // Apply trade performance to the position size
+    const tradeReturn = (t.performance_pct ?? 0) / 100
+    depotValue = depotValue * (1 + positionSize * tradeReturn)
+    const cumulativePct = depotValue - 100
+
+    const date = t.displayDate
     const [y, m, d] = date.split('-')
     return {
       date: `${d}.${m}.${y.slice(2)}`,
-      cumulative_pct: cumulative,
+      cumulative_pct: Math.round(cumulativePct * 100) / 100,
       asset: t.asset,
       richtung: t.richtung,
       trade_pct: t.performance_pct ?? 0,

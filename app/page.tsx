@@ -1,20 +1,28 @@
 import { getTrades } from '@/lib/actions'
+import { getActiveTradePrices } from '@/lib/price-actions'
 import {
   calculateKPIs,
   calculateMonthlyPerformance,
   calculateAssetClassPerformance,
-  calculateEquityCurve,
 } from '@/lib/calculations'
 import { KPICards } from '@/components/trades/KPICards'
 import { PerformanceChart } from '@/components/trades/PerformanceChart'
 import { AssetClassChart } from '@/components/trades/AssetClassChart'
 import { WinRateGauge } from '@/components/trades/WinRateGauge'
-import { EquityCurveChart } from '@/components/trades/EquityCurveChart'
 import { TradeDialog } from '@/components/trades/TradeDialog'
 import { StatusBadge } from '@/components/trades/StatusBadge'
 import { DirectionBadge } from '@/components/trades/DirectionBadge'
+import { RefreshPricesButton } from '@/components/trades/RefreshPricesButton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { formatDate, formatPercent, formatPrice } from '@/lib/formatters'
 import { Plus, ArrowRight, TrendingUp, TrendingDown } from 'lucide-react'
 import Link from 'next/link'
@@ -40,13 +48,16 @@ export default async function DashboardPage({
     error = e?.message ?? 'Fehler beim Laden der Trades'
   }
 
+  // Fetch live prices for active trades
+  const activePrices = await getActiveTradePrices()
+  const priceMap = new Map(activePrices.map(p => [p.trade_id, p]))
+
   const kpis = calculateKPIs(trades)
   const monthly = calculateMonthlyPerformance(trades)
   const byAssetClass = calculateAssetClassPerformance(trades)
-  const equityCurve = calculateEquityCurve(trades)
   const activeTrades = trades.filter((t) => t.status === 'Aktiv')
   const recentClosedTrades = trades
-    .filter((t) => t.status === 'Geschlossen')
+    .filter((t) => t.status !== 'Aktiv')
     .slice(0, 5)
 
   const pfColor =
@@ -135,6 +146,10 @@ export default async function DashboardPage({
                 <span className="font-semibold">{kpis.total_trades}</span>
               </div>
               <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Offene Trades</span>
+                <span className="font-semibold">{activeTrades.length}</span>
+              </div>
+              <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Geschlossen</span>
                 <span className="font-semibold">{kpis.closed_trades}</span>
               </div>
@@ -145,7 +160,7 @@ export default async function DashboardPage({
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Schlechtester</span>
+                <span className="text-muted-foreground">Schlechtester Trade</span>
                 <span className="font-semibold text-rose-600">
                   {kpis.worst_trade_pct.toFixed(2)} %
                 </span>
@@ -158,9 +173,6 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
       </div>
-
-      {/* Equity Curve — full width */}
-      <EquityCurveChart data={equityCurve} />
 
       {/* Monthly Performance + Asset Class side by side */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -178,49 +190,129 @@ export default async function DashboardPage({
                 {activeTrades.length}
               </span>
             </CardTitle>
-            <Link
-              href="/trades"
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Alle Trades
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {activeTrades.map((trade) => (
-                <div
-                  key={trade.id}
-                  className="flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    {trade.trade_id && (
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {trade.trade_id}
-                      </span>
-                    )}
-                    {trade.richtung && <DirectionBadge direction={trade.richtung} />}
-                    <span className="font-medium truncate">{trade.asset}</span>
-                    <span className="text-muted-foreground text-xs hidden sm:inline">
-                      seit {formatDate(trade.datum_eroeffnung)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    {trade.einstiegspreis !== null && (
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {formatPrice(trade.einstiegspreis)}
-                      </span>
-                    )}
-                    <StatusBadge status={trade.status} />
-                    {trade.risiko_pct !== null && (
-                      <span className="text-xs text-muted-foreground hidden md:inline">
-                        Risk: {formatPercent(trade.risiko_pct, false)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center gap-2">
+              <RefreshPricesButton />
+              <Link
+                href="/trades"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Alle Trades
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
+          </CardHeader>
+          <CardContent className="px-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-6">ID</TableHead>
+                  <TableHead>Datum</TableHead>
+                  <TableHead>Basiswert</TableHead>
+                  <TableHead>Long/Short</TableHead>
+                  <TableHead className="text-right">Einstiegskurs</TableHead>
+                  <TableHead className="text-right">Aktueller Kurs</TableHead>
+                  <TableHead className="text-right">G/V in %</TableHead>
+                  <TableHead className="text-right">SL</TableHead>
+                  <TableHead className="text-right">TP1</TableHead>
+                  <TableHead className="text-right">TP2</TableHead>
+                  <TableHead className="text-right">TP3</TableHead>
+                  <TableHead className="text-right">TP4</TableHead>
+                  <TableHead className="pr-6">Bemerkung</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activeTrades.map((trade) => {
+                  const priceData = priceMap.get(trade.id)
+                  const currentPrice = priceData?.current_price
+                  const entryPrice = trade.einstiegspreis
+
+                  // Calculate unrealized P&L
+                  let unrealizedPct: number | null = null
+                  if (currentPrice && entryPrice && trade.richtung) {
+                    if (trade.richtung === 'LONG') {
+                      unrealizedPct = ((currentPrice - entryPrice) / entryPrice) * 100
+                    } else {
+                      unrealizedPct = ((entryPrice - currentPrice) / entryPrice) * 100
+                    }
+                  }
+
+                  return (
+                    <TableRow key={trade.id}>
+                      <TableCell className="pl-6">
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {trade.trade_id || '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">
+                          {formatDate(trade.datum_eroeffnung)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium">{trade.asset}</span>
+                      </TableCell>
+                      <TableCell>
+                        {trade.richtung && <DirectionBadge direction={trade.richtung} />}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-mono text-sm">
+                          {entryPrice ? formatPrice(entryPrice) : '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-mono text-sm">
+                          {currentPrice ? formatPrice(currentPrice) : '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {unrealizedPct !== null ? (
+                          <span
+                            className={`font-mono text-sm font-semibold ${
+                              unrealizedPct >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                            }`}
+                          >
+                            {unrealizedPct >= 0 ? '+' : ''}
+                            {unrealizedPct.toFixed(2)}%
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-mono text-sm">
+                          {trade.stop_loss ? formatPrice(trade.stop_loss) : '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-mono text-sm">
+                          {trade.tp1 ? formatPrice(trade.tp1) : '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-mono text-sm">
+                          {trade.tp2 ? formatPrice(trade.tp2) : '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-mono text-sm">
+                          {trade.tp3 ? formatPrice(trade.tp3) : '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-mono text-sm">
+                          {trade.tp4 ? formatPrice(trade.tp4) : '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="pr-6">
+                        <span className="text-sm text-muted-foreground truncate max-w-xs block">
+                          {trade.bemerkungen || '—'}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}
@@ -244,45 +336,107 @@ export default async function DashboardPage({
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0">
           {recentClosedTrades.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">
               Keine geschlossenen Trades
             </p>
           ) : (
-            <div className="space-y-2">
-              {recentClosedTrades.map((trade) => (
-                <div
-                  key={trade.id}
-                  className="flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    {trade.trade_id && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-6">ID</TableHead>
+                  <TableHead>Datum</TableHead>
+                  <TableHead>Basiswert</TableHead>
+                  <TableHead>Long/Short</TableHead>
+                  <TableHead className="text-right">Einstiegskurs</TableHead>
+                  <TableHead className="text-right">Ausstiegskurs</TableHead>
+                  <TableHead className="text-right">G/V in %</TableHead>
+                  <TableHead className="text-right">SL</TableHead>
+                  <TableHead className="text-right">TP1</TableHead>
+                  <TableHead className="text-right">TP2</TableHead>
+                  <TableHead className="text-right">TP3</TableHead>
+                  <TableHead className="text-right">TP4</TableHead>
+                  <TableHead className="pr-6">Bemerkung</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentClosedTrades.map((trade) => (
+                  <TableRow key={trade.id}>
+                    <TableCell className="pl-6">
                       <span className="font-mono text-xs text-muted-foreground">
-                        {trade.trade_id}
+                        {trade.trade_id || '—'}
                       </span>
-                    )}
-                    <span className="font-medium truncate">{trade.asset}</span>
-                    <span className="text-muted-foreground text-xs hidden sm:inline">
-                      {formatDate(trade.datum_schliessung || trade.datum_eroeffnung)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    {trade.performance_pct !== null && (
-                      <span
-                        className={`font-mono text-sm font-semibold ${
-                          trade.performance_pct >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                        }`}
-                      >
-                        {trade.performance_pct >= 0 ? '+' : ''}
-                        {trade.performance_pct.toFixed(2)} %
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">
+                        {formatDate(trade.datum_schliessung || trade.datum_eroeffnung)}
                       </span>
-                    )}
-                    <StatusBadge status={trade.status} />
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-medium">{trade.asset}</span>
+                    </TableCell>
+                    <TableCell>
+                      {trade.richtung && <DirectionBadge direction={trade.richtung} />}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-mono text-sm">
+                        {trade.einstiegspreis ? formatPrice(trade.einstiegspreis) : '—'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-mono text-sm">
+                        {trade.ausstiegspreis ? formatPrice(trade.ausstiegspreis) : '—'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {trade.performance_pct !== null ? (
+                        <span
+                          className={`font-mono text-sm font-semibold ${
+                            trade.performance_pct >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                          }`}
+                        >
+                          {trade.performance_pct >= 0 ? '+' : ''}
+                          {trade.performance_pct.toFixed(2)}%
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-mono text-sm">
+                        {trade.stop_loss ? formatPrice(trade.stop_loss) : '—'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-mono text-sm">
+                        {trade.tp1 ? formatPrice(trade.tp1) : '—'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-mono text-sm">
+                        {trade.tp2 ? formatPrice(trade.tp2) : '—'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-mono text-sm">
+                        {trade.tp3 ? formatPrice(trade.tp3) : '—'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-mono text-sm">
+                        {trade.tp4 ? formatPrice(trade.tp4) : '—'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="pr-6">
+                      <span className="text-sm text-muted-foreground truncate max-w-xs block">
+                        {trade.bemerkungen || '—'}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

@@ -16,7 +16,9 @@ export function WinRateGauge({ kpis }: WinRateGaugeProps) {
   // SVG circle gauge
   const radius = 42
   const circumference = 2 * Math.PI * radius
-  const fillOffset = circumference - (winRate / 100) * circumference
+  const winFillOffset = circumference - (winRate / 100) * circumference
+  const lossFillOffset = 0
+  const lossFillLength = (winRate / 100) * circumference
 
   const gaugeColor = winRate >= 60 ? '#10b981' : winRate >= 50 ? '#f59e0b' : '#f43f5e'
 
@@ -44,16 +46,20 @@ export function WinRateGauge({ kpis }: WinRateGaugeProps) {
           {/* Right: circular gauge */}
           <div className="relative shrink-0">
             <svg width="100" height="100" className="-rotate-90">
-              {/* Track */}
+              {/* Loss portion (red) */}
               <circle
                 cx="50"
                 cy="50"
                 r={radius}
                 fill="none"
-                stroke="hsl(var(--muted))"
+                stroke="#f43f5e"
                 strokeWidth="10"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={lossFillOffset}
+                style={{ transition: 'stroke-dashoffset 0.6s ease' }}
               />
-              {/* Fill */}
+              {/* Win portion (green) */}
               <circle
                 cx="50"
                 cy="50"
@@ -63,7 +69,7 @@ export function WinRateGauge({ kpis }: WinRateGaugeProps) {
                 strokeWidth="10"
                 strokeLinecap="round"
                 strokeDasharray={circumference}
-                strokeDashoffset={fillOffset}
+                strokeDashoffset={winFillOffset}
                 style={{ transition: 'stroke-dashoffset 0.6s ease' }}
               />
             </svg>

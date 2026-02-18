@@ -66,7 +66,7 @@ export interface PerformanceKPIs {
 
 export interface MonthlyPerformance {
   month: string
-  total_pct: number
+  avg_pct: number
   trade_count: number
   win_count: number
 }
@@ -134,4 +134,19 @@ export type SetupFormData = {
   bemerkungen: string | null
   chart_bild_url: string | null
   profil: TradingProfile
+}
+
+export interface ActiveTradePrice {
+  id: string
+  trade_id: string
+  asset: string
+  current_price: number
+  updated_at: string
+  created_at: string
+}
+
+export interface TradeWithPrice extends TradeWithPerformance {
+  current_price: number | null
+  price_updated_at: string | null
+  unrealized_pct: number | null
 }

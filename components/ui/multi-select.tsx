@@ -36,12 +36,7 @@ export function MultiSelect({
     }
   }
 
-  const displayText =
-    selected.length === 0
-      ? placeholder
-      : selected.length === 1
-      ? options.find((o) => o.value === selected[0])?.label || placeholder
-      : `${selected.length} ausgewählt`
+  const displayText = placeholder
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

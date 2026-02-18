@@ -21,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de">
-      <body className={`${geist.variable} font-sans antialiased`}>
+      <body className={`${geist.variable} font-sans antialiased`} suppressHydrationWarning>
         <Nav />
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">{children}</main>
         <Toaster richColors position="bottom-right" />
