@@ -139,7 +139,7 @@ export function TradeTable({ trades }: TradeTableProps) {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-end gap-2">
         {/* Search */}
         <div className="relative flex-1 min-w-40 max-w-xs">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -152,43 +152,55 @@ export function TradeTable({ trades }: TradeTableProps) {
         </div>
 
         {/* Status filter */}
-        <MultiSelect
-          options={TRADE_STATUSES.map((s) => ({ value: s, label: s }))}
-          selected={filterStatus}
-          onChange={setFilterStatus}
-          placeholder="Status"
-          className="w-36"
-        />
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Status</label>
+          <MultiSelect
+            options={TRADE_STATUSES.map((s) => ({ value: s, label: s }))}
+            selected={filterStatus}
+            onChange={setFilterStatus}
+            placeholder="Status"
+            className="w-36"
+          />
+        </div>
 
         {/* Direction filter */}
-        <MultiSelect
-          options={[
-            { value: 'LONG', label: 'LONG' },
-            { value: 'SHORT', label: 'SHORT' },
-          ]}
-          selected={filterDirection}
-          onChange={setFilterDirection}
-          placeholder="Richtung"
-          className="w-32"
-        />
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Richtung</label>
+          <MultiSelect
+            options={[
+              { value: 'LONG', label: 'LONG' },
+              { value: 'SHORT', label: 'SHORT' },
+            ]}
+            selected={filterDirection}
+            onChange={setFilterDirection}
+            placeholder="Richtung"
+            className="w-32"
+          />
+        </div>
 
         {/* Asset class filter */}
-        <MultiSelect
-          options={ASSET_CLASSES.map((c) => ({ value: c, label: c }))}
-          selected={filterAssetClass}
-          onChange={setFilterAssetClass}
-          placeholder="Klasse"
-          className="w-36"
-        />
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Klasse</label>
+          <MultiSelect
+            options={ASSET_CLASSES.map((c) => ({ value: c, label: c }))}
+            selected={filterAssetClass}
+            onChange={setFilterAssetClass}
+            placeholder="Klasse"
+            className="w-36"
+          />
+        </div>
 
         {/* Trader filter */}
-        <MultiSelect
-          options={TRADING_PROFILES.map((p) => ({ value: p, label: p }))}
-          selected={filterTrader}
-          onChange={setFilterTrader}
-          placeholder="Trader"
-          className="w-32"
-        />
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Trader</label>
+          <MultiSelect
+            options={TRADING_PROFILES.map((p) => ({ value: p, label: p }))}
+            selected={filterTrader}
+            onChange={setFilterTrader}
+            placeholder="Trader"
+            className="w-32"
+          />
+        </div>
 
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 gap-1">
@@ -259,9 +271,7 @@ export function TradeTable({ trades }: TradeTableProps) {
                 </button>
               </TableHead>
               <TableHead className="text-right">Einstieg</TableHead>
-              <TableHead className="text-right">SL</TableHead>
-              <TableHead className="text-right">TP1</TableHead>
-              <TableHead className="text-right">R/R</TableHead>
+              <TableHead className="text-right">Ausstieg</TableHead>
               <TableHead>
                 <button
                   onClick={() => toggleSort('status')}
@@ -286,7 +296,7 @@ export function TradeTable({ trades }: TradeTableProps) {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                   {hasFilters ? 'Keine Trades für diese Filter' : 'Noch keine Trades vorhanden'}
                 </TableCell>
               </TableRow>
@@ -311,14 +321,8 @@ export function TradeTable({ trades }: TradeTableProps) {
                   <TableCell className="text-right font-mono text-sm">
                     {formatPrice(trade.einstiegspreis)}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-sm text-muted-foreground">
-                    {formatPrice(trade.stop_loss)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm text-muted-foreground">
-                    {formatPrice(trade.tp1)}
-                  </TableCell>
-                  <TableCell className="text-right text-sm">
-                    {trade.risk_reward ? `${formatRR(trade.risk_reward)}R` : '–'}
+                  <TableCell className="text-right font-mono text-sm">
+                    {formatPrice(trade.ausstiegspreis)}
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={trade.status} />
