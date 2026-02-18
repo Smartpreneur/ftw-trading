@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { BookOpen, LayoutDashboard } from 'lucide-react'
+import { BookOpen, LayoutDashboard, TrendingUp } from 'lucide-react'
 import Image from 'next/image'
 import { ProfileFilter } from '@/components/profile-filter'
 
 const links = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/trades', label: 'Trades', icon: BookOpen },
+  { href: '/setups', label: 'Trade-Setups', icon: TrendingUp },
 ]
 
 export function Nav() {
