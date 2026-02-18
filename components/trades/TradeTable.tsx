@@ -304,7 +304,7 @@ export function TradeTable({ trades }: TradeTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <DirectionBadge direction={trade.richtung} />
+                    <DirectionBadge direction={trade.richtung ?? 'LONG'} />
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm">
                     {formatPrice(trade.einstiegspreis)}
