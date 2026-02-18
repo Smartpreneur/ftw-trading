@@ -28,7 +28,7 @@ export function WinRateGauge({ kpis }: WinRateGaugeProps) {
         <div className="flex items-center justify-between gap-4">
           {/* Left: label + counts + percentage */}
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium text-muted-foreground">Trade Win %</p>
+            <p className="text-sm font-bold text-foreground">Trade Win %</p>
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700 min-w-[28px]">
                 {wins}

@@ -99,9 +99,6 @@ export default async function DashboardPage({
         </div>
       )}
 
-      {/* KPI Cards */}
-      <KPICards kpis={kpis} />
-
       {/* Win Rate + Profit Factor + Equity Curve */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Win Rate Gauge */}
@@ -111,7 +108,7 @@ export default async function DashboardPage({
         <Card>
           <CardContent className="pt-5 pb-4">
             <div className="flex flex-col gap-2 h-full justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Profit Factor</p>
+              <p className="text-sm font-bold text-foreground">Profit Factor</p>
               <div className="flex items-end gap-3 mt-2">
                 <span className={`text-4xl font-bold tabular-nums ${pfColor}`}>
                   {kpis.profit_factor > 0 ? kpis.profit_factor.toFixed(2) : '–'}
@@ -144,7 +141,7 @@ export default async function DashboardPage({
         {/* Stats summary */}
         <Card>
           <CardContent className="pt-5 pb-4">
-            <p className="text-sm font-medium text-muted-foreground mb-3">Übersicht</p>
+            <p className="text-sm font-bold text-foreground mb-3">Übersicht</p>
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Trades gesamt</span>
@@ -172,7 +169,7 @@ export default async function DashboardPage({
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Ø Haltedauer</span>
-                <span className="font-semibold">{kpis.avg_holding_days} Tage</span>
+                <span className="font-semibold">–</span>
               </div>
             </div>
           </CardContent>
@@ -245,7 +242,7 @@ export default async function DashboardPage({
                     <TableRow key={trade.id}>
                       <TableCell className="pl-6">
                         <span className="font-mono text-xs text-muted-foreground">
-                          {trade.trade_id ? trade.trade_id.replace('T-', '') : '—'}
+                          {trade.trade_id ? trade.trade_id.replace(/^T-0*/, '') : '—'}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -372,7 +369,7 @@ export default async function DashboardPage({
                   <TableRow key={trade.id}>
                     <TableCell className="pl-6">
                       <span className="font-mono text-xs text-muted-foreground">
-                        {trade.trade_id ? trade.trade_id.replace('T-', '') : '—'}
+                        {trade.trade_id ? trade.trade_id.replace(/^T-0*/, '') : '—'}
                       </span>
                     </TableCell>
                     <TableCell>
