@@ -20,6 +20,7 @@ interface Setup {
   dauer_erwartung: string
   status: 'Aktiv' | 'Getriggert' | 'Abgelaufen'
   bemerkungen?: string
+  chart_bild_url?: string
 }
 
 interface SetupGridProps {

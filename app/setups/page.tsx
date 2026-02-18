@@ -26,6 +26,7 @@ const exampleSetups = [
     dauer_erwartung: 'wenige Tage',
     status: 'Aktiv' as const,
     bemerkungen: 'Short-Einstieg nach Rejection an der 5.000er Marke',
+    chart_bild_url: '/placeholder-chart.svg', // Platzhalter - später echte Charts
   },
 ]
 

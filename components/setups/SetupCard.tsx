@@ -1,9 +1,8 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { DirectionBadge } from '@/components/trades/DirectionBadge'
 import { formatPrice } from '@/lib/formatters'
-import { Clock, Target, TrendingDown, TrendingUp, BarChart3 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Clock, TrendingDown, TrendingUp, BarChart3 } from 'lucide-react'
+import Image from 'next/image'
 
 interface Setup {
   id: string
@@ -25,6 +24,7 @@ interface Setup {
   dauer_erwartung: string
   status: 'Aktiv' | 'Getriggert' | 'Abgelaufen'
   bemerkungen?: string
+  chart_bild_url?: string
 }
 
 interface SetupCardProps {
@@ -45,13 +45,12 @@ export function SetupCard({ setup }: SetupCardProps) {
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="space-y-1 flex-1">
-            <h3 className="font-semibold text-lg leading-none">{setup.asset}</h3>
-            <div className="flex items-center gap-2 mt-1.5">
+          <div className="space-y-1.5 flex-1">
+            <h3 className="font-semibold text-base leading-tight">{setup.asset}</h3>
+            <div className="flex items-center gap-2">
               <Badge variant="secondary" className="text-xs">
                 {setup.asset_klasse}
               </Badge>
-              <DirectionBadge direction={setup.richtung} />
               <Badge
                 variant={setup.status === 'Aktiv' ? 'default' : 'outline'}
                 className="text-xs"
@@ -61,29 +60,27 @@ export function SetupCard({ setup }: SetupCardProps) {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs text-muted-foreground">Aktueller Kurs</p>
-            <p className="text-lg font-bold tabular-nums">{formatPrice(setup.aktueller_kurs)}</p>
+            <p className="text-xs text-muted-foreground">Kurs aktuell</p>
+            <p className="text-base font-bold tabular-nums">{formatPrice(setup.aktueller_kurs)}</p>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* Entry Zone */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Target className="h-4 w-4 text-blue-600" />
-            <span>Einstiegszone</span>
-          </div>
-          <div className="bg-blue-50 rounded-md p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Von</span>
-              <span className="font-mono font-semibold">{formatPrice(setup.einstieg_von)}</span>
-            </div>
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-sm text-muted-foreground">Bis</span>
-              <span className="font-mono font-semibold">{formatPrice(setup.einstieg_bis)}</span>
-            </div>
-          </div>
+      <CardContent className="space-y-3">
+        {/* Setup Direction & Entry */}
+        <div className="space-y-1.5">
+          <p className="text-sm">
+            <span className="font-medium">Setup:</span>{' '}
+            <span className={isLong ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}>
+              {setup.richtung}
+            </span>
+          </p>
+          <p className="text-sm">
+            <span className="font-medium">Einstieg:</span>{' '}
+            <span className="font-mono font-semibold">
+              {formatPrice(setup.aktueller_kurs)} ({formatPrice(setup.einstieg_von)} - {formatPrice(setup.einstieg_bis)})
+            </span>
+          </p>
         </div>
 
         {/* Take-Profit Levels */}
@@ -94,7 +91,7 @@ export function SetupCard({ setup }: SetupCardProps) {
             ) : (
               <TrendingDown className="h-4 w-4 text-emerald-600" />
             )}
-            <span>Take-Profit Ziele</span>
+            <span>Take-Profit</span>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-emerald-50 rounded-md p-2">
@@ -119,55 +116,62 @@ export function SetupCard({ setup }: SetupCardProps) {
         </div>
 
         {/* Stop-Loss */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <TrendingDown className="h-4 w-4 text-rose-600" />
-            <span>Stop-Loss</span>
-          </div>
-          <div className="bg-rose-50 rounded-md p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">SL neu</span>
-              <span className="font-mono font-semibold text-rose-700">
-                {formatPrice(setup.stop_loss)}
-              </span>
-            </div>
-          </div>
-        </div>
+        <p className="text-sm">
+          <span className="font-medium">SL:</span>{' '}
+          <span className="font-mono font-semibold text-rose-600">
+            {formatPrice(setup.stop_loss)}
+          </span>
+        </p>
 
         {/* Risk/Reward & Timing */}
-        <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+        <div className="grid grid-cols-3 gap-2 pt-2 border-t text-sm">
           <div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-              <BarChart3 className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
+              <BarChart3 className="h-3 w-3" />
               <span>CRV</span>
             </div>
-            <p className="font-semibold">
-              {setup.risiko_reward_min.toFixed(1)} - {setup.risiko_reward_max.toFixed(1)}
+            <p className="font-semibold text-sm">
+              {setup.risiko_reward_min.toFixed(1)}-{setup.risiko_reward_max.toFixed(1)}
             </p>
           </div>
           <div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-              <Clock className="h-3.5 w-3.5" />
-              <span>Zeitrahmen</span>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
+              <Clock className="h-3 w-3" />
+              <span>Zeit</span>
             </div>
-            <p className="font-semibold">{setup.zeiteinheit}</p>
+            <p className="font-semibold text-sm">{setup.zeiteinheit}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground mb-0.5">Dauer</p>
+            <p className="font-semibold text-sm">{setup.dauer_erwartung}</p>
           </div>
         </div>
 
-        {/* Additional Info */}
-        <div className="pt-2 border-t space-y-1">
-          <p className="text-xs text-muted-foreground">
-            <span className="font-medium">Dauer:</span> {setup.dauer_erwartung}
+        {/* Chart Image */}
+        {setup.chart_bild_url && (
+          <div className="pt-2 border-t">
+            <div className="relative w-full aspect-video rounded-md overflow-hidden bg-muted">
+              <Image
+                src={setup.chart_bild_url}
+                alt={`Chart für ${setup.asset}`}
+                fill
+                className="object-contain"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Bemerkungen */}
+        {setup.bemerkungen && (
+          <p className="text-xs text-muted-foreground pt-2 border-t">
+            {setup.bemerkungen}
           </p>
-          <p className="text-xs text-muted-foreground">
-            <span className="font-medium">Erstellt:</span> {formattedDate}
-          </p>
-          {setup.bemerkungen && (
-            <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">
-              {setup.bemerkungen}
-            </p>
-          )}
-        </div>
+        )}
+
+        {/* Date */}
+        <p className="text-xs text-muted-foreground">
+          {formattedDate}
+        </p>
       </CardContent>
     </Card>
   )
