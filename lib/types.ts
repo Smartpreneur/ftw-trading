@@ -1,6 +1,7 @@
 export type AssetClass = 'Index' | 'Rohstoff' | 'Krypto' | 'Aktie' | 'FX'
 export type TradeDirection = 'LONG' | 'SHORT'
 export type TradeStatus = 'Aktiv' | 'Erfolgreich' | 'Ausgestoppt' | 'Ungültig' | 'Einstand' | 'Geschlossen'
+export type SetupStatus = 'Aktiv' | 'Getriggert' | 'Abgelaufen'
 export type TradingProfile = 'MB' | 'SJ'
 
 export interface Trade {
@@ -84,4 +85,53 @@ export interface EquityCurvePoint {
   asset: string
   richtung: TradeDirection
   trade_pct: number
+}
+
+export interface TradeSetup {
+  id: string
+  asset: string
+  asset_klasse: AssetClass
+  datum: string
+  aktueller_kurs: number
+  richtung: TradeDirection
+  einstieg_von: number
+  einstieg_bis: number
+  stop_loss: number
+  tp1: number
+  tp2: number | null
+  tp3: number | null
+  tp4: number | null
+  risiko_reward_min: number
+  risiko_reward_max: number
+  zeiteinheit: string
+  dauer_erwartung: string | null
+  status: SetupStatus
+  bemerkungen: string | null
+  chart_bild_url: string | null
+  profil: TradingProfile
+  created_at: string
+  updated_at: string
+}
+
+export type SetupFormData = {
+  asset: string
+  asset_klasse: AssetClass
+  datum: string
+  aktueller_kurs: number
+  richtung: TradeDirection
+  einstieg_von: number
+  einstieg_bis: number
+  stop_loss: number
+  tp1: number
+  tp2: number | null
+  tp3: number | null
+  tp4: number | null
+  risiko_reward_min: number
+  risiko_reward_max: number
+  zeiteinheit: string
+  dauer_erwartung: string | null
+  status: SetupStatus
+  bemerkungen: string | null
+  chart_bild_url: string | null
+  profil: TradingProfile
 }

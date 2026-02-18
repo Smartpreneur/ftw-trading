@@ -1,36 +1,20 @@
+import { getSetups } from '@/lib/setup-actions'
 import { SetupGrid } from '@/components/setups/SetupGrid'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-// Beispiel-Daten (später aus Datenbank laden)
-const exampleSetups = [
-  {
-    id: '1',
-    asset: 'Gold - TVC (TradingView)',
-    asset_klasse: 'Rohstoff' as const,
-    datum: '2025-02-17T09:25:00',
-    aktueller_kurs: 4925,
-    richtung: 'SHORT' as const,
-    einstieg_von: 4995,
-    einstieg_bis: 5030,
-    stop_loss: 4975,
-    tp1: 4895,
-    tp2: 4845,
-    tp3: 4821,
-    tp4: 4800,
-    risiko_reward_min: 2.0,
-    risiko_reward_max: 4.0,
-    zeiteinheit: 'H1',
-    dauer_erwartung: 'wenige Tage',
-    status: 'Aktiv' as const,
-    bemerkungen: 'Short-Einstieg nach Rejection an der 5.000er Marke',
-    // chart_bild_url: '/charts/gold-setup.png', // Chart-Bild hier angeben
-  },
-]
+export default async function SetupsPage() {
+  let setups: Awaited<ReturnType<typeof getSetups>> = []
+  let error: string | null = null
 
-export default function SetupsPage() {
+  try {
+    setups = await getSetups()
+  } catch (e: any) {
+    error = e?.message ?? 'Fehler beim Laden der Setups'
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -46,7 +30,13 @@ export default function SetupsPage() {
         </Button>
       </div>
 
-      <SetupGrid setups={exampleSetups} />
+      {error && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error} — Bitte Supabase-Credentials in <code>.env.local</code> prüfen.
+        </div>
+      )}
+
+      <SetupGrid setups={setups} />
     </div>
   )
 }
