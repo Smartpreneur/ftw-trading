@@ -33,10 +33,10 @@ interface TradeTableProps {
 
 export function TradeTable({ trades }: TradeTableProps) {
   const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState<TradeStatus[]>(TRADE_STATUSES)
+  const [filterStatus, setFilterStatus] = useState<string[]>(TRADE_STATUSES)
   const [filterDirection, setFilterDirection] = useState<string[]>(['LONG', 'SHORT'])
-  const [filterAssetClass, setFilterAssetClass] = useState<AssetClass[]>(ASSET_CLASSES)
-  const [filterTrader, setFilterTrader] = useState<TradingProfile[]>(TRADING_PROFILES)
+  const [filterAssetClass, setFilterAssetClass] = useState<string[]>(ASSET_CLASSES)
+  const [filterTrader, setFilterTrader] = useState<string[]>(TRADING_PROFILES)
   const [sortBy, setSortBy] = useState<SortField>('id')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
