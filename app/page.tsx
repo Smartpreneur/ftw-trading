@@ -58,6 +58,11 @@ export default async function DashboardPage({
   const activeTrades = trades.filter((t) => t.status === 'Aktiv')
   const recentClosedTrades = trades
     .filter((t) => t.status !== 'Aktiv')
+    .sort((a, b) => {
+      const dateA = a.datum_schliessung || a.datum_eroeffnung
+      const dateB = b.datum_schliessung || b.datum_eroeffnung
+      return dateB.localeCompare(dateA) // Descending order (newest first)
+    })
     .slice(0, 5)
 
   const pfColor =
@@ -240,7 +245,7 @@ export default async function DashboardPage({
                     <TableRow key={trade.id}>
                       <TableCell className="pl-6">
                         <span className="font-mono text-xs text-muted-foreground">
-                          {trade.trade_id || '—'}
+                          {trade.trade_id ? trade.trade_id.replace('T-', '') : '—'}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -303,8 +308,11 @@ export default async function DashboardPage({
                           {trade.tp4 ? formatPrice(trade.tp4) : '—'}
                         </span>
                       </TableCell>
-                      <TableCell className="pr-6">
-                        <span className="text-sm text-muted-foreground truncate max-w-xs block">
+                      <TableCell className="pr-6 max-w-[150px]">
+                        <span
+                          className="text-sm text-muted-foreground truncate block cursor-help"
+                          title={trade.bemerkungen || undefined}
+                        >
                           {trade.bemerkungen || '—'}
                         </span>
                       </TableCell>
@@ -356,8 +364,7 @@ export default async function DashboardPage({
                   <TableHead className="text-right">TP1</TableHead>
                   <TableHead className="text-right">TP2</TableHead>
                   <TableHead className="text-right">TP3</TableHead>
-                  <TableHead className="text-right">TP4</TableHead>
-                  <TableHead className="pr-6">Bemerkung</TableHead>
+                  <TableHead className="text-right pr-6">TP4</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -365,7 +372,7 @@ export default async function DashboardPage({
                   <TableRow key={trade.id}>
                     <TableCell className="pl-6">
                       <span className="font-mono text-xs text-muted-foreground">
-                        {trade.trade_id || '—'}
+                        {trade.trade_id ? trade.trade_id.replace('T-', '') : '—'}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -423,14 +430,9 @@ export default async function DashboardPage({
                         {trade.tp3 ? formatPrice(trade.tp3) : '—'}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right pr-6">
                       <span className="font-mono text-sm">
                         {trade.tp4 ? formatPrice(trade.tp4) : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="pr-6">
-                      <span className="text-sm text-muted-foreground truncate max-w-xs block">
-                        {trade.bemerkungen || '—'}
                       </span>
                     </TableCell>
                   </TableRow>
