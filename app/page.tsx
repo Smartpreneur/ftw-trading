@@ -75,9 +75,9 @@ export default async function DashboardPage({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard Fugmanns Trading Woche</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Performance-Übersicht</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Performance-Übersicht deines Trading-Journals
+            Fugmanns Trading Woche
           </p>
         </div>
         <ProfileFilter />
