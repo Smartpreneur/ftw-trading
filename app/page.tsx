@@ -8,11 +8,10 @@ import {
 import { PerformanceChart } from '@/components/trades/PerformanceChart'
 import { AssetClassChart } from '@/components/trades/AssetClassChart'
 import { WinRateGauge } from '@/components/trades/WinRateGauge'
-import { TradeDialog } from '@/components/trades/TradeDialog'
 import { StatusBadge } from '@/components/trades/StatusBadge'
 import { DirectionBadge } from '@/components/trades/DirectionBadge'
 import { RefreshPricesButton } from '@/components/trades/RefreshPricesButton'
-import { Button } from '@/components/ui/button'
+import { ProfileFilter } from '@/components/profile-filter'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -23,7 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatDate, formatPercent, formatPrice } from '@/lib/formatters'
-import { Plus, ArrowRight, TrendingUp, TrendingDown } from 'lucide-react'
+import { ArrowRight, TrendingUp, TrendingDown } from 'lucide-react'
 import Link from 'next/link'
 import type { TradingProfile } from '@/lib/types'
 
@@ -76,19 +75,12 @@ export default async function DashboardPage({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard Fugmanns Trading Woche</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Performance-Übersicht deines Trading-Journals
           </p>
         </div>
-        <TradeDialog
-          trigger={
-            <Button className="gap-1.5">
-              <Plus className="h-4 w-4" />
-              Neuer Trade
-            </Button>
-          }
-        />
+        <ProfileFilter />
       </div>
 
       {/* Error banner */}
