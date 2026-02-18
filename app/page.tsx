@@ -5,7 +5,6 @@ import {
   calculateMonthlyPerformance,
   calculateAssetClassPerformance,
 } from '@/lib/calculations'
-import { KPICards } from '@/components/trades/KPICards'
 import { PerformanceChart } from '@/components/trades/PerformanceChart'
 import { AssetClassChart } from '@/components/trades/AssetClassChart'
 import { WinRateGauge } from '@/components/trades/WinRateGauge'
