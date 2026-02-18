@@ -15,16 +15,16 @@ interface Setup {
   einstieg_bis: number
   stop_loss: number
   tp1: number
-  tp2: number
-  tp3: number
-  tp4?: number
+  tp2: number | null
+  tp3: number | null
+  tp4: number | null
   risiko_reward_min: number
   risiko_reward_max: number
   zeiteinheit: string
-  dauer_erwartung: string
+  dauer_erwartung: string | null
   status: 'Aktiv' | 'Getriggert' | 'Abgelaufen'
-  bemerkungen?: string
-  chart_bild_url?: string
+  bemerkungen: string | null
+  chart_bild_url: string | null
 }
 
 interface SetupCardProps {
@@ -95,15 +95,19 @@ export function SetupCard({ setup }: SetupCardProps) {
               <p className="text-xs text-muted-foreground mb-0.5">TP1</p>
               <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp1)}</p>
             </div>
-            <div className="bg-emerald-50 rounded-md p-2">
-              <p className="text-xs text-muted-foreground mb-0.5">TP2</p>
-              <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp2)}</p>
-            </div>
-            <div className="bg-emerald-50 rounded-md p-2">
-              <p className="text-xs text-muted-foreground mb-0.5">TP3</p>
-              <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp3)}</p>
-            </div>
-            {setup.tp4 && (
+            {setup.tp2 !== null && (
+              <div className="bg-emerald-50 rounded-md p-2">
+                <p className="text-xs text-muted-foreground mb-0.5">TP2</p>
+                <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp2)}</p>
+              </div>
+            )}
+            {setup.tp3 !== null && (
+              <div className="bg-emerald-50 rounded-md p-2">
+                <p className="text-xs text-muted-foreground mb-0.5">TP3</p>
+                <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp3)}</p>
+              </div>
+            )}
+            {setup.tp4 !== null && (
               <div className="bg-emerald-50 rounded-md p-2">
                 <p className="text-xs text-muted-foreground mb-0.5">TP4</p>
                 <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp4)}</p>
@@ -140,7 +144,7 @@ export function SetupCard({ setup }: SetupCardProps) {
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-0.5">Dauer</p>
-            <p className="font-semibold text-sm">{setup.dauer_erwartung}</p>
+            <p className="font-semibold text-sm">{setup.dauer_erwartung || '–'}</p>
           </div>
         </div>
 

@@ -11,16 +11,16 @@ interface Setup {
   einstieg_bis: number
   stop_loss: number
   tp1: number
-  tp2: number
-  tp3: number
-  tp4?: number
+  tp2: number | null
+  tp3: number | null
+  tp4: number | null
   risiko_reward_min: number
   risiko_reward_max: number
   zeiteinheit: string
-  dauer_erwartung: string
+  dauer_erwartung: string | null
   status: 'Aktiv' | 'Getriggert' | 'Abgelaufen'
-  bemerkungen?: string
-  chart_bild_url?: string
+  bemerkungen: string | null
+  chart_bild_url: string | null
 }
 
 interface SetupGridProps {
