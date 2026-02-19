@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { getTrades } from '@/lib/actions'
 import { getActiveTradePrices } from '@/lib/price-actions'
 import {
@@ -80,7 +81,9 @@ export default async function DashboardPage({
             Fugmanns Trading Woche
           </p>
         </div>
-        <ProfileFilter />
+        <Suspense fallback={<div className="h-9 w-24 bg-muted animate-pulse rounded-md" />}>
+          <ProfileFilter />
+        </Suspense>
       </div>
 
       {/* Error banner */}
