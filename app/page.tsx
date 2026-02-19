@@ -27,8 +27,6 @@ import { ArrowRight, TrendingUp, TrendingDown } from 'lucide-react'
 import Link from 'next/link'
 import type { TradingProfile } from '@/lib/types'
 
-export const dynamic = 'force-dynamic'
-
 export default async function DashboardPage({
   searchParams,
 }: {
