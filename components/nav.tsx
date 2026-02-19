@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -53,7 +54,9 @@ export function Nav() {
 
           {/* Profile Filter */}
           <div className="ml-auto">
-            <ProfileFilter />
+            <Suspense fallback={<div className="h-9 w-24 bg-muted animate-pulse rounded-md" />}>
+              <ProfileFilter />
+            </Suspense>
           </div>
         </div>
       </div>

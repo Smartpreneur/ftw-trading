@@ -1,4 +1,3 @@
-import { Suspense } from 'react'
 import { getTrades } from '@/lib/actions'
 import { getActiveTradePrices } from '@/lib/price-actions'
 import {
@@ -12,7 +11,6 @@ import { WinRateGauge } from '@/components/trades/WinRateGauge'
 import { StatusBadge } from '@/components/trades/StatusBadge'
 import { DirectionBadge } from '@/components/trades/DirectionBadge'
 import { RefreshPricesButton } from '@/components/trades/RefreshPricesButton'
-import { ProfileFilter } from '@/components/profile-filter'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -79,9 +77,6 @@ export default async function DashboardPage({
             Fugmanns Trading Woche
           </p>
         </div>
-        <Suspense fallback={<div className="h-9 w-24 bg-muted animate-pulse rounded-md" />}>
-          <ProfileFilter />
-        </Suspense>
       </div>
 
       {/* Error banner */}
