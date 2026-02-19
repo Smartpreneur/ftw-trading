@@ -292,7 +292,7 @@ export function TradeTable({ trades }: TradeTableProps) {
               filtered.map((trade) => (
                 <TableRow key={trade.id} className="group">
                   <TableCell className="font-mono text-xs text-muted-foreground">
-                    {trade.trade_id ?? '–'}
+                    {trade.trade_id ? trade.trade_id.replace(/^T-0*/, '') : '—'}
                   </TableCell>
                   <TableCell className="text-sm whitespace-nowrap">
                     {formatDate(trade.datum_eroeffnung)}
