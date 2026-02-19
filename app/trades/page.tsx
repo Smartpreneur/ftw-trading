@@ -1,8 +1,6 @@
 import { getTrades } from '@/lib/actions'
 import { TradeTable } from '@/components/trades/TradeTable'
 
-export const dynamic = 'force-dynamic'
-
 export default async function TradesPage() {
   let trades: Awaited<ReturnType<typeof getTrades>> = []
   let error: string | null = null

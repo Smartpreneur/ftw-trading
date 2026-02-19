@@ -3,8 +3,6 @@ import { SetupGrid } from '@/components/setups/SetupGrid'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 
-export const dynamic = 'force-dynamic'
-
 export default async function SetupsPage() {
   let setups: Awaited<ReturnType<typeof getSetups>> = []
   let error: string | null = null
