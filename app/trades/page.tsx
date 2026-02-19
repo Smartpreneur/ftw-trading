@@ -1,12 +1,21 @@
 import { getTrades } from '@/lib/actions'
 import { TradeTable } from '@/components/trades/TradeTable'
+import type { TradingProfile } from '@/lib/types'
 
-export default async function TradesPage() {
+export default async function TradesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ profiles?: string }>
+}) {
+  const params = await searchParams
+  const profilesParam = params.profiles
+  const selectedProfiles = profilesParam?.split(',') as TradingProfile[] | undefined
+
   let trades: Awaited<ReturnType<typeof getTrades>> = []
   let error: string | null = null
 
   try {
-    trades = await getTrades()
+    trades = await getTrades(selectedProfiles)
   } catch (e: any) {
     error = e?.message ?? 'Fehler beim Laden'
   }

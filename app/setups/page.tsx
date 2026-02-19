@@ -2,13 +2,22 @@ import { getSetups } from '@/lib/setup-actions'
 import { SetupGrid } from '@/components/setups/SetupGrid'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
+import type { TradingProfile } from '@/lib/types'
 
-export default async function SetupsPage() {
+export default async function SetupsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ profiles?: string }>
+}) {
+  const params = await searchParams
+  const profilesParam = params.profiles
+  const selectedProfiles = profilesParam?.split(',') as TradingProfile[] | undefined
+
   let setups: Awaited<ReturnType<typeof getSetups>> = []
   let error: string | null = null
 
   try {
-    setups = await getSetups()
+    setups = await getSetups(selectedProfiles)
   } catch (e: any) {
     error = e?.message ?? 'Fehler beim Laden der Setups'
   }
