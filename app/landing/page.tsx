@@ -159,7 +159,7 @@ export default function LandingPage() {
       {/* PROBLEM */}
       <section className="section section--alt">
         <div className="container">
-          <h2 className="text-center reveal">Vielen Tradern geht es so</h2>
+          <h2 className="text-center reveal">Vielen Anlegern geht es so:</h2>
           <div className="problem-grid">
             <div className="problem-card reveal">
               <h3>Nur Long – kein Plan für fallende Märkte</h3>
@@ -168,7 +168,7 @@ export default function LandingPage() {
                 dreht. Das Depot leidet, weil Short-Setups fehlen.
               </p>
             </div>
-            <div className="problem-card reveal">
+            <div className="problem-card problem-card--cyan reveal">
               <h3>Keine Zeit für permanente Marktbeobachtung</h3>
               <p>
                 Wer beruflich eingespannt ist, kann den Markt nicht ständig

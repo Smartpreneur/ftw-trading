@@ -316,6 +316,16 @@ p { font-size: 1rem; }
     font-size: 0.92rem;
     line-height: 1.6;
 }
+.problem-card--cyan {
+    background: var(--fmw-primary);
+    border-color: var(--fmw-primary-dark);
+}
+.problem-card--cyan h3 { color: white; }
+.problem-card--cyan p  { color: rgba(255,255,255,0.8); }
+.problem-card--cyan:hover {
+    border-color: var(--fmw-primary-dark);
+    box-shadow: 0 8px 24px rgba(0, 116, 141, 0.3);
+}
 
 /* ══════════════════════════════════════
    BRIDGE
@@ -458,6 +468,7 @@ p { font-size: 1rem; }
 .results-table .pct {
     font-weight: 700;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 .dir-badge {
     display: inline-flex;
