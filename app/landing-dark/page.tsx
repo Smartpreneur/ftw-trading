@@ -100,6 +100,14 @@ export default function LandingPage() {
             <a href="#pricing" className="cta-btn">
               4 Wochen testen – 100 % Geld-zurück-Garantie
             </a>
+            <div className="hero__video">
+              <iframe
+                src="https://www.youtube.com/embed/XlZmBQcZQPY"
+                title="Fugmanns Trading Service"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
             <div className="hero__trust">
               <div className="trust-item">
                 <span className="trust-item__value">70 %+</span>
@@ -295,7 +303,7 @@ export default function LandingPage() {
           <div className="team-grid">
             <div className="team-card reveal">
               <img
-                src="/team/Stefan.png"
+                src="/team/Stefan.jpg"
                 alt="Stefan Jäger"
                 className="team-card__avatar"
               />
@@ -310,7 +318,7 @@ export default function LandingPage() {
             </div>
             <div className="team-card reveal">
               <img
-                src="/team/Michael.png"
+                src="/team/Michael.jpg"
                 alt="Michael Borgmann"
                 className="team-card__avatar"
               />

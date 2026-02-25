@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation'
 export function ConditionalMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
-  // Landing pages have their own layout, no main wrapper needed
-  if (pathname === '/landing' || pathname === '/landing-light') {
+  // Landing pages and their sub-routes have their own layout, no main wrapper needed
+  if (pathname === '/landing' || pathname === '/landing-light' || pathname.startsWith('/landing/')) {
     return <>{children}</>
   }
 

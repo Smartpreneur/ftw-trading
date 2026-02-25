@@ -1,0 +1,203 @@
+/* ══════════════════════════════════════
+   CHECKOUT PAGE
+   Two-column: product summary | iframe
+══════════════════════════════════════ */
+
+.co-page {
+  min-height: 100svh;
+  background: var(--light);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ── */
+.co-header {
+  background: white;
+  border-bottom: 1px solid var(--light-border);
+  padding: 14px clamp(20px, 5vw, 48px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.co-header__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.co-logo {
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.co-logo span { color: var(--fmw-primary); }
+
+.co-back {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.co-back:hover { color: var(--fmw-primary); }
+
+/* ── Main layout ── */
+.co-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  min-height: calc(100svh - 57px);
+}
+
+/* ── Product image ── */
+.co-product-img-wrap {
+  margin-top: 24px;
+  margin-bottom: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 116, 141, 0.12);
+}
+.co-product-img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+/* ── Left: Summary ── */
+.co-summary {
+  background: white;
+  border-right: 1px solid var(--light-border);
+  padding: clamp(32px, 5vw, 56px) clamp(24px, 4vw, 48px);
+  display: flex;
+  flex-direction: column;
+}
+.co-summary__inner {
+  position: sticky;
+  top: calc(57px + 32px);
+}
+.co-summary__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fmw-primary);
+  margin-bottom: 10px;
+}
+.co-summary__title {
+  font-size: clamp(1.4rem, 2.5vw, 1.9rem);
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+.co-summary__sub {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+/* ── Benefits ── */
+.co-benefits {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.co-benefit {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+.co-benefit__check {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--green-bg);
+  color: var(--green);
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+/* ── Price hint ── */
+.co-price-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: var(--light-subtle);
+  border: 1px solid var(--light-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 20px;
+}
+
+/* ── Guarantee ── */
+.co-guarantee {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: var(--light-subtle);
+  border: 1px solid var(--light-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+.co-guarantee strong { color: var(--text); }
+.co-guarantee__shield {
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+/* ── Right: Checkout iframe ── */
+.co-checkout {
+  background: var(--light-subtle);
+  display: flex;
+  flex-direction: column;
+}
+.co-iframe {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: calc(100svh - 57px);
+  border: none;
+}
+
+/* ══════════════════════════════════════
+   MOBILE
+══════════════════════════════════════ */
+@media (max-width: 860px) {
+  .co-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  /* iframe first on mobile */
+  .co-checkout { order: -1; }
+
+  .co-iframe {
+    min-height: 80svh;
+    height: 80svh;
+  }
+
+  .co-summary {
+    border-right: none;
+    border-top: 1px solid var(--light-border);
+    padding: 32px clamp(20px, 5vw, 32px);
+  }
+
+  .co-summary__inner {
+    position: static;
+  }
+}

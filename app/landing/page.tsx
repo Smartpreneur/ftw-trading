@@ -1,9 +1,40 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import './styles.css'
 
+const DISCOUNT_CODE = 'fugi26'
+const pricing = {
+  quarterly:  { normal: 89,  discounted: 86,  monthly: 28.67, discountPct: 3  },
+  halfYear:   { normal: 155, discounted: 147, monthly: 24.50, discountPct: 5  },
+  yearly:     { normal: 297, discounted: 267, monthly: 22.25, discountPct: 10 },
+}
+
 export default function LandingPage() {
+  const [discountActive, setDiscountActive] = useState(false)
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
+
+  const CHECKOUT_URL = 'https://premium.finanzmarktwelt.de/s/finanzmarktwelt/fugmann-s-trading-woche-d3973543/payment'
+
+  const openCheckout = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setCheckoutOpen(true)
+    document.body.style.overflow = 'hidden'
+  }
+
+  const closeCheckout = () => {
+    setCheckoutOpen(false)
+    document.body.style.overflow = ''
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const urlCode = params.get('code')
+    if (urlCode?.toLowerCase() === DISCOUNT_CODE) {
+      setDiscountActive(true)
+    }
+  }, [])
+
   useEffect(() => {
     // Navbar scroll effect
     const nav = document.getElementById('nav')
@@ -75,7 +106,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="nav__inner">
             <a href="#" className="nav__logo">
-              Fugmanns <span>Trading Service</span>
+              Fugmanns <span>Trading Woche</span>
             </a>
             <a href="#pricing" className="cta-btn nav__cta">
               Jetzt testen
@@ -88,32 +119,39 @@ export default function LandingPage() {
       <section className="hero">
         <div className="container">
           <div className="hero__content">
-            <div className="hero__badge">Fugmanns Trading Service</div>
             <h1>
               Mit Profi-Wissen mehr <span className="highlight">Rendite</span>{' '}
               erwirtschaften
             </h1>
             <p className="hero__sub">
-              Top-Analysen fertig vorbereitet mit Einstieg, Stop-Loss &amp;
-              Gewinnmitnahme.
+              Fertige Analysen für jede Marktlage – direkt ins Postfach, sofort umsetzbar
             </p>
+            <div className="hero__video">
+              <iframe
+                src="https://www.youtube.com/embed/XlZmBQcZQPY"
+                title="Fugmanns Trading Woche"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
             <a href="#pricing" className="cta-btn">
               4 Wochen testen – 100 % Geld-zurück-Garantie
             </a>
             <div className="hero__trust">
               <div className="trust-item">
                 <span className="trust-item__value">70 %+</span>
-                <span className="trust-item__label">Trefferquote</span>
+                <span className="trust-item__label">Trefferquote*</span>
               </div>
               <div className="trust-item">
                 <span className="trust-item__value">140+</span>
-                <span className="trust-item__label">Chancen pro Jahr</span>
+                <span className="trust-item__label">Analysen pro Jahr*</span>
               </div>
               <div className="trust-item">
                 <span className="trust-item__value">30 Tage</span>
                 <span className="trust-item__label">Geld-zurück-Garantie</span>
               </div>
             </div>
+            <p className="hero__disclaimer">* Bisherige Ergebnisse. Vergangene Performance ist kein Indikator für zukünftige Ergebnisse.</p>
           </div>
         </div>
       </section>
@@ -121,30 +159,30 @@ export default function LandingPage() {
       {/* PROBLEM */}
       <section className="section section--alt">
         <div className="container">
-          <h2 className="text-center reveal">Kennst Du das?</h2>
+          <h2 className="text-center reveal">Vielen Tradern geht es so</h2>
           <div className="problem-grid">
             <div className="problem-card reveal">
-              <div className="problem-card__icon">⏳</div>
-              <h3>Du verpasst die besten Einstiege</h3>
+              <div className="problem-card__icon">🤔</div>
+              <h3>Nur Long – kein Plan für fallende Märkte</h3>
               <p>
-                Du arbeitest den ganzen Tag und kannst nicht dauerhaft den Markt
-                beobachten. Wenn Du die Chance siehst, ist sie schon gelaufen.
+                Long-ETFs, Long-Aktien – aber keine Strategie, wenn der Markt
+                dreht. Das Depot leidet, weil Short-Setups fehlen.
+              </p>
+            </div>
+            <div className="problem-card reveal">
+              <div className="problem-card__icon">⏳</div>
+              <h3>Keine Zeit für permanente Marktbeobachtung</h3>
+              <p>
+                Wer beruflich eingespannt ist, kann den Markt nicht ständig
+                im Blick behalten. Gute Einstiege laufen weg, bevor man reagiert.
               </p>
             </div>
             <div className="problem-card reveal">
               <div className="problem-card__icon">📉</div>
-              <h3>Du kaufst zu spät, verkaufst zu früh</h3>
+              <h3>Einstieg zu spät, Ausstieg zu früh</h3>
               <p>
-                Ohne technische Analyse fehlen Dir die präzisen Kurspunkte für
-                den optimalen Einstieg und Ausstieg.
-              </p>
-            </div>
-            <div className="problem-card reveal">
-              <div className="problem-card__icon">🤔</div>
-              <h3>Du wartest auf den perfekten Moment</h3>
-              <p>
-                Der nie kommt. Die Kurse laufen, Du schaust zu – und ärgerst
-                Dich hinterher über verpasste Gewinne.
+                Ohne präzise charttechnische Kurspunkte fehlt die Grundlage
+                für den optimalen Einstieg – und für einen disziplinierten Ausstieg.
               </p>
             </div>
           </div>
@@ -155,10 +193,9 @@ export default function LandingPage() {
       <section className="bridge">
         <div className="container">
           <p className="reveal">
-            <strong>Das Ergebnis:</strong> Durchschnittsrendite statt
-            Outperformance. Professionelle Fonds nutzen Technische Analyse – Du
-            bisher nicht. Nicht weil Du es nicht könntest, sondern weil Dir die{' '}
-            <strong>Zeit und die Werkzeuge</strong> fehlen.
+            Du profitierst von erfahrenen Analysten, die Dir eine fertige Analyse liefern –
+            damit Du <strong>schneller am Markt bist als der Durchschnitt</strong> und
+            keine Gelegenheit mehr ungenutzt lässt.
           </p>
         </div>
       </section>
@@ -175,7 +212,7 @@ export default function LandingPage() {
               <div className="step__number">1</div>
               <h3>Montag: Analyse erhalten</h3>
               <p>
-                4–6 fertige Trade-Setups mit exakten Kurspunkten landen in
+                Fertige Trade-Setups mit exakten Kurspunkten landen in
                 Deinem Postfach.
               </p>
             </div>
@@ -183,15 +220,15 @@ export default function LandingPage() {
               <div className="step__number">2</div>
               <h3>Orders eingeben</h3>
               <p>
-                Kauf, Stop-Loss &amp; Gewinnmitnahme als Limit-Order eintragen.
-                Dauert 15 Minuten.
+                Einstieg, Stopp und Kursziel eintragen.
+                Dauert 3 Minuten.
               </p>
             </div>
             <div className="step reveal">
               <div className="step__number">3</div>
-              <h3>Gewinne mitnehmen</h3>
+              <h3>Gewinne realisieren</h3>
               <p>
-                Eil-Benachrichtigungen bei Gewinnmitnahme oder Änderungen. Du
+                Eil-Benachrichtigungen bei Kurszielerreichung oder Änderungen. Du
                 verpasst nichts.
               </p>
             </div>
@@ -213,73 +250,98 @@ export default function LandingPage() {
               <thead>
                 <tr>
                   <th>Basiswert</th>
-                  <th>Zeitraum</th>
+                  <th>Datum</th>
                   <th>Ergebnis</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>Fortrea Holding</td>
-                  <td>2 Wochen</td>
-                  <td className="pct">
-                    <span className="pct-badge">+40,8 %</span>
-                  </td>
+                  <td><span className="dir-badge dir-badge--long">L</span> DaVita</td>
+                  <td>Feb. 2026</td>
+                  <td className="pct"><span className="pct-badge">+34,0 %</span></td>
                 </tr>
                 <tr>
-                  <td>Mantle</td>
-                  <td>4 Wochen</td>
-                  <td className="pct">
-                    <span className="pct-badge">+26,6 %</span>
-                  </td>
+                  <td><span className="dir-badge dir-badge--long">L</span> Colgate-Palmolive</td>
+                  <td>Dez. 2025</td>
+                  <td className="pct"><span className="pct-badge">+10,5 %</span></td>
                 </tr>
                 <tr>
-                  <td>Palladium</td>
-                  <td>3 Wochen</td>
-                  <td className="pct">
-                    <span className="pct-badge">+21,2 %</span>
-                  </td>
+                  <td><span className="dir-badge dir-badge--long">L</span> Salesforce</td>
+                  <td>Dez. 2025</td>
+                  <td className="pct"><span className="pct-badge">+11,8 %</span></td>
                 </tr>
                 <tr>
-                  <td>Paycor</td>
-                  <td>5 Wochen</td>
-                  <td className="pct">
-                    <span className="pct-badge">+17,6 %</span>
-                  </td>
+                  <td><span className="dir-badge dir-badge--long">L</span> Novo Nordisk</td>
+                  <td>Dez. 2025</td>
+                  <td className="pct"><span className="pct-badge">+37,6 %</span></td>
                 </tr>
                 <tr>
-                  <td>Intel</td>
-                  <td>7 Wochen</td>
-                  <td className="pct">
-                    <span className="pct-badge">+16,9 %</span>
-                  </td>
+                  <td><span className="dir-badge dir-badge--long">L</span> Alibaba</td>
+                  <td>Dez. 2025</td>
+                  <td className="pct"><span className="pct-badge">+15,3 %</span></td>
                 </tr>
                 <tr>
-                  <td>Secunet</td>
-                  <td>5 Wochen</td>
-                  <td className="pct">
-                    <span className="pct-badge">+14,9 %</span>
-                  </td>
+                  <td><span className="dir-badge dir-badge--long">L</span> Align Technology</td>
+                  <td>Nov. 2025</td>
+                  <td className="pct"><span className="pct-badge">+23,4 %</span></td>
                 </tr>
                 <tr>
-                  <td>Bitcoin</td>
-                  <td>3 Wochen</td>
-                  <td className="pct">
-                    <span className="pct-badge">+13,9 %</span>
-                  </td>
+                  <td><span className="dir-badge dir-badge--long">L</span> PepsiCo</td>
+                  <td>Sep. 2025</td>
+                  <td className="pct"><span className="pct-badge">+9,3 %</span></td>
                 </tr>
                 <tr>
-                  <td>National Vision</td>
-                  <td>1 Woche</td>
-                  <td className="pct">
-                    <span className="pct-badge">+12,9 %</span>
-                  </td>
+                  <td><span className="dir-badge dir-badge--short">S</span> DAX</td>
+                  <td>Sep. 2025</td>
+                  <td className="pct"><span className="pct-badge">+2,0 %</span></td>
                 </tr>
               </tbody>
             </table>
           </div>
+          <p className="results-legend">L = Long · S = Short</p>
           <div className="badge-row">
-            <div className="badge">70 %+ Trefferquote</div>
-            <div className="badge">140+ Chancen / Jahr</div>
+            <div className="badge">70 %+ Trefferquote*</div>
+            <div className="badge">140+ Analysen / Jahr*</div>
+          </div>
+        </div>
+      </section>
+
+      {/* SYSTEM FUGMANN */}
+      <section className="section fugmann-section">
+        <div className="container">
+          <h2 className="text-center reveal">Das System Fugmann</h2>
+          <p className="subtitle text-center reveal">
+            Bewährte Analysen, die zur aktuellen Marktlage passen –<br />
+            entwickelt von einem Team, das nach klaren Regeln arbeitet.
+          </p>
+          <div className="fugmann-cards">
+            <div className="fugmann-card reveal">
+              <div className="fugmann-card__num">01</div>
+              <h3>Strategische Führung</h3>
+              <p>
+                Markus Fugmann setzt den Rahmen. Er gibt die taktische Richtung
+                vor und sorgt dafür, dass das Analysten-Team geschlossen und
+                konsequent auf den Markt schaut – nicht jeder für sich.
+              </p>
+            </div>
+            <div className="fugmann-card reveal">
+              <div className="fugmann-card__num">02</div>
+              <h3>Marktphasen-adaptiert</h3>
+              <p>
+                Jede Analyse passt zur aktuellen Marktlage – Long in
+                Aufwärtstrends, Short wenn der Markt dreht. Kein starres Schema,
+                sondern flexibles Handwerk, das in jeder Phase funktioniert.
+              </p>
+            </div>
+            <div className="fugmann-card reveal">
+              <div className="fugmann-card__num">03</div>
+              <h3>Dein Zeitvorteil</h3>
+              <p>
+                Während andere noch analysieren, hast Du die fertigen Setups
+                bereits im Postfach. Kein stundenlanger Chart-Scan –
+                der Vorsprung liegt bei Dir.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -295,7 +357,7 @@ export default function LandingPage() {
           <div className="team-grid">
             <div className="team-card reveal">
               <img
-                src="/team/Stefan.png"
+                src="/team/Stefan.jpg"
                 alt="Stefan Jäger"
                 className="team-card__avatar"
               />
@@ -310,7 +372,7 @@ export default function LandingPage() {
             </div>
             <div className="team-card reveal">
               <img
-                src="/team/Michael.png"
+                src="/team/Michael.jpg"
                 alt="Michael Borgmann"
                 className="team-card__avatar"
               />
@@ -328,46 +390,75 @@ export default function LandingPage() {
       {/* PRICING */}
       <section className="section section--alt" id="pricing">
         <div className="container">
-          <h2 className="text-center reveal">Ab 0,81 € pro Tag</h2>
+          <h2 className="text-center reveal">
+            {discountActive ? 'Ab 0,73 € pro Tag' : 'Ab 0,82 € pro Tag'}
+          </h2>
           <p className="subtitle text-center reveal">
             Weniger als ein Kaffee – für professionelle Trading-Setups.
           </p>
+
+          {discountActive && (
+            <div className="discount-active">
+              ✓ Rabatt aktiv – gilt für die erste Laufzeit
+            </div>
+          )}
+
           <div className="pricing-grid">
             {/* Quarterly */}
             <div className="pricing-card reveal">
-              <div className="pricing-card__period">Quartalsabo</div>
-              <div className="pricing-card__price">
-                79 € <span>/ 3 Monate</span>
+              <div className="pricing-card__period">
+                Quartalsabo{discountActive && <span className="pricing-card__discount">-{pricing.quarterly.discountPct} %</span>}
               </div>
-              <div className="pricing-card__detail">26,33 € pro Monat</div>
-              <a href="#" className="cta-btn cta-btn--ghost cta-btn--full">
+              <div className="pricing-card__price">
+                {discountActive
+                  ? <>{pricing.quarterly.discounted} € <span className="price-original">{pricing.quarterly.normal} €</span> <span>/ 3 Monate</span></>
+                  : <>{pricing.quarterly.normal} € <span>/ 3 Monate</span></>
+                }
+              </div>
+              <div className="pricing-card__detail">
+                {discountActive ? `${pricing.quarterly.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '29,67 € pro Monat'}
+              </div>
+              <a href="/landing/checkout" className="cta-btn cta-btn--ghost cta-btn--full">
                 Jetzt starten
               </a>
             </div>
             {/* 6 months */}
             <div className="pricing-card reveal">
-              <div className="pricing-card__period">Halbjahresabo</div>
+              <div className="pricing-card__period">
+                Halbjahresabo{discountActive && <span className="pricing-card__discount">-{pricing.halfYear.discountPct} %</span>}
+              </div>
               <div className="pricing-card__price">
-                155 € <span>/ 6 Monate</span>
+                {discountActive
+                  ? <>{pricing.halfYear.discounted} € <span className="price-original">{pricing.halfYear.normal} €</span> <span>/ 6 Monate</span></>
+                  : <>{pricing.halfYear.normal} € <span>/ 6 Monate</span></>
+                }
               </div>
               <div className="pricing-card__detail">
-                25,83 € pro Monat
+                {discountActive ? `${pricing.halfYear.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '25,83 € pro Monat'}
               </div>
-              <a href="#" className="cta-btn cta-btn--ghost cta-btn--full">
+              <a href="/landing/checkout" className="cta-btn cta-btn--ghost cta-btn--full">
                 Jetzt starten
               </a>
             </div>
             {/* Yearly (featured) */}
             <div className="pricing-card pricing-card--featured reveal">
               <div className="pricing-card__label">Bester Preis</div>
-              <div className="pricing-card__period">Jahresabo</div>
+              <div className="pricing-card__period">
+                Jahresabo{discountActive && <span className="pricing-card__discount">-{pricing.yearly.discountPct} %</span>}
+              </div>
               <div className="pricing-card__price">
-                297 € <span>/ Jahr</span>
+                {discountActive
+                  ? <>{pricing.yearly.discounted} € <span className="price-original">{pricing.yearly.normal} €</span> <span>/ Jahr</span></>
+                  : <>{pricing.yearly.normal} € <span>/ Jahr</span></>
+                }
               </div>
               <div className="pricing-card__detail">
-                24,75 € pro Monat – nur 0,81 € pro Tag
+                {discountActive
+                  ? `${pricing.yearly.monthly.toFixed(2).replace('.', ',')} € pro Monat – nur 0,73 € pro Tag`
+                  : '24,75 € pro Monat – nur 0,82 € pro Tag'
+                }
               </div>
-              <a href="#" className="cta-btn cta-btn--full">
+              <a href="/landing/checkout" className="cta-btn cta-btn--full">
                 Jetzt starten
               </a>
             </div>
@@ -375,7 +466,19 @@ export default function LandingPage() {
 
           {/* Guarantee */}
           <div className="guarantee reveal">
-            <div className="guarantee__shield">🛡️</div>
+            <div className="guarantee__shield">
+              <svg width="90" height="90" viewBox="0 0 96 96" aria-hidden="true">
+                <polygon fill="#00748D" points="48,1 58.9,7.4 71.5,7.3 77.7,18.3 88.7,24.5 88.6,37.1 95,48 88.6,58.9 88.7,71.5 77.7,77.7 71.5,88.7 58.9,88.6 48,95 37.1,88.6 24.5,88.7 18.3,77.7 7.3,71.5 7.4,58.9 1,48 7.4,37.1 7.3,24.5 18.3,18.3 24.5,7.3 37.1,7.4"/>
+                <circle cx="48" cy="48" r="41" fill="#00748D"/>
+                <circle cx="48" cy="48" r="33" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
+                <text x="48" y="30" fill="white" fontSize="7.5" fontWeight="700" textAnchor="middle" letterSpacing="2" fontFamily="Arial,sans-serif">GELD ZURÜCK</text>
+                <text x="48" y="39" fill="rgba(255,255,255,0.7)" fontSize="6" textAnchor="middle" fontFamily="Arial,sans-serif">★  ★  ★</text>
+                <rect x="14" y="43" width="68" height="16" fill="white"/>
+                <text x="48" y="55" fill="#00748D" fontSize="13" fontWeight="900" textAnchor="middle" fontFamily="Arial,sans-serif" letterSpacing="0.5">30 TAGE</text>
+                <text x="48" y="68" fill="rgba(255,255,255,0.7)" fontSize="6" textAnchor="middle" fontFamily="Arial,sans-serif">★  ★  ★</text>
+                <text x="48" y="76" fill="white" fontSize="7.5" fontWeight="700" textAnchor="middle" letterSpacing="2.5" fontFamily="Arial,sans-serif">GARANTIE</text>
+              </svg>
+            </div>
             <div>
               <h3>30 Tage Geld-zurück-Garantie – ohne Wenn und Aber</h3>
               <p>
@@ -404,9 +507,9 @@ export default function LandingPage() {
               <div className="faq-answer">
                 <div className="faq-answer__inner">
                   <p>
-                    Jeden Montag erhältst Du die Wochenausgabe mit 4–6 fertig
-                    analysierten Trade-Setups inklusive Einstieg, Stop-Loss und
-                    Gewinnmitnahme. Dazu ein exklusives Analyse-Video,
+                    Jeden Montag erhältst Du die Wochenausgabe mit fundierten
+                    Marktanalysen inklusive Einstiegsszenarien, Risikolevel und
+                    Kurszielen. Dazu ein exklusives Analyse-Video,
                     Eil-Benachrichtigungen unter der Woche und Zugang zum
                     Redaktions-Rückkanal für persönliche Fragen.
                   </p>
@@ -476,25 +579,6 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="faq-item reveal">
-              <button className="faq-question">
-                Was kostet ein vergleichbarer Service?
-                <span className="faq-chevron">
-                  <svg viewBox="0 0 24 24">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </span>
-              </button>
-              <div className="faq-answer">
-                <div className="faq-answer__inner">
-                  <p>
-                    Professionelle Trading-Services kosten meist 1.000–2.000 €
-                    pro Jahr. Fugmanns Trading Service ist ab 297 € / Jahr
-                    verfügbar – ein Bruchteil davon.
-                  </p>
-                </div>
-              </div>
-            </div>
 
             <div className="faq-item reveal">
               <button className="faq-question">
@@ -538,8 +622,12 @@ export default function LandingPage() {
       <footer>
         <div className="container">
           <p>
-            © 2026 finanzmarktwelt.de &nbsp;·&nbsp; <a href="#">Impressum</a>{' '}
-            &nbsp;·&nbsp; <a href="#">Datenschutz</a>
+            © 2026 finanzmarktwelt.de &nbsp;·&nbsp;{' '}
+            <a href="/landing/agb">AGB</a>
+            &nbsp;·&nbsp;{' '}
+            <a href="/landing/datenschutz">Datenschutz</a>
+            &nbsp;·&nbsp;{' '}
+            <a href="/landing/impressum">Impressum</a>
           </p>
         </div>
       </footer>
@@ -550,6 +638,20 @@ export default function LandingPage() {
           Jetzt risikofrei testen
         </a>
       </div>
+
+      {/* Checkout Modal */}
+      {checkoutOpen && (
+        <div className="checkout-overlay" onClick={closeCheckout}>
+          <div className="checkout-modal" onClick={e => e.stopPropagation()}>
+            <button className="checkout-modal__close" onClick={closeCheckout} aria-label="Schließen">✕</button>
+            <iframe
+              src={CHECKOUT_URL}
+              className="checkout-modal__iframe"
+              title="Checkout"
+            />
+          </div>
+        </div>
+      )}
     </>
   )
 }

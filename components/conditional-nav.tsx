@@ -6,8 +6,8 @@ import { Nav } from './nav'
 export function ConditionalNav() {
   const pathname = usePathname()
 
-  // Don't show Nav on landing pages
-  if (pathname === '/landing' || pathname === '/landing-light') {
+  // Don't show Nav on landing pages and their sub-routes
+  if (pathname === '/landing' || pathname === '/landing-light' || pathname.startsWith('/landing/')) {
     return null
   }
 

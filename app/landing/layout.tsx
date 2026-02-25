@@ -8,8 +8,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Fugmanns Trading Service – Mit Profi-Wissen mehr Rendite erwirtschaften',
-  description: 'Top-Analysen fertig vorbereitet mit Einstieg, Stop-Loss & Gewinnmitnahme. 70%+ Trefferquote, 140+ Chancen pro Jahr.',
+  title: 'Fugmanns Trading Woche',
+  description: 'Fertige Analysen für jede Marktlage – direkt ins Postfach, sofort umsetzbar.',
 }
 
 export default function LandingLayout({
