@@ -388,7 +388,7 @@ export default function LandingPage() {
       <section className="section section--alt" id="pricing">
         <div className="container">
           <h2 className="text-center reveal">
-            {discountActive ? 'Ab 0,81 € pro Tag' : 'Ab 0,90 € pro Tag'}
+            {discountActive ? 'Ab 0,82 € pro Tag' : 'Ab 0,90 € pro Tag'}
           </h2>
           <p className="subtitle text-center reveal">
             Weniger als ein Kaffee – für professionelle Trading-Setups.
@@ -451,7 +451,7 @@ export default function LandingPage() {
               </div>
               <div className="pricing-card__detail">
                 {discountActive
-                  ? `${pricing.yearly.monthly.toFixed(2).replace('.', ',')} € pro Monat – nur 0,81 € pro Tag`
+                  ? `${pricing.yearly.monthly.toFixed(2).replace('.', ',')} € pro Monat – nur 0,82 € pro Tag`
                   : '27,42 € pro Monat – nur 0,90 € pro Tag'
                 }
               </div>
