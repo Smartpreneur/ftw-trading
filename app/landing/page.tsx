@@ -162,7 +162,6 @@ export default function LandingPage() {
           <h2 className="text-center reveal">Vielen Tradern geht es so</h2>
           <div className="problem-grid">
             <div className="problem-card reveal">
-              <div className="problem-card__icon">🤔</div>
               <h3>Nur Long – kein Plan für fallende Märkte</h3>
               <p>
                 Long-ETFs, Long-Aktien – aber keine Strategie, wenn der Markt
@@ -170,7 +169,6 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="problem-card reveal">
-              <div className="problem-card__icon">⏳</div>
               <h3>Keine Zeit für permanente Marktbeobachtung</h3>
               <p>
                 Wer beruflich eingespannt ist, kann den Markt nicht ständig
@@ -178,7 +176,6 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="problem-card reveal">
-              <div className="problem-card__icon">📉</div>
               <h3>Einstieg zu spät, Ausstieg zu früh</h3>
               <p>
                 Ohne präzise charttechnische Kurspunkte fehlt die Grundlage
