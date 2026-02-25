@@ -999,8 +999,23 @@ footer a:hover { color: var(--fmw-primary); }
 }
 .sticky-cta .cta-btn {
     width: 100%;
-    padding: 14px;
+    padding: 12px 14px;
     font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    line-height: 1.2;
+}
+.sticky-cta__main {
+    font-size: 1rem;
+    font-weight: 800;
+}
+.sticky-cta__sub {
+    font-size: 0.72rem;
+    font-weight: 500;
+    opacity: 0.85;
+    letter-spacing: 0.01em;
 }
 
 /* ══════════════════════════════════════

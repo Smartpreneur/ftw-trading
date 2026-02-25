@@ -632,7 +632,8 @@ export default function LandingPage() {
       {/* Sticky mobile CTA */}
       <div className="sticky-cta" id="stickyCta">
         <a href="#pricing" className="cta-btn">
-          Jetzt risikofrei testen
+          <span className="sticky-cta__main">4 Wochen testen</span>
+          <span className="sticky-cta__sub">100% Geld-zurück-Garantie</span>
         </a>
       </div>
 
