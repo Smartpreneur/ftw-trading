@@ -5,9 +5,9 @@ import './styles.css'
 
 const DISCOUNT_CODE = 'fugi26'
 const pricing = {
-  quarterly:  { normal: 89,  discounted: 86,  monthly: 28.67, discountPct: 3  },
-  halfYear:   { normal: 155, discounted: 147, monthly: 24.50, discountPct: 5  },
-  yearly:     { normal: 297, discounted: 267, monthly: 22.25, discountPct: 10 },
+  quarterly:  { normal: 99,  discounted: 89,  monthly: 29.67, discountPct: 10 },
+  halfYear:   { normal: 189, discounted: 169, monthly: 28.17, discountPct: 10 },
+  yearly:     { normal: 329, discounted: 297, monthly: 24.75, discountPct: 10 },
 }
 
 export default function LandingPage() {
@@ -413,7 +413,7 @@ export default function LandingPage() {
                 }
               </div>
               <div className="pricing-card__detail">
-                {discountActive ? `${pricing.quarterly.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '29,67 € pro Monat'}
+                {discountActive ? `${pricing.quarterly.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '33,00 € pro Monat'}
               </div>
               <a href="/landing/checkout" className="cta-btn cta-btn--ghost cta-btn--full">
                 Jetzt starten
@@ -431,7 +431,7 @@ export default function LandingPage() {
                 }
               </div>
               <div className="pricing-card__detail">
-                {discountActive ? `${pricing.halfYear.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '25,83 € pro Monat'}
+                {discountActive ? `${pricing.halfYear.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '31,50 € pro Monat'}
               </div>
               <a href="/landing/checkout" className="cta-btn cta-btn--ghost cta-btn--full">
                 Jetzt starten
@@ -451,8 +451,8 @@ export default function LandingPage() {
               </div>
               <div className="pricing-card__detail">
                 {discountActive
-                  ? `${pricing.yearly.monthly.toFixed(2).replace('.', ',')} € pro Monat – nur 0,73 € pro Tag`
-                  : '24,75 € pro Monat – nur 0,82 € pro Tag'
+                  ? `${pricing.yearly.monthly.toFixed(2).replace('.', ',')} € pro Monat – nur 0,81 € pro Tag`
+                  : '27,42 € pro Monat – nur 0,90 € pro Tag'
                 }
               </div>
               <a href="/landing/checkout" className="cta-btn cta-btn--full">

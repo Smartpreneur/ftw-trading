@@ -183,21 +183,36 @@
     grid-template-rows: auto 1fr;
   }
 
-  /* iframe first on mobile */
-  .co-checkout { order: -1; }
-
-  .co-iframe {
-    min-height: 80svh;
-    height: 80svh;
-  }
-
+  /* Summary on top, iframe below */
   .co-summary {
     border-right: none;
-    border-top: 1px solid var(--light-border);
-    padding: 32px clamp(20px, 5vw, 32px);
+    border-bottom: 1px solid var(--light-border);
+    padding: 20px clamp(16px, 5vw, 24px);
   }
 
   .co-summary__inner {
     position: static;
+  }
+
+  /* Compress summary content on mobile */
+  .co-summary__label { margin-bottom: 6px; }
+  .co-summary__title { font-size: 1.2rem; margin-bottom: 6px; }
+  .co-summary__sub { margin-bottom: 16px; font-size: 0.875rem; }
+
+  .co-benefits {
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .co-price-hint { margin-bottom: 12px; }
+
+  .co-guarantee { padding: 12px; }
+
+  /* Hide product image on mobile – keeps summary compact */
+  .co-product-img-wrap { display: none; }
+
+  .co-iframe {
+    min-height: 90svh;
+    height: 90svh;
   }
 }
