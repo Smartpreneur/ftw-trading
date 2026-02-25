@@ -6,7 +6,7 @@ import './styles.css'
 const DISCOUNT_CODE = 'fugi26'
 const pricing = {
   quarterly:  { normal: 99,  discounted: 89,  monthly: 29.67, discountPct: 10 },
-  halfYear:   { normal: 189, discounted: 169, monthly: 28.17, discountPct: 10 },
+  halfYear:   { normal: 188, discounted: 169, monthly: 28.17, discountPct: 10 },
   yearly:     { normal: 329, discounted: 297, monthly: 24.75, discountPct: 10 },
 }
 
@@ -388,7 +388,7 @@ export default function LandingPage() {
       <section className="section section--alt" id="pricing">
         <div className="container">
           <h2 className="text-center reveal">
-            {discountActive ? 'Ab 0,73 € pro Tag' : 'Ab 0,82 € pro Tag'}
+            {discountActive ? 'Ab 0,81 € pro Tag' : 'Ab 0,90 € pro Tag'}
           </h2>
           <p className="subtitle text-center reveal">
             Weniger als ein Kaffee – für professionelle Trading-Setups.
@@ -431,7 +431,7 @@ export default function LandingPage() {
                 }
               </div>
               <div className="pricing-card__detail">
-                {discountActive ? `${pricing.halfYear.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '31,50 € pro Monat'}
+                {discountActive ? `${pricing.halfYear.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '31,33 € pro Monat'}
               </div>
               <a href="/landing/checkout" className="cta-btn cta-btn--ghost cta-btn--full">
                 Jetzt starten

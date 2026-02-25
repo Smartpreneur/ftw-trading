@@ -46,7 +46,7 @@ export default function CheckoutPage() {
             </ul>
 
             <div className="co-price-hint">
-              Ab 0,82 € pro Tag &nbsp;·&nbsp; weniger als ein Kaffee
+              Ab 0,81 € pro Tag &nbsp;·&nbsp; weniger als ein Kaffee
             </div>
 
             <div className="co-guarantee">
