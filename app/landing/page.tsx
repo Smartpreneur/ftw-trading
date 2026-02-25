@@ -32,6 +32,9 @@ export default function LandingPage() {
     const urlCode = params.get('code')
     if (urlCode?.toLowerCase() === DISCOUNT_CODE) {
       setDiscountActive(true)
+      localStorage.setItem('ftw_promo', DISCOUNT_CODE)
+    } else if (localStorage.getItem('ftw_promo') === DISCOUNT_CODE) {
+      setDiscountActive(true)
     }
   }, [])
 
@@ -415,7 +418,7 @@ export default function LandingPage() {
               <div className="pricing-card__detail">
                 {discountActive ? `${pricing.quarterly.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '33,00 € pro Monat'}
               </div>
-              <a href="/landing/checkout" className="cta-btn cta-btn--ghost cta-btn--full">
+              <a href={discountActive ? `/landing/checkout?code=${DISCOUNT_CODE}` : '/landing/checkout'} className="cta-btn cta-btn--ghost cta-btn--full">
                 Jetzt starten
               </a>
             </div>
@@ -433,7 +436,7 @@ export default function LandingPage() {
               <div className="pricing-card__detail">
                 {discountActive ? `${pricing.halfYear.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '31,33 € pro Monat'}
               </div>
-              <a href="/landing/checkout" className="cta-btn cta-btn--ghost cta-btn--full">
+              <a href={discountActive ? `/landing/checkout?code=${DISCOUNT_CODE}` : '/landing/checkout'} className="cta-btn cta-btn--ghost cta-btn--full">
                 Jetzt starten
               </a>
             </div>
@@ -455,7 +458,7 @@ export default function LandingPage() {
                   : '27,42 € pro Monat – nur 0,90 € pro Tag'
                 }
               </div>
-              <a href="/landing/checkout" className="cta-btn cta-btn--full">
+              <a href={discountActive ? `/landing/checkout?code=${DISCOUNT_CODE}` : '/landing/checkout'} className="cta-btn cta-btn--full">
                 Jetzt starten
               </a>
             </div>
