@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 
 const inter = Inter({
@@ -6,6 +6,11 @@ const inter = Inter({
   weight: ['400', '500', '600', '700', '800', '900'],
   variable: '--font-inter',
 })
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
 
 export const metadata: Metadata = {
   title: 'Fugmanns Trading Woche',
