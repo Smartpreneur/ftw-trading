@@ -1,8 +1,45 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Script from 'next/script'
 import './styles.css'
 
+// ─── Testimonials ─────────────────────────────────────────────
+// Setze enabled: false um ein Zitat auszublenden (z.B. noch keine Freigabe)
+const testimonials = [
+  {
+    enabled: true,
+    name: 'Bernhard R.',
+    text: 'Habe mit den Setups von Stefan Jäger letztes Jahr ein dickes Plus erwirtschaftet. Was man hier für wenig Geld erhält, ist einfach spitze. Top Niveau. Top Ergebnis.',
+  },
+  {
+    enabled: true,
+    name: 'Falk H.',
+    text: 'Klar definierte Setups – besonders für Werktätige, welche nicht stets am PC oder Handy sein können.',
+  },
+  {
+    enabled: true,
+    name: 'Jörg H.',
+    text: 'Sehr konkrete effektive Tipps mit Background, vor allem aber sehr hoher Trefferquote. Kosten amortisieren sich.',
+  },
+  {
+    enabled: true,
+    name: 'Murat O.',
+    text: 'Sehr transparent, gute und sinnvolle Trades. Alles nachvollziehbar dargelegt und dazu auch noch unterhaltsam!',
+  },
+  {
+    enabled: true,
+    name: 'Norman B.',
+    text: 'Fugmanns Trading Woche ist eine unheimliche Zeitersparnis im Suchen von guten Chancen.',
+  },
+  {
+    enabled: false, // Freigabe ausstehend
+    name: 'Stefan K.',
+    text: 'Es wirkt schlicht alles unglaublich authentisch, nicht wie bei so vielen Finfluencern. Mein Wissenszuwachs nach jedem Börsenbrief liegt bei mindestens 80 %.',
+  },
+]
+
+// ─────────────────────────────────────────────────────────────
 const DISCOUNT_CODE = 'fugi26'
 const pricing = {
   quarterly:  { normal: 99,  discounted: 89,  monthly: 29.67, discountPct: 10 },
@@ -130,12 +167,10 @@ export default function LandingPage() {
               Fertige Analysen für jede Marktlage – direkt ins Postfach, sofort umsetzbar
             </p>
             <div className="hero__video">
-              <iframe
-                src="https://www.youtube.com/embed/XlZmBQcZQPY"
-                title="Fugmanns Trading Woche"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+              <Script src="https://fast.wistia.com/player.js" strategy="afterInteractive" />
+              <Script src="https://fast.wistia.com/embed/upvpmi7u5r.js" strategy="afterInteractive" />
+              {/* @ts-expect-error – wistia-player ist ein Web Component */}
+              <wistia-player media-id="upvpmi7u5r" aspect="1.7777777777777777" />
             </div>
             <a href="#pricing" className="cta-btn">
               4 Wochen testen – 100 % Geld-zurück-Garantie
@@ -489,6 +524,23 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Testimonials */}
+      {testimonials.some(t => t.enabled) && (
+        <section className="section section--alt">
+          <div className="container">
+            <h2 className="text-center reveal">Was Leser sagen</h2>
+            <div className="testimonials-grid">
+              {testimonials.filter(t => t.enabled).map((t, i) => (
+                <div key={i} className="testimonial-card reveal">
+                  <p className="testimonial-card__text">„{t.text}"</p>
+                  <p className="testimonial-card__name">— {t.name}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* FAQ */}
       <section className="section">
