@@ -30,7 +30,7 @@ const testimonials = [
   {
     enabled: true,
     name: 'Norman B.',
-    text: 'Fugmanns Trading Woche ist eine unheimliche Zeitersparnis im Suchen von guten Chancen.',
+    text: 'Fugmann's Trading Woche ist eine unheimliche Zeitersparnis im Suchen von guten Chancen.',
   },
   {
     enabled: false, // Freigabe ausstehend
@@ -146,7 +146,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="nav__inner">
             <a href="#" className="nav__logo">
-              Fugmanns <span>Trading Woche</span>
+              Fugmann's <span>Trading Woche</span>
             </a>
             <a href="#pricing" className="cta-btn nav__cta">
               Jetzt testen

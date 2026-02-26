@@ -31,7 +31,7 @@ export default function CheckoutPage() {
         <aside className="co-summary">
           <div className="co-summary__inner">
             <p className="co-summary__label">Du bestellst</p>
-            <h1 className="co-summary__title">Fugmanns Trading Woche</h1>
+            <h1 className="co-summary__title">Fugmann's Trading Woche</h1>
             <p className="co-summary__sub">
               Professionelle Marktanalysen. Jeden Montag. Direkt ins Postfach.
             </p>
@@ -72,7 +72,7 @@ export default function CheckoutPage() {
             <div className="co-product-img-wrap">
               <img
                 src="/trading-woche-product.png"
-                alt="Fugmanns Trading Woche"
+                alt="Fugmann's Trading Woche"
                 className="co-product-img"
               />
             </div>
@@ -84,7 +84,7 @@ export default function CheckoutPage() {
           <iframe
             src={CHECKOUT_URL}
             className="co-iframe"
-            title="Checkout – Fugmanns Trading Woche"
+            title="Checkout – Fugmann's Trading Woche"
             allow="payment"
           />
         </section>

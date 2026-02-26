@@ -13,7 +13,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Fugmanns Trading Woche',
+  title: 'Fugmann's Trading Woche',
   description: 'Fertige Analysen für jede Marktlage – direkt ins Postfach, sofort umsetzbar.',
 }
 
