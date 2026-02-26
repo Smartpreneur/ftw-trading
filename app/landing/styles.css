@@ -948,6 +948,11 @@ footer a:hover { color: var(--fmw-primary); }
     z-index: 200;
     text-align: center;
     box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+    /* Fix für iOS Chrome: erzwingt GPU-Compositing,
+       verhindert Floaten beim Verstecken der Adressleiste */
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
 }
 /* ── Checkout Modal ── */
 .checkout-overlay {
