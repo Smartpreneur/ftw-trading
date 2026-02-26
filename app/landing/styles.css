@@ -1071,7 +1071,7 @@ footer a:hover { color: var(--fmw-primary); }
     .pricing-grid { grid-template-columns: 1fr; max-width: 380px; margin-left: auto; margin-right: auto; }
     .guarantee { flex-direction: column; text-align: center; }
     .sticky-cta { display: block; }
-    .hero { min-height: auto; padding: 100px 0 60px; }
+    .hero { min-height: auto; padding: 40px 0 60px; }
     .nav__cta { display: none; }
     body { padding-bottom: 72px; }
 

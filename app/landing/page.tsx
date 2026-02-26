@@ -30,7 +30,7 @@ const testimonials = [
   {
     enabled: true,
     name: 'Norman B.',
-    text: 'Fugmann's Trading Woche ist eine unheimliche Zeitersparnis im Suchen von guten Chancen.',
+    text: "Fugmann's Trading Woche ist eine unheimliche Zeitersparnis im Suchen von guten Chancen.",
   },
   {
     enabled: false, // Freigabe ausstehend

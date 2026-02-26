@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import '../legal.css'
 
 export const metadata: Metadata = {
-  title: 'AGB – Fugmann's Trading Woche',
+  title: "AGB – Fugmann's Trading Woche",
   description: 'Allgemeine Geschäftsbedingungen der Know How Pool GmbH',
 }
 
