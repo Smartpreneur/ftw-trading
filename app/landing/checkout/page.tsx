@@ -20,7 +20,7 @@ export default function CheckoutPage() {
       <header className="co-header">
         <div className="co-header__inner">
           <span className="co-logo">
-            Fugmanns <span>Trading Woche</span>
+            Fugmann's <span>Trading Woche</span>
           </span>
           <a href="/landing" className="co-back">← Zurück zur Übersicht</a>
         </div>
