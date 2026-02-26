@@ -434,7 +434,7 @@ export default function LandingPage() {
 
           {discountActive && (
             <div className="discount-active">
-              ✓ Rabatt aktiv – gilt für die erste Laufzeit
+              ✓ Rabatt aktiv
             </div>
           )}
 
