@@ -382,9 +382,9 @@ p { font-size: 1rem; }
 .step__number {
     width: 64px;
     height: 64px;
-    background: var(--light-card);
-    border: 2px solid var(--fmw-primary);
-    color: var(--fmw-primary);
+    background: var(--fmw-primary);
+    border: 2px solid var(--fmw-primary-dark);
+    color: white;
     font-weight: 800;
     font-size: 1.3rem;
     border-radius: 50%;
@@ -396,12 +396,13 @@ p { font-size: 1rem; }
     z-index: 1;
     transition: background 0.3s, color 0.3s, border-color 0.3s;
 }
-/* Progressive fill: step 2 = half-filled, step 3 = full */
+/* 02 bleibt weiß als Kontrast */
 .step:nth-child(2) .step__number {
-    background: #E0F5FA;
-    border-color: var(--fmw-primary-light);
+    background: white;
+    border-color: var(--fmw-primary);
     color: var(--fmw-primary);
 }
+/* 03 = voll cyan (wie Standard) */
 .step:nth-child(3) .step__number {
     background: var(--fmw-primary);
     border-color: var(--fmw-primary-dark);
