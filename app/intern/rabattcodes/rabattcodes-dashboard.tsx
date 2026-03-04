@@ -25,12 +25,27 @@ function toLocalInput(iso: string | null): string {
   return local.toISOString().slice(0, 16)
 }
 
-function getStatus(code: DiscountCode): { label: string; className: string } {
-  if (!code.is_active) return { label: 'Deaktiviert', className: 'status--disabled' }
+function formatRemaining(until: string | null): string {
+  if (!until) return 'ohne Begrenzung'
   const now = new Date()
-  if (code.valid_from && new Date(code.valid_from) > now) return { label: 'Geplant', className: 'status--scheduled' }
-  if (code.valid_until && new Date(code.valid_until) < now) return { label: 'Abgelaufen', className: 'status--expired' }
-  return { label: 'Aktiv', className: 'status--active' }
+  const end = new Date(until)
+  const diffMs = end.getTime() - now.getTime()
+  if (diffMs <= 0) return ''
+  const totalHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const days = Math.floor(totalHours / 24)
+  const hours = totalHours % 24
+  if (days > 0 && hours > 0) return `noch ${days} T ${hours} Std`
+  if (days > 0) return `noch ${days} T`
+  if (hours > 0) return `noch ${hours} Std`
+  return `noch < 1 Std`
+}
+
+function getStatus(code: DiscountCode): { label: string; detail: string; className: string } {
+  if (!code.is_active) return { label: 'Deaktiviert', detail: '', className: 'status--disabled' }
+  const now = new Date()
+  if (code.valid_from && new Date(code.valid_from) > now) return { label: 'Geplant', detail: '', className: 'status--scheduled' }
+  if (code.valid_until && new Date(code.valid_until) < now) return { label: 'Abgelaufen', detail: '', className: 'status--expired' }
+  return { label: 'Aktiv', detail: formatRemaining(code.valid_until), className: 'status--active' }
 }
 
 export function RabattcodesDashboard() {
@@ -136,6 +151,8 @@ export function RabattcodesDashboard() {
                         type="datetime-local"
                         className="rabatt-input"
                         value={editFrom}
+                        min="2020-01-01T00:00"
+                        max="9999-12-31T23:59"
                         onChange={e => setEditFrom(e.target.value)}
                       />
                     </td>
@@ -144,6 +161,8 @@ export function RabattcodesDashboard() {
                         type="datetime-local"
                         className="rabatt-input"
                         value={editUntil}
+                        min="2020-01-01T00:00"
+                        max="9999-12-31T23:59"
                         onChange={e => setEditUntil(e.target.value)}
                       />
                     </td>
@@ -188,7 +207,10 @@ export function RabattcodesDashboard() {
                   <td>{code.discount_pct} %</td>
                   <td>{formatDateTime(code.valid_from)}</td>
                   <td>{formatDateTime(code.valid_until)}</td>
-                  <td><span className={`rabatt-status ${status.className}`}>{status.label}</span></td>
+                  <td>
+                    <span className={`rabatt-status ${status.className}`}>{status.label}</span>
+                    {status.detail && <span className="rabatt-status-detail"> ({status.detail})</span>}
+                  </td>
                   <td>
                     <button
                       className="rabatt-btn rabatt-btn--edit"

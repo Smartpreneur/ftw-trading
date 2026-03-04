@@ -469,6 +469,12 @@
   letter-spacing: 0.3px;
 }
 
+.rabatt-status-detail {
+  font-size: 0.75rem;
+  color: #5a6a7a;
+  margin-left: 4px;
+}
+
 .status--active {
   background: rgba(0, 200, 83, 0.15);
   color: #00c853;
