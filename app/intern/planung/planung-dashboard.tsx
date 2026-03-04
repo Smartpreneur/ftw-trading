@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, type DragEvent } from 'react'
+import { useEffect, useState, useRef, useCallback, type DragEvent } from 'react'
 import {
   getPlanungTasks,
   createPlanungTask,
@@ -8,6 +8,7 @@ import {
   deletePlanungTask,
   uploadTaskImage,
   deleteTaskImage,
+  reorderTasks,
   type KanbanTask,
   type TaskLink,
 } from './actions'
@@ -35,11 +36,16 @@ export function PlanungDashboard() {
   const [showCreate, setShowCreate] = useState(false)
   const [editingTask, setEditingTask] = useState<KanbanTask | null>(null)
   const [saving, setSaving] = useState(false)
-  const [dragTaskId, setDragTaskId] = useState<string | null>(null)
-  const [dragOverCol, setDragOverCol] = useState<string | null>(null)
   const [previewImg, setPreviewImg] = useState<string | null>(null)
   const router = useRouter()
   const { light, toggle } = useTheme()
+
+  // Drag state
+  const [dragTaskId, setDragTaskId] = useState<string | null>(null)
+  const [dragSourceCol, setDragSourceCol] = useState<string | null>(null)
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null)
+  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
+  const [dragOverPosition, setDragOverPosition] = useState<'top' | 'bottom' | null>(null)
 
   // Create form state
   const [newTitle, setNewTitle] = useState('')
@@ -72,6 +78,11 @@ export function PlanungDashboard() {
     await logout()
     router.refresh()
   }
+
+  const tasksByCol = useCallback(
+    (col: string) => tasks.filter(t => t.status === col),
+    [tasks],
+  )
 
   // ── Create ──
   const resetCreate = () => {
@@ -130,7 +141,6 @@ export function PlanungDashboard() {
   const handleDelete = async () => {
     if (!editingTask) return
     setSaving(true)
-    // Clean up images from storage
     for (const img of editImages) {
       await deleteTaskImage(img)
     }
@@ -162,45 +172,140 @@ export function PlanungDashboard() {
     setEditImages(prev => prev.filter(u => u !== url))
   }
 
-  // ── Drag & Drop ──
-  const onDragStart = (e: DragEvent, taskId: string) => {
-    setDragTaskId(taskId)
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', taskId)
+  // ── Reorder (up/down) ──
+  const swapTasks = async (colKey: string, fromIdx: number, toIdx: number) => {
+    const colTasks = tasksByCol(colKey)
+    if (toIdx < 0 || toIdx >= colTasks.length) return
+    const ids = colTasks.map(t => t.id)
+    const [moved] = ids.splice(fromIdx, 1)
+    ids.splice(toIdx, 0, moved)
+    // Optimistic reorder
+    const reordered = ids.map((id, i) => {
+      const t = tasks.find(t => t.id === id)!
+      return { ...t, position: i }
+    })
+    setTasks(prev => {
+      const others = prev.filter(t => t.status !== colKey)
+      return [...others, ...reordered].sort((a, b) => a.position - b.position)
+    })
+    await reorderTasks(ids)
   }
 
-  const onDragOver = (e: DragEvent, colKey: string) => {
+  // ── Drag & Drop ──
+  const onDragStart = (e: DragEvent, task: KanbanTask) => {
+    setDragTaskId(task.id)
+    setDragSourceCol(task.status)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', task.id)
+  }
+
+  const onDragOverCol = (e: DragEvent, colKey: string) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     setDragOverCol(colKey)
   }
 
-  const onDragLeave = () => {
+  const onDragOverCard = (e: DragEvent, taskId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'move'
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const midY = rect.top + rect.height / 2
+    setDragOverTaskId(taskId)
+    setDragOverPosition(e.clientY < midY ? 'top' : 'bottom')
+  }
+
+  const onDragLeaveCard = () => {
+    setDragOverTaskId(null)
+    setDragOverPosition(null)
+  }
+
+  const onDragLeaveCol = () => {
     setDragOverCol(null)
   }
 
   const onDrop = async (e: DragEvent, colKey: string) => {
     e.preventDefault()
     setDragOverCol(null)
+    setDragOverTaskId(null)
+    setDragOverPosition(null)
+
     const taskId = e.dataTransfer.getData('text/plain')
     if (!taskId) return
     const task = tasks.find(t => t.id === taskId)
-    if (!task || task.status === colKey) { setDragTaskId(null); return }
+    if (!task) { setDragTaskId(null); return }
 
-    // Optimistic update
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: colKey } : t))
+    const targetColTasks = tasksByCol(colKey).filter(t => t.id !== taskId)
+    const newIds = targetColTasks.map(t => t.id)
+
+    // If dropping on same column, just reorder; otherwise move to new column
+    if (task.status !== colKey) {
+      // Move to new column — append at end
+      newIds.push(taskId)
+      // Optimistic
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: colKey } : t))
+      setDragTaskId(null)
+      await updatePlanungTask(taskId, { status: colKey })
+      await reorderTasks(newIds)
+      await loadTasks()
+    } else {
+      // Same column, append at end (card-level drop handles specific position)
+      newIds.push(taskId)
+      setDragTaskId(null)
+      await reorderTasks(newIds)
+      await loadTasks()
+    }
+  }
+
+  const onDropCard = async (e: DragEvent, targetTaskId: string, colKey: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverCol(null)
+    setDragOverTaskId(null)
+    setDragOverPosition(null)
+
+    const taskId = e.dataTransfer.getData('text/plain')
+    if (!taskId || taskId === targetTaskId) { setDragTaskId(null); return }
+
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) { setDragTaskId(null); return }
+
+    // If coming from different column, update status first
+    if (task.status !== colKey) {
+      await updatePlanungTask(taskId, { status: colKey })
+    }
+
+    // Build new order for this column
+    const colTasks = tasksByCol(colKey).filter(t => t.id !== taskId)
+    const targetIdx = colTasks.findIndex(t => t.id === targetTaskId)
+    const insertIdx = dragOverPosition === 'top' ? targetIdx : targetIdx + 1
+    const newIds = colTasks.map(t => t.id)
+    newIds.splice(insertIdx, 0, taskId)
+
+    // Optimistic
+    setTasks(prev => {
+      const updated = prev.map(t => t.id === taskId ? { ...t, status: colKey } : t)
+      return updated
+    })
     setDragTaskId(null)
-    await updatePlanungTask(taskId, { status: colKey })
+    await reorderTasks(newIds)
     await loadTasks()
   }
 
   const onDragEnd = () => {
     setDragTaskId(null)
+    setDragSourceCol(null)
     setDragOverCol(null)
+    setDragOverTaskId(null)
+    setDragOverPosition(null)
   }
 
   const moveTask = async (task: KanbanTask, newStatus: string) => {
+    // Move to end of target column
+    const targetTasks = tasksByCol(newStatus)
+    const newIds = [...targetTasks.map(t => t.id), task.id]
     await updatePlanungTask(task.id, { status: newStatus })
+    await reorderTasks(newIds)
     await loadTasks()
   }
 
@@ -231,7 +336,6 @@ export function PlanungDashboard() {
   }
 
   const prioLabel = (p: number) => PRIORITIES.find(pr => pr.value === p)
-  const tasksByCol = (col: string) => tasks.filter(t => t.status === col)
 
   // ── Link Fields Component ──
   const LinkFields = ({
@@ -288,7 +392,7 @@ export function PlanungDashboard() {
       {/* Create Form */}
       {showCreate && (
         <div className="kb-overlay" onClick={resetCreate}>
-          <div className="kb-modal" onClick={e => e.stopPropagation()}>
+          <div className="kb-modal kb-modal--wide" onClick={e => e.stopPropagation()}>
             <h3>Neue Aufgabe</h3>
             <input
               className="kb-input"
@@ -298,11 +402,11 @@ export function PlanungDashboard() {
               autoFocus
             />
             <textarea
-              className="kb-input kb-textarea"
+              className="kb-input kb-textarea kb-textarea--lg"
               placeholder="Beschreibung (optional)"
               value={newDesc}
               onChange={e => setNewDesc(e.target.value)}
-              rows={3}
+              rows={6}
             />
             <div className="kb-field-row">
               <div className="kb-field">
@@ -346,11 +450,11 @@ export function PlanungDashboard() {
               autoFocus
             />
             <textarea
-              className="kb-input kb-textarea"
+              className="kb-input kb-textarea kb-textarea--lg"
               placeholder="Beschreibung"
               value={editDesc}
               onChange={e => setEditDesc(e.target.value)}
-              rows={3}
+              rows={6}
             />
             <div className="kb-field-row kb-field-row--3">
               <div className="kb-field">
@@ -437,9 +541,9 @@ export function PlanungDashboard() {
           return (
             <div
               key={col.key}
-              className={`kb-column${dragOverCol === col.key ? ' kb-column--dragover' : ''}`}
-              onDragOver={e => onDragOver(e, col.key)}
-              onDragLeave={onDragLeave}
+              className={`kb-column${dragOverCol === col.key && dragOverTaskId === null ? ' kb-column--dragover' : ''}`}
+              onDragOver={e => onDragOverCol(e, col.key)}
+              onDragLeave={onDragLeaveCol}
               onDrop={e => onDrop(e, col.key)}
             >
               <div className="kb-column__header">
@@ -447,15 +551,24 @@ export function PlanungDashboard() {
                 <span className="kb-column__count">{colTasks.length}</span>
               </div>
               <div className="kb-column__body">
-                {colTasks.map(task => {
+                {colTasks.map((task, idx) => {
                   const prio = prioLabel(task.priority)
                   const isDragging = dragTaskId === task.id
+                  const isOver = dragOverTaskId === task.id
                   return (
                     <div
                       key={task.id}
-                      className={`kb-card${isDragging ? ' kb-card--dragging' : ''}`}
+                      className={[
+                        'kb-card',
+                        isDragging ? 'kb-card--dragging' : '',
+                        isOver && dragOverPosition === 'top' ? 'kb-card--drop-above' : '',
+                        isOver && dragOverPosition === 'bottom' ? 'kb-card--drop-below' : '',
+                      ].filter(Boolean).join(' ')}
                       draggable
-                      onDragStart={e => onDragStart(e, task.id)}
+                      onDragStart={e => onDragStart(e, task)}
+                      onDragOver={e => onDragOverCard(e, task.id)}
+                      onDragLeave={onDragLeaveCard}
+                      onDrop={e => onDropCard(e, task.id, col.key)}
                       onDragEnd={onDragEnd}
                       onClick={() => startEdit(task)}
                     >
@@ -484,6 +597,21 @@ export function PlanungDashboard() {
                         </div>
                       )}
                       <div className="kb-card__actions">
+                        {idx > 0 && (
+                          <button
+                            className="kb-move-btn"
+                            onClick={e => { e.stopPropagation(); swapTasks(col.key, idx, idx - 1) }}
+                            title="Nach oben"
+                          >▲</button>
+                        )}
+                        {idx < colTasks.length - 1 && (
+                          <button
+                            className="kb-move-btn"
+                            onClick={e => { e.stopPropagation(); swapTasks(col.key, idx, idx + 1) }}
+                            title="Nach unten"
+                          >▼</button>
+                        )}
+                        <span className="kb-actions-spacer" />
                         {col.key !== 'backlog' && (
                           <button
                             className="kb-move-btn"

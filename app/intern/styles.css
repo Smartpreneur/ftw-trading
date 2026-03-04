@@ -778,6 +778,16 @@
   transform: scale(0.95);
 }
 
+.kb-card--drop-above {
+  border-top: 2px solid var(--accent);
+  margin-top: -2px;
+}
+
+.kb-card--drop-below {
+  border-bottom: 2px solid var(--accent);
+  margin-bottom: -2px;
+}
+
 .kb-card:hover {
   border-color: var(--accent-border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -832,6 +842,11 @@
   display: flex;
   gap: 4px;
   margin-top: 8px;
+  align-items: center;
+}
+
+.kb-actions-spacer {
+  flex: 1;
 }
 
 .kb-move-btn {
@@ -931,6 +946,10 @@
 .kb-textarea {
   resize: vertical;
   min-height: 60px;
+}
+
+.kb-textarea--lg {
+  min-height: 140px;
 }
 
 .kb-field {

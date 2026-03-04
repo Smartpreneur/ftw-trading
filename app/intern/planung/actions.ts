@@ -28,7 +28,6 @@ export async function getPlanungTasks() {
   const { data, error } = await supabase
     .from('kanban_tasks')
     .select('*')
-    .order('priority', { ascending: true })
     .order('position', { ascending: true })
     .order('created_at', { ascending: false })
 
@@ -47,6 +46,17 @@ export async function createPlanungTask(input: {
   if (!isAuthed) return { error: 'Nicht authentifiziert' }
 
   const supabase = await createClient()
+
+  // Get max position in backlog column
+  const { data: maxRow } = await supabase
+    .from('kanban_tasks')
+    .select('position')
+    .eq('status', 'backlog')
+    .order('position', { ascending: false })
+    .limit(1)
+    .single()
+  const nextPos = (maxRow?.position ?? -1) + 1
+
   const { data, error } = await supabase
     .from('kanban_tasks')
     .insert({
@@ -57,7 +67,7 @@ export async function createPlanungTask(input: {
       links: input.links,
       images: [],
       status: 'backlog',
-      position: 0,
+      position: nextPos,
     })
     .select()
     .single()
@@ -146,5 +156,24 @@ export async function deleteTaskImage(url: string) {
     .remove([parts[1]])
 
   if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function reorderTasks(taskIds: string[]) {
+  const isAuthed = await checkAuth()
+  if (!isAuthed) return { error: 'Nicht authentifiziert' }
+
+  const supabase = await createClient()
+  const now = new Date().toISOString()
+
+  for (let i = 0; i < taskIds.length; i++) {
+    const { error } = await supabase
+      .from('kanban_tasks')
+      .update({ position: i, updated_at: now })
+      .eq('id', taskIds[i])
+    if (error) return { error: error.message }
+  }
+
+  revalidatePath('/intern/planung')
   return { success: true }
 }
