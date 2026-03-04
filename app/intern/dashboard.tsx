@@ -163,6 +163,7 @@ export function InternDashboard() {
       <header className="intern__header">
         <h1>Landing Page KPIs</h1>
         <div className="intern__header-actions">
+          <a href="/intern" className="intern__nav-link">Übersicht</a>
           <a href="/intern/rabattcodes" className="intern__nav-link">Rabattcodes</a>
           <a href="/performance" className="intern__nav-link">Performance</a>
           <a href="/trades" className="intern__nav-link">Trades</a>

@@ -130,7 +130,8 @@ export function RabattcodesDashboard() {
       <header className="intern__header">
         <h1>Rabattcodes</h1>
         <div className="intern__header-actions">
-          <a href="/intern" className="intern__nav-link">Dashboard</a>
+          <a href="/intern" className="intern__nav-link">Übersicht</a>
+          <a href="/intern/analytics" className="intern__nav-link">Analytics</a>
           <a href="/performance" className="intern__nav-link">Performance</a>
           <a href="/trades" className="intern__nav-link">Trades</a>
           <a href="/setups" className="intern__nav-link">Setups</a>

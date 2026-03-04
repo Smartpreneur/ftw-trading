@@ -410,6 +410,59 @@
 }
 
 /* ══════════════════════════════════════
+   HUB / ÜBERSICHT
+══════════════════════════════════════ */
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.hub-card {
+  background: #1a2736;
+  border: 1px solid rgba(0, 212, 255, 0.08);
+  border-radius: 14px;
+  padding: 32px 28px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.hub-card:hover {
+  border-color: rgba(0, 212, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.hub-card__icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 14px;
+}
+
+.hub-card__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.hub-card__desc {
+  font-size: 0.85rem;
+  color: #5a6a7a;
+  line-height: 1.5;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .hub-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ══════════════════════════════════════
    RABATTCODES
 ══════════════════════════════════════ */
 
