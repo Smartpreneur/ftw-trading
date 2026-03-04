@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { getDiscountCodes, updateDiscountCode, type DiscountCode } from './actions'
 import { logout } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
+import { useTheme } from '../use-theme'
 import '../styles.css'
 
 const TZ = 'Europe/Berlin'
@@ -78,6 +79,7 @@ export function RabattcodesDashboard() {
   const [editActive, setEditActive] = useState(true)
   const [saving, setSaving] = useState(false)
   const router = useRouter()
+  const { light, toggle } = useTheme()
 
   const loadCodes = async () => {
     const result = await getDiscountCodes()
@@ -126,15 +128,14 @@ export function RabattcodesDashboard() {
   }
 
   return (
-    <div className="intern">
+    <div className={`intern${light ? ' light' : ''}`}>
       <header className="intern__header">
         <h1>Rabattcodes</h1>
         <div className="intern__header-actions">
           <a href="/intern" className="intern__nav-link">Übersicht</a>
-          <a href="/intern/analytics" className="intern__nav-link">Analytics</a>
-          <a href="/performance" className="intern__nav-link">Performance</a>
-          <a href="/trades" className="intern__nav-link">Trades</a>
-          <a href="/setups" className="intern__nav-link">Setups</a>
+          <button onClick={toggle} className="theme-toggle" title={light ? 'Dark Mode' : 'Light Mode'}>
+            {light ? '🌙' : '☀️'}
+          </button>
           <button onClick={handleLogout} className="intern__logout">
             Abmelden
           </button>

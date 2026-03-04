@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { getAnalytics } from './actions'
 import { logout } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
+import { useTheme } from './use-theme'
 import './styles.css'
 
 type AnalyticsData = {
@@ -59,6 +60,7 @@ export function InternDashboard() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [dateRange, setDateRange] = useState<number | null>(14)
   const router = useRouter()
+  const { light, toggle } = useTheme()
 
   useEffect(() => {
     getAnalytics().then(result => {
@@ -159,15 +161,14 @@ export function InternDashboard() {
   const displayLabel = isDayFiltered ? formatDay(selectedDay) : rangeLabel
 
   return (
-    <div className="intern">
+    <div className={`intern${light ? ' light' : ''}`}>
       <header className="intern__header">
         <h1>Landing Page KPIs</h1>
         <div className="intern__header-actions">
           <a href="/intern" className="intern__nav-link">Übersicht</a>
-          <a href="/intern/rabattcodes" className="intern__nav-link">Rabattcodes</a>
-          <a href="/performance" className="intern__nav-link">Performance</a>
-          <a href="/trades" className="intern__nav-link">Trades</a>
-          <a href="/setups" className="intern__nav-link">Setups</a>
+          <button onClick={toggle} className="theme-toggle" title={light ? 'Dark Mode' : 'Light Mode'}>
+            {light ? '🌙' : '☀️'}
+          </button>
           <button onClick={handleLogout} className="intern__logout">
             Abmelden
           </button>

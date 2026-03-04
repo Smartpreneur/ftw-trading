@@ -2,6 +2,7 @@
 
 import { logout } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
+import { useTheme } from './use-theme'
 import './styles.css'
 
 const sections = [
@@ -27,6 +28,7 @@ const sections = [
 
 export function InternHub() {
   const router = useRouter()
+  const { light, toggle } = useTheme()
 
   const handleLogout = async () => {
     await logout()
@@ -34,10 +36,13 @@ export function InternHub() {
   }
 
   return (
-    <div className="intern">
+    <div className={`intern${light ? ' light' : ''}`}>
       <header className="intern__header">
         <h1>Interner Bereich</h1>
         <div className="intern__header-actions">
+          <button onClick={toggle} className="theme-toggle" title={light ? 'Dark Mode' : 'Light Mode'}>
+            {light ? '🌙' : '☀️'}
+          </button>
           <button onClick={handleLogout} className="intern__logout">
             Abmelden
           </button>
