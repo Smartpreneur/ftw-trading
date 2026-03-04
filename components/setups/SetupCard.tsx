@@ -1,45 +1,49 @@
+'use client'
+
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/formatters'
-import { Clock, TrendingDown, TrendingUp, BarChart3 } from 'lucide-react'
+import { deleteSetup, deleteChartImage } from '@/lib/setup-actions'
+import { SetupDialog } from './SetupDialog'
+import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import Image from 'next/image'
-
-interface Setup {
-  id: string
-  asset: string
-  asset_klasse: string
-  datum: string
-  aktueller_kurs: number
-  richtung: 'LONG' | 'SHORT'
-  einstieg_von: number
-  einstieg_bis: number
-  stop_loss: number
-  tp1: number
-  tp2: number | null
-  tp3: number | null
-  tp4: number | null
-  risiko_reward_min: number
-  risiko_reward_max: number
-  zeiteinheit: string
-  dauer_erwartung: string | null
-  status: 'Aktiv' | 'Getriggert' | 'Abgelaufen'
-  bemerkungen: string | null
-  chart_bild_url: string | null
-}
+import type { TradeSetup } from '@/lib/types'
 
 interface SetupCardProps {
-  setup: Setup
+  setup: TradeSetup
 }
 
 export function SetupCard({ setup }: SetupCardProps) {
   const isLong = setup.richtung === 'LONG'
+  const router = useRouter()
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  // Format date consistently to avoid hydration mismatch
   const date = new Date(setup.datum)
   const formattedDate = `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
 
+  async function handleDelete() {
+    if (!confirm('Setup wirklich löschen?')) return
+    setIsDeleting(true)
+    try {
+      if (setup.chart_bild_url) {
+        await deleteChartImage(setup.chart_bild_url)
+      }
+      await deleteSetup(setup.id)
+      toast.success('Setup gelöscht')
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Fehler beim Löschen')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="hover:shadow-md transition-shadow group">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1.5 flex-1">
@@ -54,11 +58,35 @@ export function SetupCard({ setup }: SetupCardProps) {
               >
                 {setup.status}
               </Badge>
+              <Badge variant="outline" className="text-xs">
+                {setup.profil}
+              </Badge>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground">Kurs bei Signal</p>
-            <p className="text-base font-bold tabular-nums">{formatPrice(setup.aktueller_kurs)}</p>
+          <div className="flex items-start gap-1">
+            <div className="text-right mr-2">
+              <p className="text-xs text-muted-foreground">Kurs bei Signal</p>
+              <p className="text-base font-bold tabular-nums">{formatPrice(setup.aktueller_kurs)}</p>
+            </div>
+            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <SetupDialog
+                setup={setup}
+                trigger={
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                }
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-destructive hover:text-destructive"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
       </CardHeader>

@@ -1,7 +1,10 @@
 import { getSetups } from '@/lib/setup-actions'
 import { SetupGrid } from '@/components/setups/SetupGrid'
+import { SetupDialog } from '@/components/setups/SetupDialog'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
+import { checkAuth } from '@/lib/auth'
+import { PasswordGate } from '@/components/password-gate'
 import type { TradingProfile } from '@/lib/types'
 
 export default async function SetupsPage({
@@ -9,6 +12,9 @@ export default async function SetupsPage({
 }: {
   searchParams: Promise<{ profiles?: string }>
 }) {
+  const isAuthed = await checkAuth()
+  if (!isAuthed) return <PasswordGate />
+
   const params = await searchParams
   const profilesParam = params.profiles
   const selectedProfiles = profilesParam?.split(',') as TradingProfile[] | undefined
@@ -31,10 +37,14 @@ export default async function SetupsPage({
             Aktuelle Trading-Signale und Setup-Analysen
           </p>
         </div>
-        <Button className="gap-1.5">
-          <Plus className="h-4 w-4" />
-          Neues Setup
-        </Button>
+        <SetupDialog
+          trigger={
+            <Button className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              Neues Setup
+            </Button>
+          }
+        />
       </div>
 
       {error && (

@@ -20,6 +20,30 @@ export const tradeSchema = z.object({
 
 export type TradeSchemaValues = z.infer<typeof tradeSchema>
 
+export const setupSchema = z.object({
+  asset: z.string().trim().min(1, 'Pflichtfeld'),
+  asset_klasse: z.enum(['Index', 'Rohstoff', 'Krypto', 'Aktie', 'FX']),
+  datum: z.string().min(1, 'Pflichtfeld'),
+  aktueller_kurs: z.number().positive('Muss positiv sein'),
+  richtung: z.enum(['LONG', 'SHORT']),
+  einstieg_von: z.number().positive('Muss positiv sein'),
+  einstieg_bis: z.number().positive('Muss positiv sein'),
+  stop_loss: z.number().positive('Muss positiv sein'),
+  tp1: z.number().positive('Muss positiv sein'),
+  tp2: z.number().nullable().optional(),
+  tp3: z.number().nullable().optional(),
+  tp4: z.number().nullable().optional(),
+  risiko_reward_min: z.number().positive('Muss positiv sein'),
+  risiko_reward_max: z.number().positive('Muss positiv sein'),
+  zeiteinheit: z.string().trim().min(1, 'Pflichtfeld'),
+  dauer_erwartung: z.string().nullable().optional(),
+  status: z.enum(['Aktiv', 'Getriggert', 'Abgelaufen']),
+  bemerkungen: z.string().nullable().optional(),
+  profil: z.enum(['MB', 'MB2', 'SJ']),
+})
+
+export type SetupSchemaValues = z.infer<typeof setupSchema>
+
 /** Converts empty-string input to null for optional number fields */
 export function toNullableNumber(v: unknown): number | null {
   if (v === '' || v === null || v === undefined) return null

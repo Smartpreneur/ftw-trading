@@ -11,8 +11,8 @@ const geist = Geist({
 })
 
 export const metadata: Metadata = {
-  title: 'FTW Trading Journal',
-  description: 'Persönliches Trading-Tagebuch mit Performance-Analyse',
+  title: "Fugmann's Trading Woche",
+  description: 'Fertige Analysen für jede Marktlage – direkt ins Postfach, sofort umsetzbar.',
 }
 
 export default function RootLayout({

@@ -6,7 +6,12 @@ export function ConditionalMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   // Landing pages and their sub-routes have their own layout, no main wrapper needed
-  if (pathname === '/landing' || pathname === '/landing-light' || pathname.startsWith('/landing/')) {
+  if (
+    pathname === '/' ||
+    pathname === '/landing' ||
+    pathname === '/landing-light' ||
+    pathname.startsWith('/landing/')
+  ) {
     return <>{children}</>
   }
 

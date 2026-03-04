@@ -4,6 +4,38 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { TradeSetup, SetupFormData, TradingProfile } from './types'
 
+export async function uploadChartImage(formData: FormData): Promise<string> {
+  const file = formData.get('file') as File
+  if (!file) throw new Error('Keine Datei ausgewählt')
+
+  const supabase = await createClient()
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const filePath = `setups/${fileName}`
+
+  const { error } = await supabase.storage
+    .from('chart-images')
+    .upload(filePath, file, { contentType: file.type, upsert: false })
+
+  if (error) throw new Error(`Upload fehlgeschlagen: ${error.message}`)
+
+  const { data: urlData } = supabase.storage
+    .from('chart-images')
+    .getPublicUrl(filePath)
+
+  return urlData.publicUrl
+}
+
+export async function deleteChartImage(url: string): Promise<void> {
+  const supabase = await createClient()
+  const match = url.match(/chart-images\/(.+)$/)
+  if (!match) return
+  const { error } = await supabase.storage
+    .from('chart-images')
+    .remove([match[1]])
+  if (error) console.error('Failed to delete image:', error.message)
+}
+
 export async function getSetups(profiles?: TradingProfile[]): Promise<TradeSetup[]> {
   const supabase = await createClient()
   let query = supabase

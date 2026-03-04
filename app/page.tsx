@@ -1,431 +1,852 @@
-import { getTrades } from '@/lib/actions'
-import { getActiveTradePrices } from '@/lib/price-actions'
-import {
-  calculateKPIs,
-  calculateMonthlyPerformance,
-  calculateAssetClassPerformance,
-} from '@/lib/calculations'
-import { PerformanceChart } from '@/components/trades/PerformanceChart'
-import { AssetClassChart } from '@/components/trades/AssetClassChart'
-import { WinRateGauge } from '@/components/trades/WinRateGauge'
-import { StatusBadge } from '@/components/trades/StatusBadge'
-import { DirectionBadge } from '@/components/trades/DirectionBadge'
-import { RefreshPricesButton } from '@/components/trades/RefreshPricesButton'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { formatDate, formatPercent, formatPrice } from '@/lib/formatters'
-import { ArrowRight, TrendingUp, TrendingDown } from 'lucide-react'
-import Link from 'next/link'
-import type { TradingProfile } from '@/lib/types'
+'use client'
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ profiles?: string }>
-}) {
-  const params = await searchParams
-  const profilesParam = params.profiles
-  const selectedProfiles = profilesParam?.split(',') as TradingProfile[] | undefined
+import { useEffect, useState } from 'react'
+import Script from 'next/script'
+import { createClient } from '@/lib/supabase/client'
+import './landing/styles.css'
 
-  let trades: Awaited<ReturnType<typeof getTrades>> = []
-  let error: string | null = null
+// ─── Testimonials ─────────────────────────────────────────────
+// Setze enabled: false um ein Zitat auszublenden (z.B. noch keine Freigabe)
+const testimonials = [
+  {
+    enabled: true,
+    name: 'Bernhard R.',
+    text: 'Habe mit den Setups von Stefan Jäger letztes Jahr ein dickes Plus erwirtschaftet. Was man hier für wenig Geld erhält, ist einfach spitze. Top Niveau. Top Ergebnis.',
+  },
+  {
+    enabled: true,
+    name: 'Falk H.',
+    text: 'Klar definierte Setups – besonders für Werktätige, welche nicht stets am PC oder Handy sein können.',
+  },
+  {
+    enabled: true,
+    name: 'Jörg H.',
+    text: 'Sehr konkrete effektive Tipps mit Background, vor allem aber sehr hoher Trefferquote. Kosten amortisieren sich.',
+  },
+  {
+    enabled: true,
+    name: 'Murat O.',
+    text: 'Sehr transparent, gute und sinnvolle Trades. Alles nachvollziehbar dargelegt und dazu auch noch unterhaltsam!',
+  },
+  {
+    enabled: true,
+    name: 'Norman B.',
+    text: "Fugmann's Trading Woche ist eine unheimliche Zeitersparnis im Suchen von guten Chancen.",
+  },
+  {
+    enabled: false, // Freigabe ausstehend
+    name: 'Stefan K.',
+    text: 'Es wirkt schlicht alles unglaublich authentisch, nicht wie bei so vielen Finfluencern. Mein Wissenszuwachs nach jedem Börsenbrief liegt bei mindestens 80 %.',
+  },
+  {
+    enabled: true,
+    name: 'Nick Z.',
+    text: 'Dank ans Team – die FTW mit sehr zeitnahen Setups, Updates und detaillierten Sonderthemen rund ums Trading ist sehr hilfreich!',
+  },
+]
 
+// ─────────────────────────────────────────────────────────────
+
+// REF_MAP wird jetzt dynamisch aus Supabase geladen (discount_codes Tabelle)
+
+const pricing = {
+  quarterly:  { normal: 99,  discounted: 89,  monthly: 29.67, discountPct: 10 },
+  halfYear:   { normal: 188, discounted: 169, monthly: 28.17, discountPct: 10 },
+  yearly:     { normal: 329, discounted: 297, monthly: 24.75, discountPct: 10 },
+}
+
+// Ablefy Plan-IDs je Laufzeit und Preisvariante
+const PLAN_IDS = {
+  quarterly: { normal: 579217, discounted: 579212 },
+  halfYear:  { normal: 579238, discounted: 579237 },
+  yearly:    { normal: 579240, discounted: 460228 },
+}
+
+// ─── Analytics Tracking (DSGVO-konform, kein Cookie, kein personenbezogenes Datum) ──
+function getUtmParams() {
+  const params = new URLSearchParams(window.location.search)
+  return {
+    utm_source: params.get('utm_source') || null,
+    utm_medium: params.get('utm_medium') || null,
+    utm_campaign: params.get('utm_campaign') || null,
+    utm_content: params.get('utm_content') || null,
+    utm_term: params.get('utm_term') || null,
+    campaign_id: params.get('campaign_id') || null,
+    ref_code: params.get('ref')?.toLowerCase() || null,
+  }
+}
+
+let cachedUtm: ReturnType<typeof getUtmParams> | null = null
+
+const trackEvent = async (event: string, eventSource?: string) => {
   try {
-    trades = await getTrades(selectedProfiles)
-  } catch (e: any) {
-    error = e?.message ?? 'Fehler beim Laden der Trades'
+    const supabase = createClient()
+    let sessionId = sessionStorage.getItem('ftw_sid')
+    if (!sessionId) {
+      sessionId = crypto.randomUUID()
+      sessionStorage.setItem('ftw_sid', sessionId)
+    }
+    const ref = document.referrer || null
+    const referrer = ref && !ref.includes(location.hostname) ? ref : null
+    if (!cachedUtm) cachedUtm = getUtmParams()
+    await supabase.from('landing_events').insert({
+      event,
+      source: eventSource || null,
+      session_id: sessionId,
+      referrer,
+      ...cachedUtm,
+    })
+  } catch {
+    // Silent fail – Tracking darf die UX nie beeinträchtigen
+  }
+}
+
+export default function LandingPage() {
+  const [discountActive, setDiscountActive] = useState(false)
+  const [source, setSource] = useState('')
+  const [coupon, setCoupon] = useState('')
+  const [campaign, setCampaign] = useState('')
+
+  // Baut den Checkout-Link mit plan_id, Gutschein, Kampagne + Quelle zusammen
+  const checkoutLink = (planId: number) => {
+    const params = new URLSearchParams()
+    params.set('displayed_plans_id', String(planId))
+    if (coupon) params.set('coupon', coupon)
+    if (campaign) params.set('campaign_id', campaign)
+    if (source) params.set('utm_source', source)
+    return `/landing/checkout?${params.toString()}`
   }
 
-  // Fetch live prices for active trades
-  const activePrices = await getActiveTradePrices()
-  const priceMap = new Map(activePrices.map(p => [p.trade_id, p]))
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
 
-  const kpis = calculateKPIs(trades)
-  const monthly = calculateMonthlyPerformance(trades)
-  const byAssetClass = calculateAssetClassPerformance(trades)
-  const activeTrades = trades.filter((t) => t.status === 'Aktiv')
-  const recentClosedTrades = trades
-    .filter((t) => t.status !== 'Aktiv')
-    .sort((a, b) => {
-      const dateA = a.datum_schliessung || a.datum_eroeffnung
-      const dateB = b.datum_schliessung || b.datum_eroeffnung
-      return dateB.localeCompare(dateA) // Descending order (newest first)
+    // campaign_id aus URL übernehmen
+    const urlCampaign = params.get('campaign_id')
+    if (urlCampaign) setCampaign(urlCampaign)
+
+    // Ref-Code oder Coupon aus URL ermitteln
+    const ref = params.get('ref')?.toLowerCase()
+    const urlCoupon = params.get('coupon') || params.get('code')
+    const savedCoupon = localStorage.getItem('ftw_promo')
+    const savedSource = localStorage.getItem('ftw_source')
+
+    // Rabattcode gegen Supabase validieren (Gültigkeitszeitraum prüfen)
+    const supabase = createClient()
+    const validateAndActivate = async () => {
+      if (ref) {
+        // Ref-Code: z.B. ?ref=y26 → Supabase-Abfrage
+        const { data: dc } = await supabase
+          .from('discount_codes')
+          .select('source, coupon, is_active, valid_from, valid_until')
+          .eq('code', ref)
+          .single()
+
+        if (dc && dc.is_active) {
+          const now = new Date()
+          const fromOk = !dc.valid_from || new Date(dc.valid_from) <= now
+          const untilOk = !dc.valid_until || new Date(dc.valid_until) >= now
+          if (fromOk && untilOk) {
+            localStorage.setItem('ftw_source', dc.source)
+            localStorage.setItem('ftw_promo', dc.coupon)
+            setSource(dc.source)
+            setCoupon(dc.coupon)
+            setDiscountActive(true)
+            trackEvent('page_view', dc.source)
+            return
+          }
+        }
+        // Ungültiger/abgelaufener Code → localStorage leeren
+        localStorage.removeItem('ftw_promo')
+        localStorage.removeItem('ftw_source')
+        trackEvent('page_view')
+        return
+      }
+
+      if (urlCoupon) {
+        // Direkter Coupon: ?coupon=fugi26 → prüfen ob ein aktiver Code diesen Coupon hat
+        const { data: matches } = await supabase
+          .from('discount_codes')
+          .select('source, coupon, is_active, valid_from, valid_until')
+          .eq('coupon', urlCoupon)
+          .eq('is_active', true)
+
+        const now = new Date()
+        const valid = matches?.find(dc => {
+          const fromOk = !dc.valid_from || new Date(dc.valid_from) <= now
+          const untilOk = !dc.valid_until || new Date(dc.valid_until) >= now
+          return fromOk && untilOk
+        })
+
+        if (valid) {
+          setCoupon(urlCoupon)
+          setDiscountActive(true)
+          localStorage.setItem('ftw_promo', urlCoupon)
+        } else {
+          localStorage.removeItem('ftw_promo')
+        }
+      } else if (savedCoupon) {
+        // Gespeicherter Coupon aus vorherigem Besuch → erneut validieren
+        const { data: matches } = await supabase
+          .from('discount_codes')
+          .select('source, coupon, is_active, valid_from, valid_until')
+          .eq('coupon', savedCoupon)
+          .eq('is_active', true)
+
+        const now = new Date()
+        const valid = matches?.find(dc => {
+          const fromOk = !dc.valid_from || new Date(dc.valid_from) <= now
+          const untilOk = !dc.valid_until || new Date(dc.valid_until) >= now
+          return fromOk && untilOk
+        })
+
+        if (valid) {
+          setCoupon(savedCoupon)
+          setDiscountActive(true)
+        } else {
+          localStorage.removeItem('ftw_promo')
+        }
+      }
+
+      // Gespeicherte Quelle aus vorherigem Besuch laden
+      if (savedSource) setSource(savedSource)
+      trackEvent('page_view', savedSource || undefined)
+    }
+
+    validateAndActivate()
+  }, [])
+
+  useEffect(() => {
+    // Navbar scroll effect
+    const nav = document.getElementById('nav')
+    const handleScroll = () => {
+      if (nav) {
+        nav.classList.toggle('scrolled', window.scrollY > 40)
+      }
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+
+    // FAQ Accordion
+    document.querySelectorAll('.faq-question').forEach((btn) => {
+      btn.addEventListener('click', function(this: HTMLElement) {
+        const item = this.parentElement
+        if (!item) return
+        const isActive = item.classList.contains('active')
+        document.querySelectorAll('.faq-item').forEach((el) => {
+          el.classList.remove('active')
+        })
+        if (!isActive) item.classList.add('active')
+      })
     })
-    .slice(0, 5)
 
-  const pfColor =
-    kpis.profit_factor >= 1.5
-      ? 'text-emerald-600'
-      : kpis.profit_factor >= 1
-      ? 'text-yellow-600'
-      : 'text-rose-600'
+    // Scroll Reveal
+    const reveals = document.querySelectorAll('.reveal')
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible')
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+    )
+    reveals.forEach((el) => observer.observe(el))
+
+    // Sticky CTA visibility (mobile)
+    const stickyCta = document.getElementById('stickyCta')
+    const heroSection = document.querySelector('.hero')
+    if (stickyCta && heroSection) {
+      const stickyObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (window.innerWidth <= 768) {
+              stickyCta.style.transform = entry.isIntersecting
+                ? 'translateY(100%)'
+                : 'translateY(0)'
+            }
+          })
+        },
+        { threshold: 0 }
+      )
+      stickyCta.style.transition = 'transform 0.3s ease'
+      stickyCta.style.transform = 'translateY(100%)'
+      stickyObserver.observe(heroSection)
+    }
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Performance-Übersicht</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Fugmanns Trading Woche
+    <>
+      {/* NAV */}
+      <nav className="nav" id="nav">
+        <div className="container">
+          <div className="nav__inner">
+            <a href="#" className="nav__logo">
+              Fugmann's <span>Trading Woche</span>
+            </a>
+            <a href="#pricing" className="cta-btn nav__cta">
+              Jetzt testen
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      {/* HERO */}
+      <section className="hero">
+        <div className="container">
+          <div className="hero__content">
+            <h1>
+              Mit Profi-Wissen mehr <span className="highlight">Rendite</span>{' '}
+              erwirtschaften
+            </h1>
+            <p className="hero__sub">
+              Fertige Analysen für jede Marktlage – direkt ins Postfach, sofort umsetzbar
+            </p>
+            <div className="hero__video">
+              <Script src="https://fast.wistia.com/player.js" strategy="afterInteractive" />
+              <Script src="https://fast.wistia.com/embed/upvpmi7u5r.js" strategy="afterInteractive" />
+              {/* @ts-expect-error – wistia-player ist ein Web Component */}
+              <wistia-player media-id="upvpmi7u5r" aspect="1.7777777777777777" />
+            </div>
+            <a href="#pricing" className="cta-btn">
+              4 Wochen testen – 100 % Geld-zurück-Garantie
+            </a>
+            <div className="hero__trust">
+              <div className="trust-item">
+                <span className="trust-item__value">70 %+</span>
+                <span className="trust-item__label">Trefferquote*</span>
+              </div>
+              <div className="trust-item">
+                <span className="trust-item__value">140+</span>
+                <span className="trust-item__label">Analysen pro Jahr*</span>
+              </div>
+              <div className="trust-item">
+                <span className="trust-item__value">30 Tage</span>
+                <span className="trust-item__label">Geld-zurück-Garantie</span>
+              </div>
+            </div>
+            <p className="hero__disclaimer">* Bisherige Ergebnisse. Vergangene Performance ist kein Indikator für zukünftige Ergebnisse.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* PROBLEM */}
+      <section className="section section--alt">
+        <div className="container">
+          <h2 className="text-center reveal">Vielen Anlegern geht es so:</h2>
+          <div className="problem-grid">
+            <div className="problem-card reveal">
+              <h3>Long-Only – kein Plan für fallende Märkte</h3>
+              <p>
+                Long-ETFs, Long-Aktien – aber keine Strategie, wenn der Markt
+                dreht. Das Depot leidet, weil Short-Setups und Absicherung fehlen.
+              </p>
+            </div>
+            <div className="problem-card problem-card--cyan reveal">
+              <h3>Keine Zeit für permanente Marktbeobachtung</h3>
+              <p>
+                Wer beruflich eingespannt ist, kann den Markt nicht ständig
+                im Blick behalten. Gute Einstiege laufen weg, bevor man reagiert.
+              </p>
+            </div>
+            <div className="problem-card reveal">
+              <h3>Einstieg zu spät, Ausstieg zu früh</h3>
+              <p>
+                Ohne präzise charttechnische Kurspunkte fehlt die Grundlage
+                für den optimalen Einstieg – und für einen disziplinierten Ausstieg.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* BRIDGE */}
+      <section className="bridge">
+        <div className="container">
+          <p className="reveal">
+            Du profitierst von erfahrenen Analysten, die Dir eine fertige Analyse liefern –
+            damit Du <strong>schneller am Markt bist als der Durchschnitt</strong> und
+            gute Gelegenheiten nicht mehr ungenutzt bleiben.
           </p>
         </div>
-      </div>
+      </section>
 
-      {/* Error banner */}
-      {error && (
-        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {error} — Bitte Supabase-Credentials in <code>.env.local</code> prüfen.
+      {/* STEPS */}
+      <section className="section">
+        <div className="container">
+          <h2 className="text-center reveal">So einfach funktioniert es</h2>
+          <p className="subtitle text-center reveal">
+            Vom Postfach ins Depot – in 15 Minuten pro Woche.
+          </p>
+          <div className="steps">
+            <div className="step reveal">
+              <div className="step__number">1</div>
+              <h3>Montag: Analyse erhalten</h3>
+              <p>
+                Fertige Trade-Setups mit exakten Kurspunkten landen in
+                Deinem Postfach.
+              </p>
+            </div>
+            <div className="step reveal">
+              <div className="step__number">2</div>
+              <h3>Orders eingeben</h3>
+              <p>
+                Einstieg, Stopp und Kursziel eintragen.
+                Dauert 3 Minuten.
+              </p>
+            </div>
+            <div className="step reveal">
+              <div className="step__number">3</div>
+              <h3>Gewinne realisieren</h3>
+              <p>
+                Eil-Benachrichtigungen bei Änderungen. Automatische Gewinnmitnahmen. Du verpasst nichts.
+              </p>
+            </div>
+          </div>
         </div>
-      )}
+      </section>
 
-      {/* Win Rate + Profit Factor + Equity Curve */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Win Rate Gauge */}
-        <WinRateGauge kpis={kpis} />
-
-        {/* Profit Factor card */}
-        <Card>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex flex-col gap-2 h-full justify-between">
-              <p className="text-sm font-bold text-foreground">Profit Factor</p>
-              <div className="flex items-end gap-3 mt-2">
-                <span className={`text-4xl font-bold tabular-nums ${pfColor}`}>
-                  {kpis.profit_factor > 0 ? kpis.profit_factor.toFixed(2) : '–'}
-                </span>
-                {kpis.profit_factor > 0 &&
-                  (kpis.profit_factor >= 1 ? (
-                    <TrendingUp className="h-6 w-6 text-emerald-500 mb-1" />
-                  ) : (
-                    <TrendingDown className="h-6 w-6 text-rose-500 mb-1" />
-                  ))}
-              </div>
-              <div className="space-y-1 mt-1">
-                <p className="text-xs text-muted-foreground">
-                  Ø Gewinn{' '}
-                  <span className="font-semibold text-emerald-600">
-                    +{kpis.avg_win_pct.toFixed(2)} %
-                  </span>
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Ø Verlust{' '}
-                  <span className="font-semibold text-rose-600">
-                    -{kpis.avg_loss_pct.toFixed(2)} %
-                  </span>
-                </p>
-              </div>
+      {/* SYSTEM FUGMANN */}
+      <section className="section fugmann-section">
+        <div className="container">
+          <h2 className="text-center reveal">Das System Fugmann</h2>
+          <p className="subtitle text-center reveal">
+            Bewährte Analysen, die zur aktuellen Marktlage passen –<br />
+            entwickelt von einem Team, das nach klaren Regeln arbeitet.
+          </p>
+          <div className="fugmann-cards">
+            <div className="fugmann-card reveal">
+              <div className="fugmann-card__num">01</div>
+              <h3>Strategische Führung</h3>
+              <p>
+                Markus Fugmann setzt den Rahmen. Er gibt die taktische Richtung
+                vor und sorgt dafür, dass das Analysten-Team geschlossen und
+                konsequent auf den Markt schaut – nicht jeder für sich.
+              </p>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Stats summary */}
-        <Card>
-          <CardContent className="pt-5 pb-4">
-            <p className="text-sm font-bold text-foreground mb-3">Übersicht</p>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Trades gesamt</span>
-                <span className="font-semibold">{kpis.total_trades}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Offene Trades</span>
-                <span className="font-semibold">{activeTrades.length}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Geschlossen</span>
-                <span className="font-semibold">{kpis.closed_trades}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Bester Trade</span>
-                <span className="font-semibold text-emerald-600">
-                  +{kpis.best_trade_pct.toFixed(2)} %
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Schlechtester Trade</span>
-                <span className="font-semibold text-rose-600">
-                  {kpis.worst_trade_pct.toFixed(2)} %
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Ø Haltedauer</span>
-                <span className="font-semibold">–</span>
-              </div>
+            <div className="fugmann-card reveal">
+              <div className="fugmann-card__num">02</div>
+              <h3>Marktphasen-adaptiert</h3>
+              <p>
+                Jede Analyse passt zur aktuellen Marktlage – Long in
+                Aufwärtstrends, Short wenn der Markt dreht. Kein starres Schema,
+                sondern flexibles Handwerk, das in jeder Phase funktioniert.
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Monthly Performance + Asset Class side by side */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <PerformanceChart data={monthly} />
-        <AssetClassChart data={byAssetClass} />
-      </div>
-
-      {/* Active Trades */}
-      {activeTrades.length > 0 && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <CardTitle className="text-base">
-              Aktive Trades{' '}
-              <span className="ml-1.5 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                {activeTrades.length}
-              </span>
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <RefreshPricesButton />
-              <Link
-                href="/trades"
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Alle Trades
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+            <div className="fugmann-card reveal">
+              <div className="fugmann-card__num">03</div>
+              <h3>Dein Zeitvorteil</h3>
+              <p>
+                Während andere noch analysieren, hast Du die fertigen Setups
+                bereits im Postfach. Kein stundenlanger Chart-Scan –
+                der Vorsprung liegt bei Dir.
+              </p>
             </div>
-          </CardHeader>
-          <CardContent className="px-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-6">ID</TableHead>
-                  <TableHead>Datum</TableHead>
-                  <TableHead>Basiswert</TableHead>
-                  <TableHead>Long/Short</TableHead>
-                  <TableHead className="text-right">Einstiegskurs</TableHead>
-                  <TableHead className="text-right">Aktueller Kurs</TableHead>
-                  <TableHead className="text-right">G/V in %</TableHead>
-                  <TableHead className="text-right">SL</TableHead>
-                  <TableHead className="text-right">TP1</TableHead>
-                  <TableHead className="text-right">TP2</TableHead>
-                  <TableHead className="text-right">TP3</TableHead>
-                  <TableHead className="text-right">TP4</TableHead>
-                  <TableHead className="pr-6">Bemerkung</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activeTrades.map((trade) => {
-                  const priceData = priceMap.get(trade.id)
-                  const currentPrice = priceData?.current_price
-                  const entryPrice = trade.einstiegspreis
+          </div>
+        </div>
+      </section>
 
-                  // Calculate unrealized P&L
-                  let unrealizedPct: number | null = null
-                  if (currentPrice && entryPrice && trade.richtung) {
-                    if (trade.richtung === 'LONG') {
-                      unrealizedPct = ((currentPrice - entryPrice) / entryPrice) * 100
-                    } else {
-                      unrealizedPct = ((entryPrice - currentPrice) / entryPrice) * 100
-                    }
-                  }
+      {/* TEAM */}
+      <section className="section">
+        <div className="container">
+          <h2 className="text-center reveal">Dein Analysten-Team</h2>
+          <p className="subtitle text-center reveal">
+            Jedes Wochenende arbeiten zwei erfahrene Analysten konzentriert an
+            den besten Setups für die kommende Woche.
+          </p>
+          <div className="team-grid">
+            <div className="team-card reveal">
+              <img
+                src="/team/Foto_Stefan.JPG"
+                alt="Stefan Jäger"
+                className="team-card__avatar"
+              />
+              <h3>Stefan Jäger</h3>
+              <div className="team-card__tag">
+                Indizes, Gold, Silber, Devisen
+              </div>
+              <p>
+                Spezialist für Rohstoffe, Währungen und die großen Leitindizes
+                weltweit.
+              </p>
+            </div>
+            <div className="team-card reveal">
+              <img
+                src="/team/Michael.jpg"
+                alt="Michael Borgmann"
+                className="team-card__avatar"
+              />
+              <h3>Michael Borgmann</h3>
+              <div className="team-card__tag">Aktien &amp; Kryptos</div>
+              <p>
+                Fokussiert auf präzise charttechnische Einstiege bei
+                Einzelaktien und Kryptowährungen.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-                  return (
-                    <TableRow key={trade.id}>
-                      <TableCell className="pl-6">
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {trade.trade_id ? trade.trade_id.replace(/^T-0*/, '') : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {formatDate(trade.datum_eroeffnung)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium">{trade.asset}</span>
-                      </TableCell>
-                      <TableCell>
-                        {trade.richtung && <DirectionBadge direction={trade.richtung} />}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-mono text-sm">
-                          {entryPrice ? formatPrice(entryPrice) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-mono text-sm">
-                          {currentPrice ? formatPrice(currentPrice) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {unrealizedPct !== null ? (
-                          <span
-                            className={`font-mono text-sm font-semibold ${
-                              unrealizedPct >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                            }`}
-                          >
-                            {unrealizedPct >= 0 ? '+' : ''}
-                            {unrealizedPct.toFixed(2)}%
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-mono text-sm">
-                          {trade.stop_loss ? formatPrice(trade.stop_loss) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-mono text-sm">
-                          {trade.tp1 ? formatPrice(trade.tp1) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-mono text-sm">
-                          {trade.tp2 ? formatPrice(trade.tp2) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-mono text-sm">
-                          {trade.tp3 ? formatPrice(trade.tp3) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-mono text-sm">
-                          {trade.tp4 ? formatPrice(trade.tp4) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="pr-6 max-w-[150px]">
-                        <span
-                          className="text-sm text-muted-foreground truncate block cursor-help"
-                          title={trade.bemerkungen || undefined}
-                        >
-                          {trade.bemerkungen || '—'}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+      {/* RESULTS */}
+      <section className="section section--alt">
+        <div className="container">
+          <h2 className="text-center reveal">
+            Echte Ergebnisse der letzten Monate
+          </h2>
+          <p className="subtitle text-center reveal">
+            Performance der Basiswerte – ohne Hebel.
+          </p>
+          <div className="results-wrapper reveal">
+            <table className="results-table">
+              <thead>
+                <tr>
+                  <th>Basiswert</th>
+                  <th>Datum</th>
+                  <th>Ergebnis</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span className="dir-badge dir-badge--long">L</span> DaVita</td>
+                  <td>Feb. 2026</td>
+                  <td className="pct"><span className="pct-badge">+34,0 %</span></td>
+                </tr>
+                <tr>
+                  <td><span className="dir-badge dir-badge--long">L</span> Novo Nordisk</td>
+                  <td>Dez. 2025</td>
+                  <td className="pct"><span className="pct-badge">+37,6 %</span></td>
+                </tr>
+                <tr>
+                  <td><span className="dir-badge dir-badge--long">L</span> MicroStrategy</td>
+                  <td>Dez. 2025</td>
+                  <td className="pct"><span className="pct-badge pct-badge--neg">−10,8 %</span></td>
+                </tr>
+                <tr>
+                  <td><span className="dir-badge dir-badge--short">S</span> Gold</td>
+                  <td>Nov. 2025</td>
+                  <td className="pct"><span className="pct-badge">+2,9 %</span></td>
+                </tr>
+                <tr>
+                  <td><span className="dir-badge dir-badge--short">S</span> EUR/USD</td>
+                  <td>Nov. 2025</td>
+                  <td className="pct"><span className="pct-badge">+1,0 %</span></td>
+                </tr>
+                <tr>
+                  <td><span className="dir-badge dir-badge--long">L</span> Align Technology</td>
+                  <td>Nov. 2025</td>
+                  <td className="pct"><span className="pct-badge">+23,4 %</span></td>
+                </tr>
+                <tr>
+                  <td><span className="dir-badge dir-badge--long">L</span> Uranium Energy</td>
+                  <td>Nov. 2025</td>
+                  <td className="pct"><span className="pct-badge">+25,6 %</span></td>
+                </tr>
+                <tr>
+                  <td><span className="dir-badge dir-badge--short">S</span> DAX</td>
+                  <td>Sep. 2025</td>
+                  <td className="pct"><span className="pct-badge">+2,0 %</span></td>
+                </tr>
+                <tr>
+                  <td><span className="dir-badge dir-badge--long">L</span> WTI Öl</td>
+                  <td>Sep. 2025</td>
+                  <td className="pct"><span className="pct-badge">+3,2 %</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="results-legend">L = Long · S = Short</p>
+          <div className="badge-row">
+            <div className="badge">70 %+ Trefferquote*</div>
+            <div className="badge">140+ Analysen / Jahr*</div>
+          </div>
+        </div>
+      </section>
 
-      {/* Recent Closed Trades */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-base">
-            Letzte Trades{' '}
-            {recentClosedTrades.length > 0 && (
-              <span className="ml-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                {recentClosedTrades.length}
-              </span>
-            )}
-          </CardTitle>
-          <Link
-            href="/trades"
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Alle Trades
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </CardHeader>
-        <CardContent className="px-0">
-          {recentClosedTrades.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              Keine geschlossenen Trades
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-6">ID</TableHead>
-                  <TableHead>Datum</TableHead>
-                  <TableHead>Basiswert</TableHead>
-                  <TableHead>Long/Short</TableHead>
-                  <TableHead className="text-right">Einstiegskurs</TableHead>
-                  <TableHead className="text-right">Ausstiegskurs</TableHead>
-                  <TableHead className="text-right">G/V in %</TableHead>
-                  <TableHead className="text-right">SL</TableHead>
-                  <TableHead className="text-right">TP1</TableHead>
-                  <TableHead className="text-right">TP2</TableHead>
-                  <TableHead className="text-right">TP3</TableHead>
-                  <TableHead className="text-right pr-6">TP4</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentClosedTrades.map((trade) => (
-                  <TableRow key={trade.id}>
-                    <TableCell className="pl-6">
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {trade.trade_id ? trade.trade_id.replace(/^T-0*/, '') : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {formatDate(trade.datum_schliessung || trade.datum_eroeffnung)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{trade.asset}</span>
-                    </TableCell>
-                    <TableCell>
-                      {trade.richtung && <DirectionBadge direction={trade.richtung} />}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {trade.einstiegspreis ? formatPrice(trade.einstiegspreis) : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {trade.ausstiegspreis ? formatPrice(trade.ausstiegspreis) : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {trade.performance_pct !== null ? (
-                        <span
-                          className={`font-mono text-sm font-semibold ${
-                            trade.performance_pct >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                          }`}
-                        >
-                          {trade.performance_pct >= 0 ? '+' : ''}
-                          {trade.performance_pct.toFixed(2)}%
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {trade.stop_loss ? formatPrice(trade.stop_loss) : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {trade.tp1 ? formatPrice(trade.tp1) : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {trade.tp2 ? formatPrice(trade.tp2) : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {trade.tp3 ? formatPrice(trade.tp3) : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right pr-6">
-                      <span className="font-mono text-sm">
-                        {trade.tp4 ? formatPrice(trade.tp4) : '—'}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+      {/* PRICING */}
+      <section className="section section--alt" id="pricing">
+        <div className="container">
+          <h2 className="text-center reveal">
+            {discountActive ? 'Ab 0,82 € pro Tag' : 'Ab 0,90 € pro Tag'}
+          </h2>
+          <p className="subtitle text-center reveal">
+            Weniger als ein Kaffee – für professionelle Trading-Setups.
+          </p>
+
+          {discountActive && (
+            <div className="discount-active">
+              ✓ Rabatt aktiv
+            </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+
+          <div className="pricing-grid">
+            {/* Quarterly */}
+            <div className="pricing-card reveal">
+              <div className="pricing-card__period">
+                Quartalsabo{discountActive && <span className="pricing-card__discount">-{pricing.quarterly.discountPct} %</span>}
+              </div>
+              <div className="pricing-card__price">
+                {discountActive
+                  ? <>{pricing.quarterly.discounted} € <span className="price-original">{pricing.quarterly.normal} €</span> <span>/ 3 Monate</span></>
+                  : <>{pricing.quarterly.normal} € <span>/ 3 Monate</span></>
+                }
+              </div>
+              <div className="pricing-card__detail">
+                {discountActive ? `${pricing.quarterly.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '33,00 € pro Monat'}
+              </div>
+              <a
+                href={checkoutLink(discountActive ? PLAN_IDS.quarterly.discounted : PLAN_IDS.quarterly.normal)}
+                className="cta-btn cta-btn--ghost cta-btn--full"
+                onClick={() => trackEvent('checkout_quarterly', source || undefined)}
+              >
+                Jetzt starten
+              </a>
+            </div>
+            {/* 6 months */}
+            <div className="pricing-card reveal">
+              <div className="pricing-card__period">
+                Halbjahresabo{discountActive && <span className="pricing-card__discount">-{pricing.halfYear.discountPct} %</span>}
+              </div>
+              <div className="pricing-card__price">
+                {discountActive
+                  ? <>{pricing.halfYear.discounted} € <span className="price-original">{pricing.halfYear.normal} €</span> <span>/ 6 Monate</span></>
+                  : <>{pricing.halfYear.normal} € <span>/ 6 Monate</span></>
+                }
+              </div>
+              <div className="pricing-card__detail">
+                {discountActive ? `${pricing.halfYear.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '31,33 € pro Monat'}
+              </div>
+              <a
+                href={checkoutLink(discountActive ? PLAN_IDS.halfYear.discounted : PLAN_IDS.halfYear.normal)}
+                className="cta-btn cta-btn--ghost cta-btn--full"
+                onClick={() => trackEvent('checkout_halfyear', source || undefined)}
+              >
+                Jetzt starten
+              </a>
+            </div>
+            {/* Yearly (featured) */}
+            <div className="pricing-card pricing-card--featured reveal">
+              <div className="pricing-card__label">Bester Preis</div>
+              <div className="pricing-card__period">
+                Jahresabo{discountActive && <span className="pricing-card__discount">-{pricing.yearly.discountPct} %</span>}
+              </div>
+              <div className="pricing-card__price">
+                {discountActive
+                  ? <>{pricing.yearly.discounted} € <span className="price-original">{pricing.yearly.normal} €</span> <span>/ Jahr</span></>
+                  : <>{pricing.yearly.normal} € <span>/ Jahr</span></>
+                }
+              </div>
+              <div className="pricing-card__detail">
+                {discountActive
+                  ? `${pricing.yearly.monthly.toFixed(2).replace('.', ',')} € pro Monat – nur 0,82 € pro Tag`
+                  : '27,42 € pro Monat – nur 0,90 € pro Tag'
+                }
+              </div>
+              <a
+                href={checkoutLink(discountActive ? PLAN_IDS.yearly.discounted : PLAN_IDS.yearly.normal)}
+                className="cta-btn cta-btn--full"
+                onClick={() => trackEvent('checkout_yearly', source || undefined)}
+              >
+                Jetzt starten
+              </a>
+            </div>
+          </div>
+
+          {/* Guarantee */}
+          <div className="guarantee reveal">
+            <div className="guarantee__shield">
+              <svg width="90" height="90" viewBox="0 0 96 96" aria-hidden="true">
+                <polygon fill="#00748D" points="48,1 58.9,7.4 71.5,7.3 77.7,18.3 88.7,24.5 88.6,37.1 95,48 88.6,58.9 88.7,71.5 77.7,77.7 71.5,88.7 58.9,88.6 48,95 37.1,88.6 24.5,88.7 18.3,77.7 7.3,71.5 7.4,58.9 1,48 7.4,37.1 7.3,24.5 18.3,18.3 24.5,7.3 37.1,7.4"/>
+                <circle cx="48" cy="48" r="41" fill="#00748D"/>
+                <circle cx="48" cy="48" r="33" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
+                <text x="48" y="30" fill="white" fontSize="7.5" fontWeight="700" textAnchor="middle" letterSpacing="2" fontFamily="Arial,sans-serif">GELD ZURÜCK</text>
+                <text x="48" y="39" fill="rgba(255,255,255,0.7)" fontSize="6" textAnchor="middle" fontFamily="Arial,sans-serif">★  ★  ★</text>
+                <rect x="14" y="43" width="68" height="16" fill="white"/>
+                <text x="48" y="55" fill="#00748D" fontSize="13" fontWeight="900" textAnchor="middle" fontFamily="Arial,sans-serif" letterSpacing="0.5">30 TAGE</text>
+                <text x="48" y="68" fill="rgba(255,255,255,0.7)" fontSize="6" textAnchor="middle" fontFamily="Arial,sans-serif">★  ★  ★</text>
+                <text x="48" y="76" fill="white" fontSize="7.5" fontWeight="700" textAnchor="middle" letterSpacing="2.5" fontFamily="Arial,sans-serif">GARANTIE</text>
+              </svg>
+            </div>
+            <div>
+              <h3>30 Tage Geld-zurück-Garantie – ohne Wenn und Aber</h3>
+              <p>
+                Teste 4 volle Ausgaben. Wenn Du nicht überzeugt bist, bekommst
+                Du jeden Cent zurück. Eine formlose E-Mail genügt.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      {testimonials.some(t => t.enabled) && (
+        <section className="section section--alt">
+          <div className="container">
+            <h2 className="text-center reveal">Was Leser sagen</h2>
+            <div className="testimonials-grid">
+              {testimonials.filter(t => t.enabled).map((t, i) => (
+                <div key={i} className="testimonial-card reveal">
+                  <p className="testimonial-card__text">„{t.text}"</p>
+                  <p className="testimonial-card__name">— {t.name}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* FAQ */}
+      <section className="section">
+        <div className="container">
+          <h2 className="text-center reveal">Häufige Fragen</h2>
+          <div className="faq-list">
+            <div className="faq-item reveal">
+              <button className="faq-question">
+                Was genau bekomme ich als Mitglied?
+                <span className="faq-chevron">
+                  <svg viewBox="0 0 24 24">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </span>
+              </button>
+              <div className="faq-answer">
+                <div className="faq-answer__inner">
+                  <p>
+                    Jeden Montag erhältst Du die Wochenausgabe mit fundierten
+                    Marktanalysen inklusive Einstiegsszenarien, Risikolevel und
+                    Kurszielen. Dazu ein exklusives Analyse-Video,
+                    Eil-Benachrichtigungen unter der Woche und Zugang zum
+                    Redaktions-Rückkanal für persönliche Fragen.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="faq-item reveal">
+              <button className="faq-question">
+                Wie viel Zeit muss ich pro Woche investieren?
+                <span className="faq-chevron">
+                  <svg viewBox="0 0 24 24">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </span>
+              </button>
+              <div className="faq-answer">
+                <div className="faq-answer__inner">
+                  <p>
+                    Etwa 15–30 Minuten. Du liest die Setups, gibst Deine
+                    Limit-Orders ein – und der Rest läuft automatisch. Kein
+                    ständiges Chartbeobachten nötig.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="faq-item reveal">
+              <button className="faq-question">
+                Brauche ich Vorkenntnisse in Technischer Analyse?
+                <span className="faq-chevron">
+                  <svg viewBox="0 0 24 24">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </span>
+              </button>
+              <div className="faq-answer">
+                <div className="faq-answer__inner">
+                  <p>
+                    Nein. Die Setups sind komplett aufbereitet mit allen
+                    relevanten Kurspunkten. Du kannst sie direkt umsetzen. Das
+                    wöchentliche Video hilft Dir zusätzlich, Dein Verständnis
+                    für die Märkte zu vertiefen.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="faq-item reveal">
+              <button className="faq-question">
+                Wie funktioniert die Geld-zurück-Garantie?
+                <span className="faq-chevron">
+                  <svg viewBox="0 0 24 24">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </span>
+              </button>
+              <div className="faq-answer">
+                <div className="faq-answer__inner">
+                  <p>
+                    In den ersten 30 Tagen nach Erhalt der ersten Ausgabe
+                    kannst Du ohne Angabe von Gründen kündigen. Eine formlose
+                    E-Mail genügt und Du erhältst alle bis dahin bezahlten
+                    Beiträge sofort zurück.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="faq-item reveal">
+              <button className="faq-question">
+                Kann ich jederzeit kündigen?
+                <span className="faq-chevron">
+                  <svg viewBox="0 0 24 24">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </span>
+              </button>
+              <div className="faq-answer">
+                <div className="faq-answer__inner">
+                  <p>
+                    Ja. Du kannst Dein Abo jederzeit zum Ende der jeweiligen
+                    Laufzeit kündigen.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="final-cta">
+        <div className="container">
+          <h2 className="reveal">
+            Bereit für Deinen <span className="text-gold">Rendite-Vorsprung</span>
+            ?
+          </h2>
+          <p className="reveal">
+            Starte jetzt risikofrei mit der 30-Tage-Geld-zurück-Garantie.
+          </p>
+          <a href="#pricing" className="cta-btn reveal">
+            Jetzt Mitglied werden
+          </a>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer>
+        <div className="container">
+          <p>
+            © 2026 finanzmarktwelt.de &nbsp;·&nbsp;{' '}
+            <a href="/agb">AGB</a>
+            &nbsp;·&nbsp;{' '}
+            <a href="/datenschutz">Datenschutz</a>
+            &nbsp;·&nbsp;{' '}
+            <a href="/impressum">Impressum</a>
+          </p>
+        </div>
+      </footer>
+
+      {/* Sticky mobile CTA */}
+      <div className="sticky-cta" id="stickyCta">
+        <a href="#pricing" className="cta-btn">
+          <span className="sticky-cta__main">4 Wochen testen</span>
+          <span className="sticky-cta__sub">100% Geld-zurück-Garantie</span>
+        </a>
+      </div>
+
+    </>
   )
 }

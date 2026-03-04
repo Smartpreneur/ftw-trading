@@ -1,5 +1,7 @@
 import { getTrades } from '@/lib/actions'
 import { TradeTable } from '@/components/trades/TradeTable'
+import { checkAuth } from '@/lib/auth'
+import { PasswordGate } from '@/components/password-gate'
 import type { TradingProfile } from '@/lib/types'
 
 export default async function TradesPage({
@@ -7,6 +9,9 @@ export default async function TradesPage({
 }: {
   searchParams: Promise<{ profiles?: string }>
 }) {
+  const isAuthed = await checkAuth()
+  if (!isAuthed) return <PasswordGate />
+
   const params = await searchParams
   const profilesParam = params.profiles
   const selectedProfiles = profilesParam?.split(',') as TradingProfile[] | undefined

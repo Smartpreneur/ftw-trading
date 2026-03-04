@@ -1,30 +1,8 @@
 import { SetupCard } from './SetupCard'
-
-interface Setup {
-  id: string
-  asset: string
-  asset_klasse: string
-  datum: string
-  aktueller_kurs: number
-  richtung: 'LONG' | 'SHORT'
-  einstieg_von: number
-  einstieg_bis: number
-  stop_loss: number
-  tp1: number
-  tp2: number | null
-  tp3: number | null
-  tp4: number | null
-  risiko_reward_min: number
-  risiko_reward_max: number
-  zeiteinheit: string
-  dauer_erwartung: string | null
-  status: 'Aktiv' | 'Getriggert' | 'Abgelaufen'
-  bemerkungen: string | null
-  chart_bild_url: string | null
-}
+import type { TradeSetup } from '@/lib/types'
 
 interface SetupGridProps {
-  setups: Setup[]
+  setups: TradeSetup[]
 }
 
 export function SetupGrid({ setups }: SetupGridProps) {

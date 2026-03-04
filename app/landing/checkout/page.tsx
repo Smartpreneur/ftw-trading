@@ -1,9 +1,12 @@
 'use client'
 
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import '../styles.css'
 import './checkout.css'
 
-const CHECKOUT_URL = 'https://premium.finanzmarktwelt.de/s/finanzmarktwelt/fugmann-s-trading-woche-d3973543/payment'
+const CHECKOUT_BASE = 'https://premium.finanzmarktwelt.de/s/finanzmarktwelt/fugmann-s-trading-woche-d3973543/payment'
+const CAMPAIGN_ID = '20260225-LP2-YTC'
 
 const benefits = [
   'Wöchentliche Trade-Setups mit exakten Einstiegs-, Stopp- und Kursziel-Punkten',
@@ -13,7 +16,23 @@ const benefits = [
   'Zugang zum Redaktions-Rückkanal für persönliche Fragen an das Analysten-Team',
 ]
 
-export default function CheckoutPage() {
+function CheckoutContent() {
+  const searchParams = useSearchParams()
+  const utmSource = searchParams.get('utm_source')
+  const planId = searchParams.get('displayed_plans_id')
+  const coupon = searchParams.get('coupon')
+  const campaignId = searchParams.get('campaign_id') || CAMPAIGN_ID
+
+  // Parameter an Ablefy weitergeben
+  const iframeUrl = (() => {
+    const url = new URL(CHECKOUT_BASE)
+    if (campaignId) url.searchParams.set('campaign_id', campaignId)
+    if (planId) url.searchParams.set('displayed_plans_id', planId)
+    if (coupon) url.searchParams.set('coupon', coupon)
+    if (utmSource) url.searchParams.set('utm_source', utmSource)
+    return url.toString()
+  })()
+
   return (
     <div className="co-page">
       {/* Minimal header */}
@@ -46,7 +65,7 @@ export default function CheckoutPage() {
             </ul>
 
             <div className="co-price-hint">
-              Ab 0,82 € pro Tag &nbsp;·&nbsp; weniger als ein Kaffee
+              {coupon ? 'Ab 0,82 € pro Tag' : 'Ab 0,90 € pro Tag'} &nbsp;·&nbsp; weniger als ein Kaffee
             </div>
 
             <div className="co-guarantee">
@@ -82,7 +101,7 @@ export default function CheckoutPage() {
         {/* Right: ablefy checkout iframe */}
         <section className="co-checkout">
           <iframe
-            src={CHECKOUT_URL}
+            src={iframeUrl}
             className="co-iframe"
             title="Checkout – Fugmann's Trading Woche"
             allow="payment"
@@ -90,5 +109,13 @@ export default function CheckoutPage() {
         </section>
       </main>
     </div>
+  )
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense>
+      <CheckoutContent />
+    </Suspense>
   )
 }

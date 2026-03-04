@@ -24,7 +24,7 @@ import { Pencil, Trash2, Plus, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
-type SortField = 'id' | 'asset' | 'klasse' | 'richtung' | 'status' | 'performance'
+type SortField = 'id' | 'eroeffnung' | 'schliessung' | 'asset' | 'klasse' | 'richtung' | 'status' | 'performance'
 type SortOrder = 'asc' | 'desc'
 
 interface TradeTableProps {
@@ -62,6 +62,12 @@ export function TradeTable({ trades }: TradeTableProps) {
           comparison = aId.localeCompare(bId)
           break
         }
+        case 'eroeffnung':
+          comparison = (a.datum_eroeffnung || '').localeCompare(b.datum_eroeffnung || '')
+          break
+        case 'schliessung':
+          comparison = (a.datum_schliessung || '').localeCompare(b.datum_schliessung || '')
+          break
         case 'asset':
           comparison = a.asset.localeCompare(b.asset)
           break
@@ -230,7 +236,24 @@ export function TradeTable({ trades }: TradeTableProps) {
                   <SortIcon field="id" />
                 </button>
               </TableHead>
-              <TableHead>Datum</TableHead>
+              <TableHead>
+                <button
+                  onClick={() => toggleSort('eroeffnung')}
+                  className="flex items-center hover:text-foreground transition-colors"
+                >
+                  Eröffnung
+                  <SortIcon field="eroeffnung" />
+                </button>
+              </TableHead>
+              <TableHead>
+                <button
+                  onClick={() => toggleSort('schliessung')}
+                  className="flex items-center hover:text-foreground transition-colors"
+                >
+                  Schließung
+                  <SortIcon field="schliessung" />
+                </button>
+              </TableHead>
               <TableHead>
                 <button
                   onClick={() => toggleSort('asset')}
@@ -284,7 +307,7 @@ export function TradeTable({ trades }: TradeTableProps) {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
                   {hasFilters ? 'Keine Trades für diese Filter' : 'Noch keine Trades vorhanden'}
                 </TableCell>
               </TableRow>
@@ -296,6 +319,9 @@ export function TradeTable({ trades }: TradeTableProps) {
                   </TableCell>
                   <TableCell className="text-sm whitespace-nowrap">
                     {formatDate(trade.datum_eroeffnung)}
+                  </TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">
+                    {formatDate(trade.datum_schliessung)}
                   </TableCell>
                   <TableCell className="font-medium">{trade.asset}</TableCell>
                   <TableCell>

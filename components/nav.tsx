@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/sheet'
 
 const links = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/performance', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/trades', label: 'Trades', icon: BookOpen },
   { href: '/setups', label: 'Trade-Setups', icon: TrendingUp },
 ]
@@ -31,7 +31,7 @@ export function Nav() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center gap-2 sm:gap-4">
           {/* Logo */}
-          <Link href="/" className="flex items-center shrink-0">
+          <Link href="/performance" className="flex items-center shrink-0">
             <Image
               src="/fmw-logo.svg"
               alt="FMW Logo"

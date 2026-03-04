@@ -1,0 +1,428 @@
+'use client'
+
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { setupSchema, toNullableNumber, toNullableString, type SetupSchemaValues } from '@/lib/schemas'
+import { createSetup, updateSetup, uploadChartImage, deleteChartImage } from '@/lib/setup-actions'
+import { ASSET_CLASSES, TRADE_DIRECTIONS, TRADING_PROFILES } from '@/lib/constants'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import type { TradeSetup } from '@/lib/types'
+import { toast } from 'sonner'
+import { useState, useRef } from 'react'
+import { Upload, X, ImageIcon } from 'lucide-react'
+import Image from 'next/image'
+
+interface SetupFormProps {
+  setup?: TradeSetup
+  onSuccess: () => void
+}
+
+const SETUP_STATUSES = ['Aktiv', 'Getriggert', 'Abgelaufen'] as const
+const ZEITEINHEITEN = ['5min', '15min', '1H', '4H', 'Daily', 'Weekly'] as const
+
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string
+  error?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs font-medium">{label}</Label>
+      {children}
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  )
+}
+
+const asNullableNum = (v: unknown) => toNullableNumber(v)
+const asNullableStr = (v: unknown) => toNullableString(v)
+
+export function SetupForm({ setup, onSuccess }: SetupFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [imageUrl, setImageUrl] = useState<string | null>(setup?.chart_bild_url ?? null)
+  const [imagePreview, setImagePreview] = useState<string | null>(setup?.chart_bild_url ?? null)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<SetupSchemaValues>({
+    resolver: zodResolver(setupSchema),
+    defaultValues: setup
+      ? {
+          asset: setup.asset,
+          asset_klasse: setup.asset_klasse,
+          datum: setup.datum.slice(0, 16), // datetime-local format
+          aktueller_kurs: setup.aktueller_kurs,
+          richtung: setup.richtung,
+          einstieg_von: setup.einstieg_von,
+          einstieg_bis: setup.einstieg_bis,
+          stop_loss: setup.stop_loss,
+          tp1: setup.tp1,
+          tp2: setup.tp2 ?? undefined,
+          tp3: setup.tp3 ?? undefined,
+          tp4: setup.tp4 ?? undefined,
+          risiko_reward_min: setup.risiko_reward_min,
+          risiko_reward_max: setup.risiko_reward_max,
+          zeiteinheit: setup.zeiteinheit,
+          dauer_erwartung: setup.dauer_erwartung ?? undefined,
+          status: setup.status,
+          bemerkungen: setup.bemerkungen ?? undefined,
+          profil: setup.profil,
+        }
+      : {
+          status: 'Aktiv',
+          richtung: 'LONG',
+          asset_klasse: 'Index',
+          profil: 'MB',
+          datum: new Date().toISOString().slice(0, 16),
+          zeiteinheit: '4H',
+        },
+  })
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Show local preview immediately
+    const reader = new FileReader()
+    reader.onload = () => setImagePreview(reader.result as string)
+    reader.readAsDataURL(file)
+
+    setIsUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const url = await uploadChartImage(formData)
+      setImageUrl(url)
+      setImagePreview(url)
+      toast.success('Bild hochgeladen')
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Upload fehlgeschlagen')
+      setImagePreview(imageUrl) // revert to previous
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  async function handleRemoveImage() {
+    if (imageUrl) {
+      try {
+        await deleteChartImage(imageUrl)
+      } catch {
+        // ignore delete errors
+      }
+    }
+    setImageUrl(null)
+    setImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  async function onSubmit(values: SetupSchemaValues) {
+    setIsSubmitting(true)
+    try {
+      const formData = {
+        ...values,
+        tp2: values.tp2 ?? null,
+        tp3: values.tp3 ?? null,
+        tp4: values.tp4 ?? null,
+        dauer_erwartung: values.dauer_erwartung ?? null,
+        bemerkungen: values.bemerkungen ?? null,
+        chart_bild_url: imageUrl,
+      }
+      if (setup) {
+        // If image changed, delete old one
+        if (setup.chart_bild_url && setup.chart_bild_url !== imageUrl) {
+          await deleteChartImage(setup.chart_bild_url)
+        }
+        await updateSetup(setup.id, formData)
+        toast.success('Setup aktualisiert')
+      } else {
+        await createSetup(formData)
+        toast.success('Setup erstellt')
+      }
+      onSuccess()
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Fehler beim Speichern')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {/* Row 1: Asset, Klasse, Richtung, Profil */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Field label="Asset *" error={errors.asset?.message}>
+          <Input placeholder="z.B. Silber, DAX" {...register('asset')} />
+        </Field>
+        <Field label="Asset-Klasse *" error={errors.asset_klasse?.message}>
+          <Select
+            defaultValue={setup?.asset_klasse ?? 'Index'}
+            onValueChange={(v) => setValue('asset_klasse', v as any)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ASSET_CLASSES.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Richtung *" error={errors.richtung?.message}>
+          <Select
+            defaultValue={setup?.richtung ?? 'LONG'}
+            onValueChange={(v) => setValue('richtung', v as any)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TRADE_DIRECTIONS.map((d) => (
+                <SelectItem key={d} value={d}>{d}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Profil *" error={errors.profil?.message}>
+          <Select
+            defaultValue={setup?.profil ?? 'MB'}
+            onValueChange={(v) => setValue('profil', v as any)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TRADING_PROFILES.map((p) => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+      </div>
+
+      {/* Row 2: Datum, Aktueller Kurs, Status */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <Field label="Datum *" error={errors.datum?.message}>
+          <Input type="datetime-local" {...register('datum')} />
+        </Field>
+        <Field label="Aktueller Kurs *" error={errors.aktueller_kurs?.message}>
+          <Input
+            type="number"
+            step="any"
+            placeholder="0.00"
+            {...register('aktueller_kurs', { valueAsNumber: true })}
+          />
+        </Field>
+        <Field label="Status *" error={errors.status?.message}>
+          <Select
+            defaultValue={setup?.status ?? 'Aktiv'}
+            onValueChange={(v) => setValue('status', v as any)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SETUP_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+      </div>
+
+      {/* Row 3: Einstieg von/bis, Stop Loss */}
+      <div className="grid grid-cols-3 gap-3">
+        <Field label="Einstieg von *" error={errors.einstieg_von?.message}>
+          <Input
+            type="number"
+            step="any"
+            placeholder="0.00"
+            {...register('einstieg_von', { valueAsNumber: true })}
+          />
+        </Field>
+        <Field label="Einstieg bis *" error={errors.einstieg_bis?.message}>
+          <Input
+            type="number"
+            step="any"
+            placeholder="0.00"
+            {...register('einstieg_bis', { valueAsNumber: true })}
+          />
+        </Field>
+        <Field label="Stop Loss *" error={errors.stop_loss?.message}>
+          <Input
+            type="number"
+            step="any"
+            placeholder="0.00"
+            {...register('stop_loss', { valueAsNumber: true })}
+          />
+        </Field>
+      </div>
+
+      {/* Row 4: Take-Profit targets */}
+      <div className="grid grid-cols-4 gap-3">
+        <Field label="TP1 *" error={errors.tp1?.message}>
+          <Input
+            type="number"
+            step="any"
+            placeholder="0.00"
+            {...register('tp1', { valueAsNumber: true })}
+          />
+        </Field>
+        {(['tp2', 'tp3', 'tp4'] as const).map((tp, i) => (
+          <Field key={tp} label={`TP${i + 2}`} error={errors[tp]?.message}>
+            <Input
+              type="number"
+              step="any"
+              placeholder="0.00"
+              {...register(tp, { setValueAs: asNullableNum })}
+            />
+          </Field>
+        ))}
+      </div>
+
+      {/* Row 5: CRV, Zeiteinheit, Dauer */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Field label="CRV min *" error={errors.risiko_reward_min?.message}>
+          <Input
+            type="number"
+            step="any"
+            placeholder="1.5"
+            {...register('risiko_reward_min', { valueAsNumber: true })}
+          />
+        </Field>
+        <Field label="CRV max *" error={errors.risiko_reward_max?.message}>
+          <Input
+            type="number"
+            step="any"
+            placeholder="3.0"
+            {...register('risiko_reward_max', { valueAsNumber: true })}
+          />
+        </Field>
+        <Field label="Zeiteinheit *" error={errors.zeiteinheit?.message}>
+          <Select
+            defaultValue={setup?.zeiteinheit ?? '4H'}
+            onValueChange={(v) => setValue('zeiteinheit', v)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ZEITEINHEITEN.map((z) => (
+                <SelectItem key={z} value={z}>{z}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Erwartete Dauer" error={errors.dauer_erwartung?.message}>
+          <Input
+            placeholder="z.B. 2-4 Wochen"
+            {...register('dauer_erwartung', { setValueAs: asNullableStr })}
+          />
+        </Field>
+      </div>
+
+      {/* Chart Image Upload */}
+      <div className="space-y-2">
+        <Label className="text-xs font-medium">Chart-Bild</Label>
+        {imagePreview ? (
+          <div className="relative rounded-md border overflow-hidden bg-muted">
+            <div className="relative w-full aspect-video">
+              <Image
+                src={imagePreview}
+                alt="Chart-Vorschau"
+                fill
+                className="object-contain"
+                unoptimized={imagePreview.startsWith('data:')}
+              />
+            </div>
+            <div className="absolute top-2 right-2 flex gap-1">
+              {isUploading && (
+                <span className="bg-background/80 text-xs px-2 py-1 rounded">
+                  Hochladen...
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                className="bg-background/80 hover:bg-destructive hover:text-white p-1.5 rounded-md transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-col items-center justify-center w-full h-32 rounded-md border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 transition-colors cursor-pointer"
+          >
+            <ImageIcon className="h-8 w-8 text-muted-foreground/50 mb-2" />
+            <span className="text-sm text-muted-foreground">
+              Chart-Bild hochladen
+            </span>
+            <span className="text-xs text-muted-foreground/60 mt-0.5">
+              JPG, PNG oder WebP (max. 10MB)
+            </span>
+          </button>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={handleImageUpload}
+        />
+        {imagePreview && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="gap-1.5"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Bild ersetzen
+          </Button>
+        )}
+      </div>
+
+      {/* Bemerkungen */}
+      <Field label="Bemerkungen" error={errors.bemerkungen?.message}>
+        <textarea
+          className="flex min-h-[72px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+          placeholder="Setup-Analyse, Positionsmanagement, besondere Hinweise..."
+          {...register('bemerkungen', { setValueAs: asNullableStr })}
+        />
+      </Field>
+
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onSuccess}>
+          Abbrechen
+        </Button>
+        <Button type="submit" disabled={isSubmitting || isUploading}>
+          {isSubmitting ? 'Speichern...' : setup ? 'Aktualisieren' : 'Erstellen'}
+        </Button>
+      </div>
+    </form>
+  )
+}

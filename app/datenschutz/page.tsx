@@ -11,10 +11,10 @@ export default function DatenschutzPage() {
     <>
       <nav className="legal-nav">
         <div className="legal-nav__inner">
-          <a href="/landing" className="legal-nav__logo">
+          <a href="/" className="legal-nav__logo">
             Fugmanns <span>Trading Woche</span>
           </a>
-          <a href="/landing" className="legal-nav__back">
+          <a href="/" className="legal-nav__back">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
@@ -229,11 +229,11 @@ export default function DatenschutzPage() {
       <footer className="legal-footer">
         <p>
           © 2026 finanzmarktwelt.de &nbsp;·&nbsp;{' '}
-          <a href="/landing/agb">AGB</a>
+          <a href="/agb">AGB</a>
           &nbsp;·&nbsp;
-          <a href="/landing/datenschutz">Datenschutz</a>
+          <a href="/datenschutz">Datenschutz</a>
           &nbsp;·&nbsp;
-          <a href="/landing/impressum">Impressum</a>
+          <a href="/impressum">Impressum</a>
         </p>
       </footer>
     </>

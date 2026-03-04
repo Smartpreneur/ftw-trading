@@ -2,7 +2,7 @@ export type AssetClass = 'Index' | 'Rohstoff' | 'Krypto' | 'Aktie' | 'FX'
 export type TradeDirection = 'LONG' | 'SHORT'
 export type TradeStatus = 'Aktiv' | 'Erfolgreich' | 'Ausgestoppt' | 'Ungültig' | 'Einstand' | 'Geschlossen'
 export type SetupStatus = 'Aktiv' | 'Getriggert' | 'Abgelaufen'
-export type TradingProfile = 'MB' | 'SJ'
+export type TradingProfile = 'MB' | 'MB2' | 'SJ'
 
 export interface Trade {
   id: string
