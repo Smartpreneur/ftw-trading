@@ -413,6 +413,13 @@
    RABATTCODES
 ══════════════════════════════════════ */
 
+.rabatt-tz-hint {
+  text-align: right;
+  font-size: 0.78rem;
+  color: #5a6a7a;
+  margin-bottom: 12px;
+}
+
 .rabatt-table th,
 .rabatt-table td {
   white-space: nowrap;

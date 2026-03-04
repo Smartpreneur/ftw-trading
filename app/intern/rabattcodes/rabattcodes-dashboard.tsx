@@ -6,9 +6,12 @@ import { logout } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import '../styles.css'
 
+const TZ = 'Europe/Berlin'
+
 function formatDateTime(iso: string | null) {
   if (!iso) return '–'
   return new Date(iso).toLocaleString('de-DE', {
+    timeZone: TZ,
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -17,12 +20,30 @@ function formatDateTime(iso: string | null) {
   })
 }
 
-function toLocalInput(iso: string | null): string {
+// ISO → datetime-local Input-Wert in Berliner Zeit
+function toBerlinInput(iso: string | null): string {
   if (!iso) return ''
-  const d = new Date(iso)
-  const offset = d.getTimezoneOffset()
-  const local = new Date(d.getTime() - offset * 60000)
-  return local.toISOString().slice(0, 16)
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(iso))
+  const get = (type: string) => parts.find(p => p.type === type)?.value || ''
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`
+}
+
+// datetime-local Input-Wert (Berliner Zeit) → UTC ISO string
+function berlinToUTC(local: string): string {
+  // Intl nutzen um den UTC-Offset für Berlin zum gegebenen Zeitpunkt zu ermitteln
+  const naive = new Date(local) // wird als lokale Browser-Zeit geparsed
+  // Berliner Zeit als String formatieren und Differenz zum UTC berechnen
+  const berlinStr = new Date().toLocaleString('en-US', { timeZone: TZ })
+  const utcStr = new Date().toLocaleString('en-US', { timeZone: 'UTC' })
+  const currentOffset = new Date(berlinStr).getTime() - new Date(utcStr).getTime()
+  // Den Input-Wert als Berlin interpretieren: UTC = Eingabe - Berlin-Offset
+  const utc = new Date(naive.getTime() - currentOffset)
+  return utc.toISOString()
 }
 
 function formatRemaining(until: string | null): string {
@@ -73,8 +94,8 @@ export function RabattcodesDashboard() {
 
   const startEdit = (code: DiscountCode) => {
     setEditingId(code.id)
-    setEditFrom(toLocalInput(code.valid_from))
-    setEditUntil(toLocalInput(code.valid_until))
+    setEditFrom(toBerlinInput(code.valid_from))
+    setEditUntil(toBerlinInput(code.valid_until))
     setEditActive(code.is_active)
   }
 
@@ -85,8 +106,8 @@ export function RabattcodesDashboard() {
   const saveEdit = async (id: string) => {
     setSaving(true)
     const result = await updateDiscountCode(id, {
-      valid_from: editFrom ? new Date(editFrom).toISOString() : null,
-      valid_until: editUntil ? new Date(editUntil).toISOString() : null,
+      valid_from: editFrom ? berlinToUTC(editFrom) : null,
+      valid_until: editUntil ? berlinToUTC(editUntil) : null,
       is_active: editActive,
     })
     if (!result.error) {
@@ -118,6 +139,8 @@ export function RabattcodesDashboard() {
           </button>
         </div>
       </header>
+
+      <div className="rabatt-tz-hint">Zeitzone: Berlin (MEZ/MESZ)</div>
 
       <section className="intern__section">
         <h2>Rabattcodes verwalten</h2>
