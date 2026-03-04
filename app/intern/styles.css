@@ -475,8 +475,13 @@
 
 .hub-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
+}
+
+/* Wide layout for Kanban */
+.intern--wide {
+  max-width: 1400px;
 }
 
 .hub-card {
@@ -690,5 +695,281 @@
   .rabatt-table {
     display: block;
     overflow-x: auto;
+  }
+}
+
+/* ══════════════════════════════════════
+   KANBAN / PLANUNG
+══════════════════════════════════════ */
+
+.kb-toolbar {
+  margin-bottom: 20px;
+}
+
+.kb-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.kb-column {
+  background: var(--bg-card);
+  border: 1px solid var(--border-accent);
+  border-radius: 12px;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.kb-column__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--table-border);
+}
+
+.kb-column__title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.kb-column__count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--hover-bg);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.kb-column__body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.kb-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.kb-card:hover {
+  border-color: var(--accent-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.kb-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.kb-card__title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-heading);
+  margin: 0 0 4px;
+  line-height: 1.3;
+}
+
+.kb-card__desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.kb-card__actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.kb-move-btn {
+  background: var(--hover-bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 28px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+  padding: 0;
+}
+
+.kb-move-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+/* Priority Badges */
+.kb-prio {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.prio--high {
+  background: rgba(255, 80, 80, 0.15);
+  color: #ff5050;
+}
+
+.prio--medium {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+
+.prio--low {
+  background: var(--hover-bg);
+  color: var(--text-muted);
+}
+
+/* Modal / Overlay */
+.kb-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.kb-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-accent);
+  border-radius: 14px;
+  padding: 28px;
+  width: 100%;
+  max-width: 460px;
+}
+
+.kb-modal h3 {
+  color: var(--text-heading);
+  font-size: 1.1rem;
+  margin: 0 0 20px;
+}
+
+.kb-input {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  outline: none;
+  margin-bottom: 12px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.intern:not(.light) .kb-input {
+  color-scheme: dark;
+}
+
+.kb-input:focus {
+  border-color: var(--accent);
+}
+
+.kb-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.kb-field {
+  margin-bottom: 12px;
+}
+
+.kb-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.kb-label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.kb-select {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  outline: none;
+  font-family: inherit;
+}
+
+.intern:not(.light) .kb-select {
+  color-scheme: dark;
+}
+
+.kb-select:focus {
+  border-color: var(--accent);
+}
+
+.kb-modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.kb-delete-btn {
+  margin-left: auto;
+  background: rgba(255, 80, 80, 0.12);
+  color: #ff5050;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.kb-delete-btn:hover {
+  opacity: 0.85;
+}
+
+.kb-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1024px) {
+  .kb-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .kb-board {
+    grid-template-columns: 1fr;
   }
 }

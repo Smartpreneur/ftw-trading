@@ -7,6 +7,12 @@ import './styles.css'
 
 const sections = [
   {
+    title: 'Planung',
+    description: 'Projektthemen und Aufgaben im Kanban-Board verwalten',
+    href: '/intern/planung',
+    icon: '📋',
+  },
+  {
     title: 'Analytics',
     description: 'Landing Page KPIs, Traffic-Quellen, Conversion Rate und Kampagnen',
     href: '/intern/analytics',
