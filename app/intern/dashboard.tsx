@@ -349,27 +349,51 @@ export function InternDashboard() {
       {/* Tab: Quellen */}
       {activeTab === 'quellen' && (
         <div className="detail-tab-content">
-          <CollapsibleSection title="Traffic-Quellen" filterTag={isDayFiltered ? displayLabel : undefined}>
-            <table className="intern-table">
-              <thead>
-                <tr><th>Quelle</th><th>Aufrufe</th><th>Anteil</th></tr>
-              </thead>
-              <tbody>
-                {Object.entries(displaySources)
-                  .sort(([, a], [, b]) => b - a)
-                  .map(([src, count]) => (
-                    <tr key={src}>
-                      <td>{src}</td>
-                      <td>{count}</td>
-                      <td>{displayViews > 0 ? ((count / displayViews) * 100).toFixed(1) : '0'} %</td>
-                    </tr>
-                  ))}
-                {Object.keys(displaySources).length === 0 && (
-                  <tr><td colSpan={3}>Keine Daten</td></tr>
-                )}
-              </tbody>
-            </table>
-          </CollapsibleSection>
+          <div className="detail-tab-row">
+            <CollapsibleSection title="Traffic-Quellen" filterTag={isDayFiltered ? displayLabel : undefined}>
+              <table className="intern-table">
+                <thead>
+                  <tr><th>Quelle</th><th>Aufrufe</th><th>Anteil</th></tr>
+                </thead>
+                <tbody>
+                  {Object.entries(displaySources)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([src, count]) => (
+                      <tr key={src}>
+                        <td>{src}</td>
+                        <td>{count}</td>
+                        <td>{displayViews > 0 ? ((count / displayViews) * 100).toFixed(1) : '0'} %</td>
+                      </tr>
+                    ))}
+                  {Object.keys(displaySources).length === 0 && (
+                    <tr><td colSpan={3}>Keine Daten</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Ref-Codes" filterTag={isDayFiltered ? displayLabel : undefined}>
+              <table className="intern-table">
+                <thead>
+                  <tr><th>Code</th><th>Aufrufe</th><th>Anteil</th></tr>
+                </thead>
+                <tbody>
+                  {Object.entries(displayRefCodes)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([code, count]) => (
+                      <tr key={code}>
+                        <td>{code}</td>
+                        <td>{count}</td>
+                        <td>{displayViews > 0 ? ((count / displayViews) * 100).toFixed(1) : '0'} %</td>
+                      </tr>
+                    ))}
+                  {Object.keys(displayRefCodes).length === 0 && (
+                    <tr><td colSpan={3}>{isDayFiltered ? 'Keine Ref-Codes an diesem Tag' : 'Noch keine Ref-Code-Daten'}</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </CollapsibleSection>
+          </div>
 
           <CollapsibleSection title="Referrer" filterTag={isDayFiltered ? displayLabel : undefined}>
             <table className="intern-table">
@@ -388,28 +412,6 @@ export function InternDashboard() {
                   ))}
                 {Object.keys(displayReferrers).length === 0 && (
                   <tr><td colSpan={3}>{isDayFiltered ? 'Keine Referrer an diesem Tag' : 'Noch keine Referrer-Daten'}</td></tr>
-                )}
-              </tbody>
-            </table>
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Ref-Codes" filterTag={isDayFiltered ? displayLabel : undefined}>
-            <table className="intern-table">
-              <thead>
-                <tr><th>Code</th><th>Aufrufe</th><th>Anteil</th></tr>
-              </thead>
-              <tbody>
-                {Object.entries(displayRefCodes)
-                  .sort(([, a], [, b]) => b - a)
-                  .map(([code, count]) => (
-                    <tr key={code}>
-                      <td>{code}</td>
-                      <td>{count}</td>
-                      <td>{displayViews > 0 ? ((count / displayViews) * 100).toFixed(1) : '0'} %</td>
-                    </tr>
-                  ))}
-                {Object.keys(displayRefCodes).length === 0 && (
-                  <tr><td colSpan={3}>{isDayFiltered ? 'Keine Ref-Codes an diesem Tag' : 'Noch keine Ref-Code-Daten'}</td></tr>
                 )}
               </tbody>
             </table>

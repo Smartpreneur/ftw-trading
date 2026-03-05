@@ -479,6 +479,12 @@
   gap: 16px;
 }
 
+.detail-tab-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
 /* Collapsible Sections */
 .intern__section--collapsible {
   padding: 0;
@@ -529,6 +535,10 @@
   .intern__grid-2x2 {
     grid-template-columns: 1fr;
     grid-template-rows: auto;
+  }
+
+  .detail-tab-row {
+    grid-template-columns: 1fr;
   }
 
   .bar-chart {
