@@ -582,60 +582,69 @@
   background: #34D399;
 }
 
-.bar-chart__group {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  flex: 1;
-  width: 100%;
-  min-height: 0;
-}
-
-.bar-chart__metric {
-  flex: 1;
+/* Layered/overlapping bar chart */
+.bar-chart__counts {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
-  height: 100%;
+  gap: 1px;
+  margin-bottom: 3px;
 }
 
 .bar-chart__val {
   font-size: 0.6rem;
-  color: var(--text-muted);
-  margin-bottom: 2px;
-  line-height: 1;
+  line-height: 1.1;
+  font-weight: 600;
 }
 
-.bar-chart__metric .bar-chart__bar {
+.bar-chart__val--sessions { color: #00D4FF; }
+.bar-chart__val--clicks { color: #FFB020; }
+.bar-chart__val--orders { color: #34D399; }
+
+.bar-chart__stack {
+  position: relative;
+  flex: 1;
   width: 100%;
-  max-width: 20px;
-  min-height: 2px;
-  border-radius: 3px 3px 0 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bar-chart__layer {
+  position: absolute;
+  bottom: 0;
+  border-radius: 4px 4px 0 0;
   transition: height 0.3s ease;
+  min-height: 0;
 }
 
-.bar-chart__metric--sessions .bar-chart__bar {
-  background: linear-gradient(180deg, #00D4FF, #00748D);
+.bar-chart__layer--sessions {
+  width: 85%;
+  background: linear-gradient(180deg, rgba(0, 212, 255, 0.5), rgba(0, 116, 141, 0.5));
+  z-index: 1;
 }
 
-.bar-chart__metric--clicks .bar-chart__bar {
+.bar-chart__layer--clicks {
+  width: 60%;
   background: linear-gradient(180deg, #FFB020, #CC8800);
+  z-index: 2;
 }
 
-.bar-chart__metric--orders .bar-chart__bar {
+.bar-chart__layer--orders {
+  width: 36%;
   background: linear-gradient(180deg, #34D399, #059669);
+  z-index: 3;
 }
 
-.bar-chart__col--active .bar-chart__metric--sessions .bar-chart__bar {
-  box-shadow: 0 0 8px rgba(0, 212, 255, 0.3);
+.bar-chart__col--active .bar-chart__layer--sessions {
+  background: linear-gradient(180deg, rgba(0, 212, 255, 0.7), rgba(0, 116, 141, 0.7));
 }
 
-.bar-chart__col--active .bar-chart__metric--clicks .bar-chart__bar {
+.bar-chart__col--active .bar-chart__layer--clicks {
   box-shadow: 0 0 8px rgba(255, 176, 32, 0.3);
 }
 
-.bar-chart__col--active .bar-chart__metric--orders .bar-chart__bar {
+.bar-chart__col--active .bar-chart__layer--orders {
   box-shadow: 0 0 8px rgba(52, 211, 153, 0.3);
 }
 

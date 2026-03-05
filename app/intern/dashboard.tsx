@@ -153,12 +153,10 @@ export function InternDashboard() {
   // Chart shows days in range
   const chartDays = rangeDays
   const maxSessions = Math.max(...chartDays.map(d => data.uniqueSessionsByDay[d] || 0), 1)
-  const maxClicks = Math.max(...chartDays.map(d => data.clicksByDay[d] || 0), 1)
   const ordersCountByDay: Record<string, number> = {}
   for (const d of chartDays) {
     ordersCountByDay[d] = (data.ordersByDay[d] || []).length
   }
-  const maxOrders = Math.max(...chartDays.map(d => ordersCountByDay[d] || 0), 1)
 
   // Helper: sum values from a Record for days in range
   function sumRange(byDay: Record<string, number>): number {
@@ -369,7 +367,7 @@ export function InternDashboard() {
           <span className="chart-legend__item chart-legend__item--clicks">Checkout</span>
           <span className="chart-legend__item chart-legend__item--orders">Bestellungen</span>
         </div>
-        <div className="bar-chart bar-chart--multi">
+        <div className="bar-chart bar-chart--layered">
           {chartDays.map(day => {
             const sessions = data.uniqueSessionsByDay[day] || 0
             const clicks = data.clicksByDay[day] || 0
@@ -381,19 +379,15 @@ export function InternDashboard() {
                 className={`bar-chart__col ${isDayActive ? 'bar-chart__col--active' : ''}`}
                 onClick={() => setSelectedDay(isDayActive ? null : day)}
               >
-                <div className="bar-chart__group">
-                  <div className="bar-chart__metric bar-chart__metric--sessions">
-                    <span className="bar-chart__val">{sessions}</span>
-                    <div className="bar-chart__bar" style={{ height: `${(sessions / maxSessions) * 100}%` }} />
-                  </div>
-                  <div className="bar-chart__metric bar-chart__metric--clicks">
-                    <span className="bar-chart__val">{clicks}</span>
-                    <div className="bar-chart__bar" style={{ height: `${(clicks / maxClicks) * 100}%` }} />
-                  </div>
-                  <div className="bar-chart__metric bar-chart__metric--orders">
-                    <span className="bar-chart__val">{orders}</span>
-                    <div className="bar-chart__bar" style={{ height: `${(orders / maxOrders) * 100}%` }} />
-                  </div>
+                <div className="bar-chart__counts">
+                  <span className="bar-chart__val bar-chart__val--sessions">{sessions}</span>
+                  {clicks > 0 && <span className="bar-chart__val bar-chart__val--clicks">{clicks}</span>}
+                  {orders > 0 && <span className="bar-chart__val bar-chart__val--orders">{orders}</span>}
+                </div>
+                <div className="bar-chart__stack">
+                  <div className="bar-chart__layer bar-chart__layer--sessions" style={{ height: `${(sessions / maxSessions) * 100}%` }} />
+                  <div className="bar-chart__layer bar-chart__layer--clicks" style={{ height: `${(clicks / maxSessions) * 100}%` }} />
+                  <div className="bar-chart__layer bar-chart__layer--orders" style={{ height: `${(orders / maxSessions) * 100}%` }} />
                 </div>
                 <div className="bar-chart__label">
                   {formatDayShort(day)}
