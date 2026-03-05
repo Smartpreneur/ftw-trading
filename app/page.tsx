@@ -237,7 +237,7 @@ export default function LandingPage() {
       const totalMin = Math.floor(diffMs / 60_000)
       const h = Math.floor(totalMin / 60)
       const m = totalMin % 60
-      setCountdown(`Noch ${h} Std. ${m} Min.`)
+      setCountdown(`Rabatt nur noch ${h} Std. ${m} Min. verfügbar`)
     }
 
     update()
@@ -607,15 +607,9 @@ export default function LandingPage() {
           </p>
 
           {discountActive && (
-            <div className="discount-active">
-              ✓ Rabatt aktiv
-            </div>
-          )}
-
-          {countdown && (
-            <div className="discount-countdown">
-              {countdown}
-            </div>
+            countdown
+              ? <div className="discount-countdown">{countdown}</div>
+              : <div className="discount-active">✓ Rabatt aktiv</div>
           )}
 
           <div className="pricing-grid">
