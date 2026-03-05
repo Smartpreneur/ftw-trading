@@ -228,6 +228,7 @@
   font-size: 0.85rem;
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s, background 0.2s;
+  white-space: nowrap;
 }
 
 .range-filter__btn:hover {
@@ -242,35 +243,53 @@
 }
 
 .range-filter__btn--clear {
-  padding: 6px 10px;
-  font-size: 1rem;
-  line-height: 1;
+  width: 100%;
+  margin-top: 4px;
+  font-size: 0.8rem;
 }
 
-.range-filter__sep {
-  width: 1px;
-  height: 20px;
-  background: var(--border);
-  margin: 0 4px;
-  align-self: center;
+.range-filter__custom {
+  position: relative;
 }
 
-.range-filter__dash {
+.range-filter__dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-accent);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 20;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  min-width: 200px;
+}
+
+.light .range-filter__dropdown {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.range-filter__dropdown-label {
+  font-size: 0.75rem;
   color: var(--text-muted);
-  font-size: 0.85rem;
-  align-self: center;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .range-filter__date {
   background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 6px 10px;
+  padding: 8px 10px;
   border-radius: 8px;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-family: inherit;
   outline: none;
   transition: border-color 0.2s;
+  width: 100%;
 }
 
 .intern:not(.light) .range-filter__date {
@@ -462,6 +481,11 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
+}
+
+.intern__section-header--chart {
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .intern__section-header h2 {
@@ -851,6 +875,20 @@
     padding: 6px 10px;
   }
 
+  .intern__section-header--chart {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .chart-mode-toggle {
+    width: 100%;
+  }
+
+  .chart-mode-toggle__btn {
+    flex: 1;
+    text-align: center;
+  }
+
   .funnel {
     grid-template-columns: 1fr;
     gap: 8px;
@@ -881,6 +919,11 @@
 
   .bar-chart {
     height: 140px;
+  }
+
+  .range-filter__dropdown {
+    right: auto;
+    left: 0;
   }
 }
 
