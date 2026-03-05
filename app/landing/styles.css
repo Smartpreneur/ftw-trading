@@ -720,28 +720,30 @@ p { font-size: 1rem; }
     text-align: center;
     margin-top: 12px;
     margin-bottom: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 .discount-countdown__label {
-    display: block;
     font-size: 0.95rem;
     font-weight: 600;
     color: #ff6b35;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
 }
 .discount-countdown__timer {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 16px;
+    background: rgba(255, 107, 53, 0.08);
+    border: 1px solid rgba(255, 107, 53, 0.25);
+    border-radius: 12px;
+    padding: 14px 28px;
 }
 .discount-countdown__unit {
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: rgba(255, 107, 53, 0.1);
-    border: 1px solid rgba(255, 107, 53, 0.25);
-    border-radius: 8px;
-    padding: 8px 14px;
-    min-width: 56px;
+    min-width: 44px;
 }
 .discount-countdown__value {
     font-size: 1.5rem;
@@ -756,13 +758,6 @@ p { font-size: 1rem; }
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-top: 2px;
-}
-.discount-countdown__sep {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #ff6b35;
-    opacity: 0.5;
-    margin-top: -10px;
 }
 .pricing-card__discount {
     display: inline-block;

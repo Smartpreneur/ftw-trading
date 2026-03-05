@@ -619,12 +619,10 @@ export default function LandingPage() {
                           <span className="discount-countdown__value">{t.d}</span>
                           <span className="discount-countdown__desc">Tage</span>
                         </div>
-                        <span className="discount-countdown__sep">:</span>
                         <div className="discount-countdown__unit">
                           <span className="discount-countdown__value">{t.h}</span>
                           <span className="discount-countdown__desc">Std</span>
                         </div>
-                        <span className="discount-countdown__sep">:</span>
                         <div className="discount-countdown__unit">
                           <span className="discount-countdown__value">{t.m}</span>
                           <span className="discount-countdown__desc">Min</span>
