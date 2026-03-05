@@ -13,6 +13,7 @@ export type DiscountCode = {
   discount_pct: number
   valid_from: string | null
   valid_until: string | null
+  campaign_id: string | null
   is_active: boolean
   created_at: string
   updated_at: string
@@ -37,6 +38,7 @@ export async function updateDiscountCode(
   updates: {
     valid_from: string | null
     valid_until: string | null
+    campaign_id: string | null
     is_active: boolean
   }
 ) {
@@ -49,6 +51,7 @@ export async function updateDiscountCode(
     .update({
       valid_from: updates.valid_from || null,
       valid_until: updates.valid_until || null,
+      campaign_id: updates.campaign_id || null,
       is_active: updates.is_active,
       updated_at: new Date().toISOString(),
     })

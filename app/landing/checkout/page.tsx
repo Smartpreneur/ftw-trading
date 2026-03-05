@@ -6,7 +6,7 @@ import '../styles.css'
 import './checkout.css'
 
 const CHECKOUT_BASE = 'https://premium.finanzmarktwelt.de/s/finanzmarktwelt/fugmann-s-trading-woche-d3973543/payment'
-const CAMPAIGN_ID = '20260225-LP2-YTC'
+// Campaign-ID kommt ausschließlich aus dem URL-Parameter (via LP oder direktem Link)
 
 const benefits = [
   'Wöchentliche Trade-Setups mit exakten Einstiegs-, Stopp- und Kursziel-Punkten',
@@ -21,7 +21,7 @@ function CheckoutContent() {
   const utmSource = searchParams.get('utm_source')
   const planId = searchParams.get('displayed_plans_id')
   const coupon = searchParams.get('coupon')
-  const campaignId = searchParams.get('campaign_id') || CAMPAIGN_ID
+  const campaignId = searchParams.get('campaign_id')
 
   // Parameter an Ablefy weitergeben
   const iframeUrl = (() => {

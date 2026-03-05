@@ -89,6 +89,7 @@ export function RabattcodesDashboard() {
   const [editFrom, setEditFrom] = useState('')
   const [editUntil, setEditUntil] = useState('')
   const [editActive, setEditActive] = useState(true)
+  const [editCampaign, setEditCampaign] = useState('')
   const [saving, setSaving] = useState(false)
   const router = useRouter()
   const { light, toggle } = useTheme()
@@ -110,6 +111,7 @@ export function RabattcodesDashboard() {
     setEditingId(code.id)
     setEditFrom(toBerlinInput(code.valid_from))
     setEditUntil(toBerlinInput(code.valid_until))
+    setEditCampaign(code.campaign_id || '')
     setEditActive(code.is_active)
   }
 
@@ -122,6 +124,7 @@ export function RabattcodesDashboard() {
     const result = await updateDiscountCode(id, {
       valid_from: editFrom ? berlinToUTC(editFrom) : null,
       valid_until: editUntil ? berlinToUTC(editUntil) : null,
+      campaign_id: editCampaign.trim() || null,
       is_active: editActive,
     })
     if (!result.error) {
@@ -165,6 +168,7 @@ export function RabattcodesDashboard() {
               <th>Quelle</th>
               <th>Coupon</th>
               <th>Rabatt</th>
+              <th>Campaign</th>
               <th>Gültig von</th>
               <th>Gültig bis</th>
               <th>Status</th>
@@ -183,6 +187,15 @@ export function RabattcodesDashboard() {
                     <td>{code.source}</td>
                     <td>{code.coupon}</td>
                     <td>{code.discount_pct} %</td>
+                    <td>
+                      <input
+                        type="text"
+                        className="rabatt-input"
+                        value={editCampaign}
+                        placeholder="z.B. 20260225-LP2-YTC"
+                        onChange={e => setEditCampaign(e.target.value)}
+                      />
+                    </td>
                     <td>
                       <input
                         type="datetime-local"
@@ -242,6 +255,7 @@ export function RabattcodesDashboard() {
                   <td>{code.source}</td>
                   <td>{code.coupon}</td>
                   <td>{code.discount_pct} %</td>
+                  <td>{code.campaign_id || '–'}</td>
                   <td>{formatDateTime(code.valid_from)}</td>
                   <td>{formatDateTime(code.valid_until)}</td>
                   <td>

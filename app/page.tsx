@@ -139,7 +139,7 @@ export default function LandingPage() {
         // Ref-Code: z.B. ?ref=y26 → Supabase-Abfrage
         const { data: dc } = await supabase
           .from('discount_codes')
-          .select('source, coupon, is_active, valid_from, valid_until')
+          .select('source, coupon, campaign_id, is_active, valid_from, valid_until')
           .eq('code', ref)
           .single()
 
@@ -153,6 +153,7 @@ export default function LandingPage() {
             if (dc.valid_until) localStorage.setItem('ftw_valid_until', dc.valid_until)
             setSource(dc.source)
             setCoupon(dc.coupon)
+            if (!urlCampaign && dc.campaign_id) setCampaign(dc.campaign_id)
             setDiscountActive(true)
             setDiscountValidUntil(dc.valid_until)
             trackEvent('page_view', dc.source)
