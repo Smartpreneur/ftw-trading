@@ -9,13 +9,29 @@ export async function getAnalytics() {
 
   const supabase = await createClient()
 
-  const { data: events } = await supabase
-    .from('landing_events')
-    .select('event, source, session_id, created_at, referrer, utm_source, utm_medium, utm_campaign, utm_content, utm_term, campaign_id, ref_code')
-    .order('created_at', { ascending: false })
-    .limit(50000)
+  // Supabase PostgREST caps at 1000 rows per request — paginate to get all
+  type EventRow = {
+    event: string; source: string | null; session_id: string | null; created_at: string | null;
+    referrer: string | null; utm_source: string | null; utm_medium: string | null;
+    utm_campaign: string | null; utm_content: string | null; utm_term: string | null;
+    campaign_id: string | null; ref_code: string | null;
+  }
+  const PAGE_SIZE = 1000
+  const events: EventRow[] = []
+  let offset = 0
+  while (true) {
+    const { data: page } = await supabase
+      .from('landing_events')
+      .select('event, source, session_id, created_at, referrer, utm_source, utm_medium, utm_campaign, utm_content, utm_term, campaign_id, ref_code')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1)
+    if (!page || page.length === 0) break
+    events.push(...(page as EventRow[]))
+    if (page.length < PAGE_SIZE) break
+    offset += PAGE_SIZE
+  }
 
-  if (!events) return { error: 'Keine Daten verfügbar' }
+  if (events.length === 0) return { error: 'Keine Daten verfügbar' }
 
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -97,11 +113,11 @@ export async function getAnalytics() {
 
   // --- UTM / Campaign aggregates ---
   type UtmEntry = { utm_source: string; utm_medium: string; utm_campaign: string; campaign_id: string; views: number; clicks: number }
-  type EventRow = { utm_source?: string | null; utm_medium?: string | null; utm_campaign?: string | null; campaign_id?: string | null; source?: string | null }
+  type UtmEventRow = { utm_source?: string | null; utm_medium?: string | null; utm_campaign?: string | null; campaign_id?: string | null; source?: string | null }
   const utmMap = new Map<string, UtmEntry>()
   const utmByDay: Record<string, Map<string, UtmEntry>> = {}
 
-  function addUtm(map: Map<string, UtmEntry>, e: EventRow, isClick: boolean) {
+  function addUtm(map: Map<string, UtmEntry>, e: UtmEventRow, isClick: boolean) {
     const src = e.utm_source || e.source || ''
     const med = e.utm_medium || ''
     const camp = e.utm_campaign || ''

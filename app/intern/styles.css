@@ -381,6 +381,28 @@
   color: var(--accent);
 }
 
+.funnel__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.funnel__toggle:hover {
+  color: var(--text-heading);
+  background: var(--hover-bg);
+}
+
 .funnel__meta {
   text-align: right;
   font-size: 0.75rem;

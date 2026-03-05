@@ -97,6 +97,7 @@ export function InternDashboard() {
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [activeTab, setActiveTab] = useState<'quellen' | 'klicks' | 'bestellungen'>('quellen')
+  const [funnelOpen, setFunnelOpen] = useState(false)
   const router = useRouter()
   const { light, toggle } = useTheme()
 
@@ -307,18 +308,20 @@ export function InternDashboard() {
           <div className="funnel__step-rate">
             {displaySessions > 0 ? ((displayClicks / displaySessions) * 100).toFixed(1) : '0'} % der Besucher
           </div>
-          <div className="funnel__breakdown">
-            {Object.entries(displayProducts)
-              .sort(([, a], [, b]) => b - a)
-              .map(([product, clicks]) => (
-                <div key={product} className="funnel__breakdown-row">
-                  <span>{product}</span><span>{clicks}</span>
-                </div>
-              ))}
-            {Object.keys(displayProducts).length === 0 && (
-              <div className="funnel__breakdown-empty">Keine Klicks</div>
-            )}
-          </div>
+          {funnelOpen && (
+            <div className="funnel__breakdown">
+              {Object.entries(displayProducts)
+                .sort(([, a], [, b]) => b - a)
+                .map(([product, clicks]) => (
+                  <div key={product} className="funnel__breakdown-row">
+                    <span>{product}</span><span>{clicks}</span>
+                  </div>
+                ))}
+              {Object.keys(displayProducts).length === 0 && (
+                <div className="funnel__breakdown-empty">Keine Klicks</div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="funnel__arrow">&#9654;</div>
@@ -331,25 +334,31 @@ export function InternDashboard() {
           <div className="funnel__step-rate">
             {displayClicks > 0 ? ((displayOrderCount / displayClicks) * 100).toFixed(1) : '0'} % der Klicks
           </div>
-          <div className="funnel__breakdown">
-            {Object.entries(displayOrdersByPlan)
-              .sort(([, a], [, b]) => b - a)
-              .map(([plan, count]) => (
-                <div key={plan} className="funnel__breakdown-row">
-                  <span>{plan}</span><span>{count}</span>
-                </div>
-              ))}
-            {Object.keys(displayOrdersByPlan).length === 0 && (
-              <div className="funnel__breakdown-empty">Keine Bestellungen</div>
-            )}
-          </div>
           {displayRevenue > 0 && (
             <div className="funnel__revenue">
               {displayRevenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} &euro; Umsatz
             </div>
           )}
+          {funnelOpen && (
+            <div className="funnel__breakdown">
+              {Object.entries(displayOrdersByPlan)
+                .sort(([, a], [, b]) => b - a)
+                .map(([plan, count]) => (
+                  <div key={plan} className="funnel__breakdown-row">
+                    <span>{plan}</span><span>{count}</span>
+                  </div>
+                ))}
+              {Object.keys(displayOrdersByPlan).length === 0 && (
+                <div className="funnel__breakdown-empty">Keine Bestellungen</div>
+              )}
+            </div>
+          )}
         </div>
       </div>
+      <button className="funnel__toggle" onClick={() => setFunnelOpen(!funnelOpen)}>
+        {funnelOpen ? 'Details ausblenden' : 'Details anzeigen'}
+        <span className={`intern__chevron ${funnelOpen ? 'intern__chevron--open' : ''}`}>&#9662;</span>
+      </button>
       <div className="funnel__meta">{displayLabel}</div>
 
       {/* Multi-Metric Chart */}
