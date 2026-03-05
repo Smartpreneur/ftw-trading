@@ -31,6 +31,20 @@ type AnalyticsData = {
   campaignsByDay: Record<string, CampaignEntry[]>
   refCodes: Record<string, number>
   refCodesByDay: Record<string, Record<string, number>>
+  orders: OrderRow[]
+  ordersByDay: Record<string, OrderRow[]>
+  ordersByCampaign: Record<string, { count: number; revenue: number; newOrders: number }>
+}
+
+type OrderRow = {
+  order_id: string
+  ordered_at: string
+  is_new_order: boolean
+  amount: number
+  campaign_id: string | null
+  plan_name: string | null
+  country_code: string | null
+  payment_method: string | null
 }
 
 type CampaignEntry = {
@@ -158,6 +172,23 @@ export function InternDashboard() {
   const displayCampaigns = isDayFiltered ? (data.campaignsByDay[selectedDay] || []) : mergeRangeCampaigns(data.campaignsByDay)
   const displayRefCodes = isDayFiltered ? (data.refCodesByDay[selectedDay] || {}) : mergeRange(data.refCodesByDay)
   const rangeLabel = dateRange !== null ? `Letzte ${dateRange} Tage` : 'Gesamt'
+  // --- Orders filtered by range/day ---
+  const filteredOrders = isDayFiltered
+    ? (data.ordersByDay[selectedDay] || [])
+    : (data.orders || []).filter(o => rangeDays.includes(o.ordered_at?.slice(0, 10) || ''))
+  const displayOrderCount = filteredOrders.length
+  const displayRevenue = filteredOrders.reduce((s, o) => s + (Number(o.amount) || 0), 0)
+  const displayNewOrders = filteredOrders.filter(o => o.is_new_order).length
+
+  const displayOrdersByCampaign: Record<string, { count: number; revenue: number; newOrders: number }> = {}
+  for (const o of filteredOrders) {
+    const cid = o.campaign_id || 'Ohne Campaign'
+    if (!displayOrdersByCampaign[cid]) displayOrdersByCampaign[cid] = { count: 0, revenue: 0, newOrders: 0 }
+    displayOrdersByCampaign[cid].count++
+    displayOrdersByCampaign[cid].revenue += Number(o.amount) || 0
+    if (o.is_new_order) displayOrdersByCampaign[cid].newOrders++
+  }
+
   const displayLabel = isDayFiltered ? formatDay(selectedDay) : rangeLabel
 
   return (
@@ -215,6 +246,56 @@ export function InternDashboard() {
           <div className="kpi-card__sub">{displayLabel}</div>
         </div>
       </div>
+
+      {/* Orders KPIs */}
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-card__label">Bestellungen</div>
+          <div className="kpi-card__value">{displayOrderCount}</div>
+          <div className="kpi-card__sub">{displayLabel}</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-card__label">Umsatz</div>
+          <div className="kpi-card__value">{displayRevenue.toFixed(0)} &euro;</div>
+          <div className="kpi-card__sub">{displayLabel}</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-card__label">Neue Kunden</div>
+          <div className="kpi-card__value">{displayNewOrders}</div>
+          <div className="kpi-card__sub">{displayLabel}</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-card__label">Click→Order</div>
+          <div className="kpi-card__value">
+            {displayClicks > 0 ? ((displayOrderCount / displayClicks) * 100).toFixed(1) : '–'} %
+          </div>
+          <div className="kpi-card__sub">{displayLabel}</div>
+        </div>
+      </div>
+
+      {/* Orders by Campaign */}
+      {Object.keys(displayOrdersByCampaign).length > 0 && (
+        <section className="intern__section">
+          <h2>Bestellungen pro Campaign {isDayFiltered && <span className="intern__filter-tag">{displayLabel}</span>}</h2>
+          <table className="intern-table">
+            <thead>
+              <tr><th>Campaign</th><th>Bestellungen</th><th>Neue Kunden</th><th>Umsatz</th></tr>
+            </thead>
+            <tbody>
+              {Object.entries(displayOrdersByCampaign)
+                .sort(([, a], [, b]) => b.count - a.count)
+                .map(([cid, v]) => (
+                  <tr key={cid}>
+                    <td>{cid}</td>
+                    <td>{v.count}</td>
+                    <td>{v.newOrders}</td>
+                    <td>{v.revenue.toFixed(2).replace('.', ',')} &euro;</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       {/* Sessions Chart (last 14 days) */}
       <section className="intern__section">

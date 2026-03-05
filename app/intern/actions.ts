@@ -159,6 +159,25 @@ export async function getAnalytics() {
   const clicks7d = checkoutClicks.filter(e => new Date(e.created_at!) >= sevenDaysAgo).length
   const clicks30d = checkoutClicks.filter(e => new Date(e.created_at!) >= thirtyDaysAgo).length
 
+  // --- Ablefy Orders ---
+  const { data: orders } = await supabase
+    .from('ablefy_orders')
+    .select('order_id, ordered_at, is_new_order, amount, campaign_id, plan_name, country_code, payment_method')
+    .order('ordered_at', { ascending: false })
+
+  const ordersByDay: Record<string, typeof orders> = {}
+  const ordersByCampaign: Record<string, { count: number; revenue: number; newOrders: number }> = {}
+  for (const o of orders || []) {
+    const day = o.ordered_at?.slice(0, 10) || ''
+    if (!ordersByDay[day]) ordersByDay[day] = []
+    ordersByDay[day].push(o)
+    const cid = o.campaign_id || 'Ohne Campaign'
+    if (!ordersByCampaign[cid]) ordersByCampaign[cid] = { count: 0, revenue: 0, newOrders: 0 }
+    ordersByCampaign[cid].count++
+    ordersByCampaign[cid].revenue += Number(o.amount) || 0
+    if (o.is_new_order) ordersByCampaign[cid].newOrders++
+  }
+
   return {
     data: {
       totalViews: pageViews.length,
@@ -182,6 +201,9 @@ export async function getAnalytics() {
       campaignsByDay,
       refCodes: refCodeMap,
       refCodesByDay,
+      orders: orders || [],
+      ordersByDay,
+      ordersByCampaign,
     },
   }
 }
