@@ -12,10 +12,6 @@ import {
   type KanbanTask,
   type TaskLink,
 } from './actions'
-import { logout } from '@/lib/auth'
-import { useRouter } from 'next/navigation'
-import { useTheme } from '../use-theme'
-import '../styles.css'
 
 const COLUMNS = [
   { key: 'backlog', label: 'Geplant' },
@@ -37,8 +33,6 @@ export function PlanungDashboard() {
   const [editingTask, setEditingTask] = useState<KanbanTask | null>(null)
   const [saving, setSaving] = useState(false)
   const [previewImg, setPreviewImg] = useState<string | null>(null)
-  const router = useRouter()
-  const { light, toggle } = useTheme()
 
   // Drag state
   const [dragTaskId, setDragTaskId] = useState<string | null>(null)
@@ -73,11 +67,6 @@ export function PlanungDashboard() {
   }
 
   useEffect(() => { loadTasks() }, [])
-
-  const handleLogout = async () => {
-    await logout()
-    router.refresh()
-  }
 
   const tasksByCol = useCallback(
     (col: string) => tasks.filter(t => t.status === col),
@@ -369,20 +358,7 @@ export function PlanungDashboard() {
   )
 
   return (
-    <div className={`intern intern--wide${light ? ' light' : ''}`}>
-      <header className="intern__header">
-        <h1>Planung</h1>
-        <div className="intern__header-actions">
-          <a href="/intern" className="intern__nav-link">Übersicht</a>
-          <button onClick={toggle} className="theme-toggle" title={light ? 'Dark Mode' : 'Light Mode'}>
-            {light ? '🌙' : '☀️'}
-          </button>
-          <button onClick={handleLogout} className="intern__logout">
-            Abmelden
-          </button>
-        </div>
-      </header>
-
+    <div className="intern intern--wide">
       <div className="kb-toolbar">
         <button className="rabatt-btn rabatt-btn--save" onClick={() => setShowCreate(true)}>
           + Neue Aufgabe

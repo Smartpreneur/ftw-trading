@@ -2,10 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { getDiscountCodes, updateDiscountCode, type DiscountCode } from './actions'
-import { logout } from '@/lib/auth'
-import { useRouter } from 'next/navigation'
-import { useTheme } from '../use-theme'
-import '../styles.css'
 
 const TZ = 'Europe/Berlin'
 
@@ -91,8 +87,6 @@ export function RabattcodesDashboard() {
   const [editActive, setEditActive] = useState(true)
   const [editCampaign, setEditCampaign] = useState('')
   const [saving, setSaving] = useState(false)
-  const router = useRouter()
-  const { light, toggle } = useTheme()
 
   const loadCodes = async () => {
     const result = await getDiscountCodes()
@@ -101,11 +95,6 @@ export function RabattcodesDashboard() {
   }
 
   useEffect(() => { loadCodes() }, [])
-
-  const handleLogout = async () => {
-    await logout()
-    router.refresh()
-  }
 
   const startEdit = (code: DiscountCode) => {
     setEditingId(code.id)
@@ -143,20 +132,7 @@ export function RabattcodesDashboard() {
   }
 
   return (
-    <div className={`intern${light ? ' light' : ''}`}>
-      <header className="intern__header">
-        <h1>Rabattcodes</h1>
-        <div className="intern__header-actions">
-          <a href="/intern" className="intern__nav-link">Übersicht</a>
-          <button onClick={toggle} className="theme-toggle" title={light ? 'Dark Mode' : 'Light Mode'}>
-            {light ? '🌙' : '☀️'}
-          </button>
-          <button onClick={handleLogout} className="intern__logout">
-            Abmelden
-          </button>
-        </div>
-      </header>
-
+    <div className="intern">
       <div className="rabatt-tz-hint">Zeitzone: Berlin (MEZ/MESZ)</div>
 
       <section className="intern__section">

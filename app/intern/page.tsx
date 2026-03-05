@@ -1,10 +1,5 @@
-import { checkAuth } from '@/lib/auth'
-import { PasswordGate } from '@/components/password-gate'
 import { InternHub } from './hub'
 
-export default async function InternPage() {
-  const isAuthed = await checkAuth()
-  if (!isAuthed) return <PasswordGate />
-
+export default function InternPage() {
   return <InternHub />
 }

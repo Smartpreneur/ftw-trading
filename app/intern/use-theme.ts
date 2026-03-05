@@ -5,10 +5,11 @@ import { useEffect, useState } from 'react'
 const STORAGE_KEY = 'ftw_intern_theme'
 
 export function useTheme() {
-  const [light, setLight] = useState(false)
+  const [light, setLight] = useState(true)
 
   useEffect(() => {
-    setLight(localStorage.getItem(STORAGE_KEY) === 'light')
+    const stored = localStorage.getItem(STORAGE_KEY)
+    setLight(stored === null ? true : stored === 'light')
   }, [])
 
   const toggle = () => {
