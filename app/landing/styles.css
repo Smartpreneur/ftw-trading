@@ -716,6 +716,31 @@ p { font-size: 1rem; }
     color: #00c864;
     font-weight: 600;
 }
+.discount-countdown {
+    text-align: center;
+    margin-bottom: 28px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #ff6b35;
+    background: rgba(255, 107, 53, 0.1);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    border-radius: 8px;
+    padding: 10px 20px;
+    display: inline-block;
+    margin-left: auto;
+    margin-right: auto;
+    width: fit-content;
+    animation: countdown-pulse 2s ease-in-out infinite;
+}
+.section--alt .discount-countdown {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+@keyframes countdown-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.75; }
+}
 .pricing-card__discount {
     display: inline-block;
     background: #00c864;

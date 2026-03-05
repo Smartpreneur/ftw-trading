@@ -106,6 +106,8 @@ export default function LandingPage() {
   const [source, setSource] = useState('')
   const [coupon, setCoupon] = useState('')
   const [campaign, setCampaign] = useState('')
+  const [discountValidUntil, setDiscountValidUntil] = useState<string | null>(null)
+  const [countdown, setCountdown] = useState<string | null>(null)
 
   // Baut den Checkout-Link mit plan_id, Gutschein, Kampagne + Quelle zusammen
   const checkoutLink = (planId: number) => {
@@ -148,9 +150,11 @@ export default function LandingPage() {
           if (fromOk && untilOk) {
             localStorage.setItem('ftw_source', dc.source)
             localStorage.setItem('ftw_promo', dc.coupon)
+            if (dc.valid_until) localStorage.setItem('ftw_valid_until', dc.valid_until)
             setSource(dc.source)
             setCoupon(dc.coupon)
             setDiscountActive(true)
+            setDiscountValidUntil(dc.valid_until)
             trackEvent('page_view', dc.source)
             return
           }
@@ -158,6 +162,7 @@ export default function LandingPage() {
         // Ungültiger/abgelaufener Code → localStorage leeren
         localStorage.removeItem('ftw_promo')
         localStorage.removeItem('ftw_source')
+        localStorage.removeItem('ftw_valid_until')
         trackEvent('page_view')
         return
       }
@@ -180,9 +185,12 @@ export default function LandingPage() {
         if (valid) {
           setCoupon(urlCoupon)
           setDiscountActive(true)
+          setDiscountValidUntil(valid.valid_until)
           localStorage.setItem('ftw_promo', urlCoupon)
+          if (valid.valid_until) localStorage.setItem('ftw_valid_until', valid.valid_until)
         } else {
           localStorage.removeItem('ftw_promo')
+          localStorage.removeItem('ftw_valid_until')
         }
       } else if (savedCoupon) {
         // Gespeicherter Coupon aus vorherigem Besuch → erneut validieren
@@ -202,8 +210,10 @@ export default function LandingPage() {
         if (valid) {
           setCoupon(savedCoupon)
           setDiscountActive(true)
+          setDiscountValidUntil(valid.valid_until)
         } else {
           localStorage.removeItem('ftw_promo')
+          localStorage.removeItem('ftw_valid_until')
         }
       }
 
@@ -214,6 +224,26 @@ export default function LandingPage() {
 
     validateAndActivate()
   }, [])
+
+  // Countdown-Timer: zeigt Stunden + Minuten in den letzten 72h vor Ablauf
+  useEffect(() => {
+    if (!discountValidUntil) { setCountdown(null); return }
+    const end = new Date(discountValidUntil).getTime()
+    const SEVENTY_TWO_HOURS = 72 * 60 * 60 * 1000
+
+    const update = () => {
+      const diffMs = end - Date.now()
+      if (diffMs <= 0 || diffMs > SEVENTY_TWO_HOURS) { setCountdown(null); return }
+      const totalMin = Math.floor(diffMs / 60_000)
+      const h = Math.floor(totalMin / 60)
+      const m = totalMin % 60
+      setCountdown(`Noch ${h} Std. ${m} Min.`)
+    }
+
+    update()
+    const id = setInterval(update, 60_000)
+    return () => clearInterval(id)
+  }, [discountValidUntil])
 
   useEffect(() => {
     // Navbar scroll effect
@@ -579,6 +609,12 @@ export default function LandingPage() {
           {discountActive && (
             <div className="discount-active">
               ✓ Rabatt aktiv
+            </div>
+          )}
+
+          {countdown && (
+            <div className="discount-countdown">
+              {countdown}
             </div>
           )}
 
