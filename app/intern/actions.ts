@@ -165,7 +165,7 @@ export async function getAnalytics() {
     .select('order_id, ordered_at, is_new_order, amount, campaign_id, plan_name, country_code, payment_method')
     .order('ordered_at', { ascending: false })
 
-  const ordersByDay: Record<string, typeof orders> = {}
+  const ordersByDay: Record<string, NonNullable<typeof orders>> = {}
   const ordersByCampaign: Record<string, { count: number; revenue: number; newOrders: number }> = {}
   for (const o of orders || []) {
     const day = o.ordered_at?.slice(0, 10) || ''
