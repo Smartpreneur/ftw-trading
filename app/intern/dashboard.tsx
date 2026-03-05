@@ -94,6 +94,8 @@ export function InternDashboard() {
   const [loading, setLoading] = useState(true)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [dateRange, setDateRange] = useState<number | null>(14)
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
   const [activeTab, setActiveTab] = useState<'quellen' | 'klicks' | 'bestellungen'>('quellen')
   const router = useRouter()
   const { light, toggle } = useTheme()
@@ -134,12 +136,19 @@ export function InternDashboard() {
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const rangeDays = dateRange !== null
+  const isCustomRange = customFrom !== '' || customTo !== ''
+  const rangeDays = isCustomRange
     ? allDays.filter(d => {
-        const diff = (today.getTime() - new Date(d + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)
-        return diff < dateRange
+        if (customFrom && d < customFrom) return false
+        if (customTo && d > customTo) return false
+        return true
       })
-    : allDays
+    : dateRange !== null
+      ? allDays.filter(d => {
+          const diff = (today.getTime() - new Date(d + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)
+          return diff < dateRange
+        })
+      : allDays
 
   // Chart shows days in range
   const chartDays = rangeDays
@@ -193,7 +202,9 @@ export function InternDashboard() {
   const displayReferrers = isDayFiltered ? (data.referrersByDay[selectedDay] || {}) : mergeRange(data.referrersByDay)
   const displayCampaigns = isDayFiltered ? (data.campaignsByDay[selectedDay] || []) : mergeRangeCampaigns(data.campaignsByDay)
   const displayRefCodes = isDayFiltered ? (data.refCodesByDay[selectedDay] || {}) : mergeRange(data.refCodesByDay)
-  const rangeLabel = dateRange !== null ? `Letzte ${dateRange} Tage` : 'Gesamt'
+  const rangeLabel = isCustomRange
+    ? `${customFrom || '...'} – ${customTo || '...'}`
+    : dateRange !== null ? `Letzte ${dateRange} Tage` : 'Gesamt'
   // --- Orders filtered by range/day ---
   const filteredOrders = isDayFiltered
     ? (data.ordersByDay[selectedDay] || [])
@@ -236,12 +247,36 @@ export function InternDashboard() {
         {rangeOptions.map(opt => (
           <button
             key={opt.label}
-            className={`range-filter__btn ${dateRange === opt.value ? 'range-filter__btn--active' : ''}`}
-            onClick={() => { setDateRange(opt.value); setSelectedDay(null) }}
+            className={`range-filter__btn ${!isCustomRange && dateRange === opt.value ? 'range-filter__btn--active' : ''}`}
+            onClick={() => { setDateRange(opt.value); setSelectedDay(null); setCustomFrom(''); setCustomTo('') }}
           >
             {opt.label}
           </button>
         ))}
+        <span className="range-filter__sep" />
+        <input
+          type="date"
+          className={`range-filter__date ${isCustomRange ? 'range-filter__date--active' : ''}`}
+          value={customFrom}
+          onChange={e => { setCustomFrom(e.target.value); setSelectedDay(null) }}
+          placeholder="Von"
+        />
+        <span className="range-filter__dash">–</span>
+        <input
+          type="date"
+          className={`range-filter__date ${isCustomRange ? 'range-filter__date--active' : ''}`}
+          value={customTo}
+          onChange={e => { setCustomTo(e.target.value); setSelectedDay(null) }}
+          placeholder="Bis"
+        />
+        {isCustomRange && (
+          <button
+            className="range-filter__btn range-filter__btn--clear"
+            onClick={() => { setCustomFrom(''); setCustomTo(''); setDateRange(14) }}
+          >
+            &times;
+          </button>
+        )}
       </div>
 
       {/* Funnel Overview */}

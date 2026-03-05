@@ -203,6 +203,8 @@
   display: flex;
   gap: 6px;
   margin-bottom: 20px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .range-filter__btn {
@@ -224,6 +226,52 @@
 .range-filter__btn--active {
   background: var(--accent-bg);
   border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.range-filter__btn--clear {
+  padding: 6px 10px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.range-filter__sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 4px;
+  align-self: center;
+}
+
+.range-filter__dash {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  align-self: center;
+}
+
+.range-filter__date {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.intern:not(.light) .range-filter__date {
+  color-scheme: dark;
+}
+
+.range-filter__date:focus {
+  border-color: var(--accent);
+}
+
+.range-filter__date--active {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
   color: var(--accent);
 }
 
