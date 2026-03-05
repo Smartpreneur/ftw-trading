@@ -144,6 +144,18 @@
   gap: 8px;
 }
 
+.intern__nav-link,
+.intern__logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.intern__nav-link svg,
+.intern__logout svg {
+  flex-shrink: 0;
+}
+
 .intern__nav-link {
   color: var(--text-muted);
   text-decoration: none;
@@ -498,7 +510,7 @@
 .bar-chart {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
+  gap: 4px;
   height: 220px;
   position: relative;
 }
@@ -525,12 +537,6 @@
   background: var(--accent-bg);
 }
 
-.bar-chart__col--active .bar-chart__bar {
-  background: linear-gradient(180deg, var(--accent), var(--accent));
-  box-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
-}
-
-.bar-chart__col--active .bar-chart__count,
 .bar-chart__col--active .bar-chart__label {
   color: var(--accent);
 }
@@ -539,6 +545,98 @@
   font-size: 0.7rem;
   color: var(--text-muted);
   margin-bottom: 4px;
+}
+
+/* Multi-metric chart */
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 0.78rem;
+}
+
+.chart-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+}
+
+.chart-legend__item::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.chart-legend__item--sessions::before {
+  background: #00D4FF;
+}
+
+.chart-legend__item--clicks::before {
+  background: #FFB020;
+}
+
+.chart-legend__item--orders::before {
+  background: #34D399;
+}
+
+.bar-chart__group {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.bar-chart__metric {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.bar-chart__val {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  line-height: 1;
+}
+
+.bar-chart__metric .bar-chart__bar {
+  width: 100%;
+  max-width: 20px;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  transition: height 0.3s ease;
+}
+
+.bar-chart__metric--sessions .bar-chart__bar {
+  background: linear-gradient(180deg, #00D4FF, #00748D);
+}
+
+.bar-chart__metric--clicks .bar-chart__bar {
+  background: linear-gradient(180deg, #FFB020, #CC8800);
+}
+
+.bar-chart__metric--orders .bar-chart__bar {
+  background: linear-gradient(180deg, #34D399, #059669);
+}
+
+.bar-chart__col--active .bar-chart__metric--sessions .bar-chart__bar {
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.3);
+}
+
+.bar-chart__col--active .bar-chart__metric--clicks .bar-chart__bar {
+  box-shadow: 0 0 8px rgba(255, 176, 32, 0.3);
+}
+
+.bar-chart__col--active .bar-chart__metric--orders .bar-chart__bar {
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.3);
 }
 
 .bar-chart__bar {
@@ -673,6 +771,19 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .intern__header h1 {
+    font-size: 1.1rem;
+  }
+
+  .intern__btn-label {
+    display: none;
+  }
+
+  .intern__nav-link,
+  .intern__logout {
+    padding: 6px 10px;
+  }
+
   .funnel {
     grid-template-columns: 1fr;
     gap: 8px;

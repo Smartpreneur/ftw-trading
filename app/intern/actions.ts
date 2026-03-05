@@ -13,6 +13,7 @@ export async function getAnalytics() {
     .from('landing_events')
     .select('event, source, session_id, created_at, referrer, utm_source, utm_medium, utm_campaign, utm_content, utm_term, campaign_id, ref_code')
     .order('created_at', { ascending: false })
+    .limit(50000)
 
   if (!events) return { error: 'Keine Daten verfügbar' }
 

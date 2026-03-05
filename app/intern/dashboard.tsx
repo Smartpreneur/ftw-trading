@@ -153,6 +153,12 @@ export function InternDashboard() {
   // Chart shows days in range
   const chartDays = rangeDays
   const maxSessions = Math.max(...chartDays.map(d => data.uniqueSessionsByDay[d] || 0), 1)
+  const maxClicks = Math.max(...chartDays.map(d => data.clicksByDay[d] || 0), 1)
+  const ordersCountByDay: Record<string, number> = {}
+  for (const d of chartDays) {
+    ordersCountByDay[d] = (data.ordersByDay[d] || []).length
+  }
+  const maxOrders = Math.max(...chartDays.map(d => ordersCountByDay[d] || 0), 1)
 
   // Helper: sum values from a Record for days in range
   function sumRange(byDay: Record<string, number>): number {
@@ -232,12 +238,16 @@ export function InternDashboard() {
       <header className="intern__header">
         <h1>Landing Page KPIs</h1>
         <div className="intern__header-actions">
-          <a href="/intern" className="intern__nav-link">Übersicht</a>
+          <a href="/intern" className="intern__nav-link" title="Übersicht">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span className="intern__btn-label">Übersicht</span>
+          </a>
           <button onClick={toggle} className="theme-toggle" title={light ? 'Dark Mode' : 'Light Mode'}>
             {light ? '🌙' : '☀️'}
           </button>
-          <button onClick={handleLogout} className="intern__logout">
-            Abmelden
+          <button onClick={handleLogout} className="intern__logout" title="Abmelden">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span className="intern__btn-label">Abmelden</span>
           </button>
         </div>
       </header>
@@ -344,19 +354,26 @@ export function InternDashboard() {
       </div>
       <div className="funnel__meta">{displayLabel}</div>
 
-      {/* Sessions Chart */}
+      {/* Multi-Metric Chart */}
       <section className="intern__section">
         <div className="intern__section-header">
-          <h2>Unique Sessions ({rangeLabel})</h2>
+          <h2>Tagesübersicht ({rangeLabel})</h2>
           {isDayFiltered && (
             <button onClick={() => setSelectedDay(null)} className="intern__reset-btn">
               Alle anzeigen
             </button>
           )}
         </div>
-        <div className="bar-chart">
+        <div className="chart-legend">
+          <span className="chart-legend__item chart-legend__item--sessions">Besucher</span>
+          <span className="chart-legend__item chart-legend__item--clicks">Checkout</span>
+          <span className="chart-legend__item chart-legend__item--orders">Bestellungen</span>
+        </div>
+        <div className="bar-chart bar-chart--multi">
           {chartDays.map(day => {
-            const count = data.uniqueSessionsByDay[day] || 0
+            const sessions = data.uniqueSessionsByDay[day] || 0
+            const clicks = data.clicksByDay[day] || 0
+            const orders = ordersCountByDay[day] || 0
             const isDayActive = selectedDay === day
             return (
               <div
@@ -364,11 +381,20 @@ export function InternDashboard() {
                 className={`bar-chart__col ${isDayActive ? 'bar-chart__col--active' : ''}`}
                 onClick={() => setSelectedDay(isDayActive ? null : day)}
               >
-                <div className="bar-chart__count">{count}</div>
-                <div
-                  className="bar-chart__bar"
-                  style={{ height: `${(count / maxSessions) * 100}%` }}
-                />
+                <div className="bar-chart__group">
+                  <div className="bar-chart__metric bar-chart__metric--sessions">
+                    <span className="bar-chart__val">{sessions}</span>
+                    <div className="bar-chart__bar" style={{ height: `${(sessions / maxSessions) * 100}%` }} />
+                  </div>
+                  <div className="bar-chart__metric bar-chart__metric--clicks">
+                    <span className="bar-chart__val">{clicks}</span>
+                    <div className="bar-chart__bar" style={{ height: `${(clicks / maxClicks) * 100}%` }} />
+                  </div>
+                  <div className="bar-chart__metric bar-chart__metric--orders">
+                    <span className="bar-chart__val">{orders}</span>
+                    <div className="bar-chart__bar" style={{ height: `${(orders / maxOrders) * 100}%` }} />
+                  </div>
+                </div>
                 <div className="bar-chart__label">
                   {formatDayShort(day)}
                 </div>
