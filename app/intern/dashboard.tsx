@@ -203,12 +203,15 @@ export function InternDashboard() {
   const displayNewOrders = filteredOrders.filter(o => o.is_new_order).length
 
   const displayOrdersByCampaign: Record<string, { count: number; revenue: number; newOrders: number }> = {}
+  const displayOrdersByPlan: Record<string, number> = {}
   for (const o of filteredOrders) {
     const cid = o.campaign_id || 'Ohne Campaign'
     if (!displayOrdersByCampaign[cid]) displayOrdersByCampaign[cid] = { count: 0, revenue: 0, newOrders: 0 }
     displayOrdersByCampaign[cid].count++
     displayOrdersByCampaign[cid].revenue += Number(o.amount) || 0
     if (o.is_new_order) displayOrdersByCampaign[cid].newOrders++
+    const plan = o.plan_name || 'Unbekannt'
+    displayOrdersByPlan[plan] = (displayOrdersByPlan[plan] || 0) + 1
   }
 
   const displayLabel = isDayFiltered ? formatDay(selectedDay) : rangeLabel
@@ -241,59 +244,70 @@ export function InternDashboard() {
         ))}
       </div>
 
-      {/* KPI Cards */}
-      <div className="kpi-grid">
-        <div className="kpi-card">
-          <div className="kpi-card__label">Seitenaufrufe</div>
-          <div className="kpi-card__value">{displayViews}</div>
-          <div className="kpi-card__sub">{displayLabel}</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-card__label">Checkout-Klicks</div>
-          <div className="kpi-card__value">{displayClicks}</div>
-          <div className="kpi-card__sub">{displayLabel}</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-card__label">Unique Sessions</div>
-          <div className="kpi-card__value">{displaySessions}</div>
-          <div className="kpi-card__sub">{displayLabel}</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-card__label">Conversion Rate</div>
-          <div className="kpi-card__value">
-            {displaySessions > 0 && displayClicks > 0
-              ? ((displayClicks / displaySessions) * 100).toFixed(1)
-              : data.conversionRate} %
+      {/* Funnel Overview */}
+      <div className="funnel">
+        <div className="funnel__step">
+          <div className="funnel__step-header">
+            <span className="funnel__step-label">Besucher</span>
+            <span className="funnel__step-value">{displaySessions}</span>
           </div>
-          <div className="kpi-card__sub">{displayLabel}</div>
+          <div className="funnel__step-sub">{displayViews} Seitenaufrufe</div>
         </div>
-      </div>
 
-      {/* Orders KPIs */}
-      <div className="kpi-grid">
-        <div className="kpi-card">
-          <div className="kpi-card__label">Bestellungen</div>
-          <div className="kpi-card__value">{displayOrderCount}</div>
-          <div className="kpi-card__sub">{displayLabel}</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-card__label">Umsatz</div>
-          <div className="kpi-card__value">{displayRevenue.toFixed(0)} &euro;</div>
-          <div className="kpi-card__sub">{displayLabel}</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-card__label">Neue Kunden</div>
-          <div className="kpi-card__value">{displayNewOrders}</div>
-          <div className="kpi-card__sub">{displayLabel}</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-card__label">Click→Order</div>
-          <div className="kpi-card__value">
-            {displayClicks > 0 ? ((displayOrderCount / displayClicks) * 100).toFixed(1) : '–'} %
+        <div className="funnel__arrow">&#9654;</div>
+
+        <div className="funnel__step">
+          <div className="funnel__step-header">
+            <span className="funnel__step-label">Checkout-Klicks</span>
+            <span className="funnel__step-value">{displayClicks}</span>
           </div>
-          <div className="kpi-card__sub">{displayLabel}</div>
+          <div className="funnel__step-rate">
+            {displaySessions > 0 ? ((displayClicks / displaySessions) * 100).toFixed(1) : '0'} % der Besucher
+          </div>
+          <div className="funnel__breakdown">
+            {Object.entries(displayProducts)
+              .sort(([, a], [, b]) => b - a)
+              .map(([product, clicks]) => (
+                <div key={product} className="funnel__breakdown-row">
+                  <span>{product}</span><span>{clicks}</span>
+                </div>
+              ))}
+            {Object.keys(displayProducts).length === 0 && (
+              <div className="funnel__breakdown-empty">Keine Klicks</div>
+            )}
+          </div>
+        </div>
+
+        <div className="funnel__arrow">&#9654;</div>
+
+        <div className="funnel__step">
+          <div className="funnel__step-header">
+            <span className="funnel__step-label">Bestellungen</span>
+            <span className="funnel__step-value">{displayOrderCount}</span>
+          </div>
+          <div className="funnel__step-rate">
+            {displayClicks > 0 ? ((displayOrderCount / displayClicks) * 100).toFixed(1) : '0'} % der Klicks
+          </div>
+          <div className="funnel__breakdown">
+            {Object.entries(displayOrdersByPlan)
+              .sort(([, a], [, b]) => b - a)
+              .map(([plan, count]) => (
+                <div key={plan} className="funnel__breakdown-row">
+                  <span>{plan}</span><span>{count}</span>
+                </div>
+              ))}
+            {Object.keys(displayOrdersByPlan).length === 0 && (
+              <div className="funnel__breakdown-empty">Keine Bestellungen</div>
+            )}
+          </div>
+          {displayRevenue > 0 && (
+            <div className="funnel__revenue">
+              {displayRevenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} &euro; Umsatz
+            </div>
+          )}
         </div>
       </div>
+      <div className="funnel__meta">{displayLabel}</div>
 
       {/* Sessions Chart */}
       <section className="intern__section">

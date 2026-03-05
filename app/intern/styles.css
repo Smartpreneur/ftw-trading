@@ -227,6 +227,107 @@
   color: var(--accent);
 }
 
+/* Funnel */
+.funnel {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  gap: 0;
+  align-items: start;
+  margin-bottom: 8px;
+}
+
+.funnel__step {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid var(--border-accent);
+}
+
+.funnel__step-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.funnel__step-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.funnel__step-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+.funnel__step-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.funnel__step-rate {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.funnel__arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 1rem;
+  padding: 0 4px;
+  margin-top: 24px;
+  opacity: 0.5;
+}
+
+.funnel__breakdown {
+  border-top: 1px solid var(--table-border);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.funnel__breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  padding: 3px 0;
+  color: var(--text);
+}
+
+.funnel__breakdown-row span:last-child {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.funnel__breakdown-empty {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.funnel__revenue {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--table-border);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.funnel__meta {
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
 /* KPI Cards */
 .kpi-grid {
   display: grid;
@@ -524,6 +625,17 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .funnel {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .funnel__arrow {
+    transform: rotate(90deg);
+    margin: 0;
+    padding: 4px 0;
+  }
+
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
