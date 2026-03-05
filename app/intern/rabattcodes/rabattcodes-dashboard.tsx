@@ -36,15 +36,27 @@ function toBerlinInput(iso: string | null): string {
 
 // datetime-local Input-Wert (Berliner Zeit) → UTC ISO string
 function berlinToUTC(local: string): string {
-  // Intl nutzen um den UTC-Offset für Berlin zum gegebenen Zeitpunkt zu ermitteln
-  const naive = new Date(local) // wird als lokale Browser-Zeit geparsed
-  // Berliner Zeit als String formatieren und Differenz zum UTC berechnen
-  const berlinStr = new Date().toLocaleString('en-US', { timeZone: TZ })
-  const utcStr = new Date().toLocaleString('en-US', { timeZone: 'UTC' })
-  const currentOffset = new Date(berlinStr).getTime() - new Date(utcStr).getTime()
-  // Den Input-Wert als Berlin interpretieren: UTC = Eingabe - Berlin-Offset
-  const utc = new Date(naive.getTime() - currentOffset)
-  return utc.toISOString()
+  const [datePart, timePart] = local.split('T')
+  const [y, mo, d] = datePart.split('-').map(Number)
+  const [h, mi] = timePart.split(':').map(Number)
+
+  // Eingabewerte als naive UTC-Timestamps behandeln (browser-unabhängig)
+  const naiveUtc = Date.UTC(y, mo - 1, d, h, mi)
+
+  // Prüfen welche Berliner Zeit diesem UTC-Moment entspricht
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(naiveUtc))
+  const get = (t: string) => Number(parts.find(p => p.type === t)?.value || '0')
+
+  // Offset = Differenz zwischen Berliner Darstellung und naiver UTC-Eingabe
+  const berlinMs = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'))
+  const offsetMs = berlinMs - naiveUtc
+
+  return new Date(naiveUtc - offsetMs).toISOString()
 }
 
 function formatRemaining(until: string | null): string {
