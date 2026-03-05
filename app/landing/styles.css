@@ -718,28 +718,51 @@ p { font-size: 1rem; }
 }
 .discount-countdown {
     text-align: center;
-    margin-bottom: 28px;
-    font-size: 1.05rem;
+    margin-top: 12px;
+    margin-bottom: 32px;
+}
+.discount-countdown__label {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #ff6b35;
+    margin-bottom: 12px;
+}
+.discount-countdown__timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.discount-countdown__unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(255, 107, 53, 0.1);
+    border: 1px solid rgba(255, 107, 53, 0.25);
+    border-radius: 8px;
+    padding: 8px 14px;
+    min-width: 56px;
+}
+.discount-countdown__value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #ff6b35;
+    line-height: 1.1;
+}
+.discount-countdown__desc {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: rgba(255, 107, 53, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+}
+.discount-countdown__sep {
+    font-size: 1.3rem;
     font-weight: 700;
     color: #ff6b35;
-    background: rgba(255, 107, 53, 0.1);
-    border: 1px solid rgba(255, 107, 53, 0.3);
-    border-radius: 8px;
-    padding: 10px 20px;
-    display: inline-block;
-    margin-left: auto;
-    margin-right: auto;
-    width: fit-content;
-    animation: countdown-pulse 2s ease-in-out infinite;
-}
-.section--alt .discount-countdown {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-}
-@keyframes countdown-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.75; }
+    opacity: 0.5;
+    margin-top: -10px;
 }
 .pricing-card__discount {
     display: inline-block;

@@ -235,9 +235,10 @@ export default function LandingPage() {
       const diffMs = end - Date.now()
       if (diffMs <= 0 || diffMs > SEVENTY_TWO_HOURS) { setCountdown(null); return }
       const totalMin = Math.floor(diffMs / 60_000)
-      const h = Math.floor(totalMin / 60)
+      const d = Math.floor(totalMin / 1440)
+      const h = Math.floor((totalMin % 1440) / 60)
       const m = totalMin % 60
-      setCountdown(`Rabatt nur noch ${h} Std. ${m} Min. verfügbar`)
+      setCountdown(JSON.stringify({ d, h, m }))
     }
 
     update()
@@ -608,7 +609,30 @@ export default function LandingPage() {
 
           {discountActive && (
             countdown
-              ? <div className="discount-countdown">{countdown}</div>
+              ? (() => {
+                  const t = JSON.parse(countdown)
+                  return (
+                    <div className="discount-countdown">
+                      <span className="discount-countdown__label">Rabatt nur noch kurz verfügbar:</span>
+                      <div className="discount-countdown__timer">
+                        <div className="discount-countdown__unit">
+                          <span className="discount-countdown__value">{t.d}</span>
+                          <span className="discount-countdown__desc">Tage</span>
+                        </div>
+                        <span className="discount-countdown__sep">:</span>
+                        <div className="discount-countdown__unit">
+                          <span className="discount-countdown__value">{t.h}</span>
+                          <span className="discount-countdown__desc">Std</span>
+                        </div>
+                        <span className="discount-countdown__sep">:</span>
+                        <div className="discount-countdown__unit">
+                          <span className="discount-countdown__value">{t.m}</span>
+                          <span className="discount-countdown__desc">Min</span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()
               : <div className="discount-active">✓ Rabatt aktiv</div>
           )}
 
