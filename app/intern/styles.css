@@ -569,6 +569,36 @@
   margin-bottom: 4px;
 }
 
+/* Chart mode toggle */
+.chart-mode-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.chart-mode-toggle__btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.chart-mode-toggle__btn:hover {
+  color: var(--text-heading);
+}
+
+.chart-mode-toggle__btn--active {
+  background: var(--accent);
+  color: #fff;
+}
+
 /* Multi-metric chart */
 .chart-legend {
   display: flex;
@@ -668,6 +698,17 @@
 
 .bar-chart__col--active .bar-chart__layer--orders {
   box-shadow: 0 0 8px rgba(52, 211, 153, 0.3);
+}
+
+.bar-chart__layer--revenue {
+  background: linear-gradient(180deg, #A78BFA, #7C3AED);
+  border-radius: 4px 4px 0 0;
+  z-index: 1;
+}
+
+.bar-chart__val--revenue {
+  color: #A78BFA;
+  font-weight: 600;
 }
 
 .bar-chart__bar {

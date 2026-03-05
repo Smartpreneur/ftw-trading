@@ -98,6 +98,7 @@ export function InternDashboard() {
   const [customTo, setCustomTo] = useState('')
   const [activeTab, setActiveTab] = useState<'quellen' | 'klicks' | 'bestellungen'>('quellen')
   const [funnelOpen, setFunnelOpen] = useState(false)
+  const [chartMode, setChartMode] = useState<'funnel' | 'visitors' | 'revenue'>('funnel')
   const router = useRouter()
   const { light, toggle } = useTheme()
 
@@ -155,9 +156,13 @@ export function InternDashboard() {
   const chartDays = rangeDays
   const maxSessions = Math.max(...chartDays.map(d => data.uniqueSessionsByDay[d] || 0), 1)
   const ordersCountByDay: Record<string, number> = {}
+  const revenueByDay: Record<string, number> = {}
   for (const d of chartDays) {
-    ordersCountByDay[d] = (data.ordersByDay[d] || []).length
+    const dayOrders = data.ordersByDay[d] || []
+    ordersCountByDay[d] = dayOrders.length
+    revenueByDay[d] = dayOrders.reduce((s, o) => s + (Number(o.amount) || 0), 0)
   }
+  const maxRevenue = Math.max(...chartDays.map(d => revenueByDay[d] || 0), 1)
 
   // Helper: sum values from a Record for days in range
   function sumRange(byDay: Record<string, number>): number {
@@ -361,26 +366,46 @@ export function InternDashboard() {
       </button>
       <div className="funnel__meta">{displayLabel}</div>
 
-      {/* Multi-Metric Chart */}
+      {/* Chart with mode toggle */}
       <section className="intern__section">
         <div className="intern__section-header">
           <h2>Tagesübersicht ({rangeLabel})</h2>
+          <div className="chart-mode-toggle">
+            {([
+              { key: 'funnel' as const, label: 'Konvertierung' },
+              { key: 'visitors' as const, label: 'Besucher' },
+              { key: 'revenue' as const, label: 'Umsatz' },
+            ]).map(m => (
+              <button
+                key={m.key}
+                className={`chart-mode-toggle__btn ${chartMode === m.key ? 'chart-mode-toggle__btn--active' : ''}`}
+                onClick={() => setChartMode(m.key)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
           {isDayFiltered && (
             <button onClick={() => setSelectedDay(null)} className="intern__reset-btn">
               Alle anzeigen
             </button>
           )}
         </div>
-        <div className="chart-legend">
-          <span className="chart-legend__item chart-legend__item--sessions">Besucher</span>
-          <span className="chart-legend__item chart-legend__item--clicks">Checkout</span>
-          <span className="chart-legend__item chart-legend__item--orders">Bestellungen</span>
-        </div>
-        <div className="bar-chart bar-chart--layered">
+
+        {chartMode === 'funnel' && (
+          <div className="chart-legend">
+            <span className="chart-legend__item chart-legend__item--sessions">Besucher</span>
+            <span className="chart-legend__item chart-legend__item--clicks">Checkout</span>
+            <span className="chart-legend__item chart-legend__item--orders">Bestellungen</span>
+          </div>
+        )}
+
+        <div className="bar-chart">
           {chartDays.map(day => {
             const sessions = data.uniqueSessionsByDay[day] || 0
             const clicks = data.clicksByDay[day] || 0
             const orders = ordersCountByDay[day] || 0
+            const revenue = revenueByDay[day] || 0
             const isDayActive = selectedDay === day
             return (
               <div
@@ -388,16 +413,36 @@ export function InternDashboard() {
                 className={`bar-chart__col ${isDayActive ? 'bar-chart__col--active' : ''}`}
                 onClick={() => setSelectedDay(isDayActive ? null : day)}
               >
-                <div className="bar-chart__counts">
-                  <span className="bar-chart__val bar-chart__val--sessions">{sessions}</span>
-                  {clicks > 0 && <span className="bar-chart__val bar-chart__val--clicks">{clicks}</span>}
-                  {orders > 0 && <span className="bar-chart__val bar-chart__val--orders">{orders}</span>}
-                </div>
-                <div className="bar-chart__stack">
-                  <div className="bar-chart__layer bar-chart__layer--sessions" style={{ height: `${(sessions / maxSessions) * 100}%` }} />
-                  <div className="bar-chart__layer bar-chart__layer--clicks" style={{ height: `${(clicks / maxSessions) * 100}%` }} />
-                  <div className="bar-chart__layer bar-chart__layer--orders" style={{ height: `${(orders / maxSessions) * 100}%` }} />
-                </div>
+                {chartMode === 'funnel' && (
+                  <>
+                    <div className="bar-chart__counts">
+                      <span className="bar-chart__val bar-chart__val--sessions">{sessions}</span>
+                      {clicks > 0 && <span className="bar-chart__val bar-chart__val--clicks">{clicks}</span>}
+                      {orders > 0 && <span className="bar-chart__val bar-chart__val--orders">{orders}</span>}
+                    </div>
+                    <div className="bar-chart__stack">
+                      <div className="bar-chart__layer bar-chart__layer--sessions" style={{ height: `${(sessions / maxSessions) * 100}%` }} />
+                      <div className="bar-chart__layer bar-chart__layer--clicks" style={{ height: `${(clicks / maxSessions) * 100}%` }} />
+                      <div className="bar-chart__layer bar-chart__layer--orders" style={{ height: `${(orders / maxSessions) * 100}%` }} />
+                    </div>
+                  </>
+                )}
+                {chartMode === 'visitors' && (
+                  <>
+                    <div className="bar-chart__count">{sessions}</div>
+                    <div className="bar-chart__stack">
+                      <div className="bar-chart__layer bar-chart__layer--sessions" style={{ height: `${(sessions / maxSessions) * 100}%`, width: '70%' }} />
+                    </div>
+                  </>
+                )}
+                {chartMode === 'revenue' && (
+                  <>
+                    <div className="bar-chart__count bar-chart__val--revenue">{revenue > 0 ? `${revenue}€` : ''}</div>
+                    <div className="bar-chart__stack">
+                      <div className="bar-chart__layer bar-chart__layer--revenue" style={{ height: `${(revenue / maxRevenue) * 100}%`, width: '70%' }} />
+                    </div>
+                  </>
+                )}
                 <div className="bar-chart__label">
                   {formatDayShort(day)}
                 </div>
