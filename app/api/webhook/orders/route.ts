@@ -21,14 +21,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'order_id required' }, { status: 400 })
   }
 
-  // Datum parsen: "05.03.2026 10:53" (DE-Format) oder ISO
+  // Datum parsen: "05.03.2026 10:53" (DE-Format, Berliner Zeit) oder ISO
   let orderedAt: string
   const rawDate = body.ordered_at || body.Datum || ''
   if (rawDate.includes('.')) {
-    // DD.MM.YYYY HH:MM format
+    // DD.MM.YYYY HH:MM format — Berliner Zeit → UTC
     const [datePart, timePart] = rawDate.split(' ')
     const [d, m, y] = datePart.split('.')
-    orderedAt = new Date(`${y}-${m}-${d}T${timePart || '00:00'}:00Z`).toISOString()
+    const h = (timePart || '00:00').split(':')[0]
+    const mi = (timePart || '00:00').split(':')[1] || '00'
+    // Berliner Zeit zu UTC konvertieren
+    const naiveUtc = Date.UTC(Number(y), Number(m) - 1, Number(d), Number(h), Number(mi))
+    const TZ = 'Europe/Berlin'
+    const parts = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(new Date(naiveUtc))
+    const get = (t: string) => Number(parts.find(p => p.type === t)?.value || '0')
+    const berlinMs = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'))
+    const offsetMs = berlinMs - naiveUtc
+    orderedAt = new Date(naiveUtc - offsetMs).toISOString()
   } else if (rawDate) {
     orderedAt = new Date(rawDate).toISOString()
   } else {
