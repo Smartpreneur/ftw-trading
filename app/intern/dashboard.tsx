@@ -295,7 +295,7 @@ export function InternDashboard() {
 
       {/* Funnel Overview */}
       <div className="funnel">
-        <div className="funnel__step">
+        <div className="funnel__step" onClick={() => setFunnelOpen(!funnelOpen)} role="button">
           <div className="funnel__step-header">
             <span className="funnel__step-label">Besucher</span>
             <span className="funnel__step-value">{displaySessions}</span>
@@ -305,10 +305,11 @@ export function InternDashboard() {
 
         <div className="funnel__arrow">&#9654;</div>
 
-        <div className="funnel__step">
+        <div className="funnel__step" onClick={() => setFunnelOpen(!funnelOpen)} role="button">
           <div className="funnel__step-header">
             <span className="funnel__step-label">Checkout-Klicks</span>
             <span className="funnel__step-value">{displayClicks}</span>
+            <span className={`funnel__step-chevron ${funnelOpen ? 'funnel__step-chevron--open' : ''}`}>&#9662;</span>
           </div>
           <div className="funnel__step-rate">
             {displaySessions > 0 ? ((displayClicks / displaySessions) * 100).toFixed(1) : '0'} % der Besucher
@@ -331,10 +332,11 @@ export function InternDashboard() {
 
         <div className="funnel__arrow">&#9654;</div>
 
-        <div className="funnel__step">
+        <div className="funnel__step" onClick={() => setFunnelOpen(!funnelOpen)} role="button">
           <div className="funnel__step-header">
             <span className="funnel__step-label">Bestellungen</span>
             <span className="funnel__step-value">{displayOrderCount}</span>
+            <span className={`funnel__step-chevron ${funnelOpen ? 'funnel__step-chevron--open' : ''}`}>&#9662;</span>
           </div>
           <div className="funnel__step-rate">
             {displayClicks > 0 ? ((displayOrderCount / displayClicks) * 100).toFixed(1) : '0'} % der Klicks
@@ -360,10 +362,6 @@ export function InternDashboard() {
           )}
         </div>
       </div>
-      <button className="funnel__toggle" onClick={() => setFunnelOpen(!funnelOpen)}>
-        {funnelOpen ? 'Details ausblenden' : 'Details anzeigen'}
-        <span className={`intern__chevron ${funnelOpen ? 'intern__chevron--open' : ''}`}>&#9662;</span>
-      </button>
       <div className="funnel__meta">{displayLabel}</div>
 
       {/* Chart with mode toggle */}
@@ -606,7 +604,7 @@ export function InternDashboard() {
                       <td>{cid}</td>
                       <td>{v.count}</td>
                       <td>{v.newOrders}</td>
-                      <td>{v.revenue.toFixed(2).replace('.', ',')} &euro;</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{v.revenue.toFixed(2).replace('.', ',')}&nbsp;&euro;</td>
                     </tr>
                   ))}
                 {Object.keys(displayOrdersByCampaign).length === 0 && (
@@ -640,7 +638,7 @@ export function InternDashboard() {
                     <td>{o.country_code || '–'}</td>
                     <td>{o.payment_method || '–'}</td>
                     <td>{o.is_new_order ? 'Ja' : 'Nein'}</td>
-                    <td>{Number(o.amount).toFixed(2).replace('.', ',')} &euro;</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{Number(o.amount).toFixed(2).replace('.', ',')}&nbsp;&euro;</td>
                   </tr>
                 ))}
                 {filteredOrders.length === 0 && (
