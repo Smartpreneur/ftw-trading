@@ -15,7 +15,7 @@ function formatDateTime(iso: string | null) {
     timeZone: TZ,
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric',
+    year: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
   })
@@ -260,7 +260,7 @@ export function RabattcodesDashboard() {
                   <td>{formatDateTime(code.valid_until)}</td>
                   <td>
                     <span className={`rabatt-status ${status.className}`}>{status.label}</span>
-                    {status.detail && <span className="rabatt-status-detail"> ({status.detail})</span>}
+                    {status.detail && <><br /><span className="rabatt-status-detail">{status.detail}</span></>}
                   </td>
                   <td>
                     <button
