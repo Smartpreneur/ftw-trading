@@ -439,6 +439,83 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Detail Tabs */
+.detail-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  background: var(--bg-card);
+  border-radius: 10px;
+  padding: 4px;
+  border: 1px solid var(--border-accent);
+}
+
+.detail-tabs__btn {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.detail-tabs__btn:hover {
+  color: var(--text-heading);
+  background: var(--hover-bg);
+}
+
+.detail-tabs__btn--active {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.detail-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Collapsible Sections */
+.intern__section--collapsible {
+  padding: 0;
+}
+
+.intern__section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 18px 24px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.intern__section-toggle h2 {
+  margin-bottom: 0;
+}
+
+.intern__chevron {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.intern__chevron--open {
+  transform: rotate(180deg);
+}
+
+.intern__section-body {
+  padding: 0 24px 20px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .kpi-grid {

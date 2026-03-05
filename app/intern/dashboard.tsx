@@ -68,11 +68,33 @@ function formatDayShort(iso: string) {
   })
 }
 
+function CollapsibleSection({ title, filterTag, defaultOpen = true, children }: {
+  title: string
+  filterTag?: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <section className="intern__section intern__section--collapsible">
+      <button className="intern__section-toggle" onClick={() => setOpen(!open)}>
+        <h2>
+          {title}
+          {filterTag && <span className="intern__filter-tag">{filterTag}</span>}
+        </h2>
+        <span className={`intern__chevron ${open ? 'intern__chevron--open' : ''}`}>&#9662;</span>
+      </button>
+      {open && <div className="intern__section-body">{children}</div>}
+    </section>
+  )
+}
+
 export function InternDashboard() {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [dateRange, setDateRange] = useState<number | null>(14)
+  const [activeTab, setActiveTab] = useState<'quellen' | 'klicks' | 'bestellungen'>('quellen')
   const router = useRouter()
   const { light, toggle } = useTheme()
 
@@ -273,31 +295,7 @@ export function InternDashboard() {
         </div>
       </div>
 
-      {/* Orders by Campaign */}
-      {Object.keys(displayOrdersByCampaign).length > 0 && (
-        <section className="intern__section">
-          <h2>Bestellungen pro Campaign {isDayFiltered && <span className="intern__filter-tag">{displayLabel}</span>}</h2>
-          <table className="intern-table">
-            <thead>
-              <tr><th>Campaign</th><th>Bestellungen</th><th>Neue Kunden</th><th>Umsatz</th></tr>
-            </thead>
-            <tbody>
-              {Object.entries(displayOrdersByCampaign)
-                .sort(([, a], [, b]) => b.count - a.count)
-                .map(([cid, v]) => (
-                  <tr key={cid}>
-                    <td>{cid}</td>
-                    <td>{v.count}</td>
-                    <td>{v.newOrders}</td>
-                    <td>{v.revenue.toFixed(2).replace('.', ',')} &euro;</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </section>
-      )}
-
-      {/* Sessions Chart (last 14 days) */}
+      {/* Sessions Chart */}
       <section className="intern__section">
         <div className="intern__section-header">
           <h2>Unique Sessions ({rangeLabel})</h2>
@@ -331,122 +329,203 @@ export function InternDashboard() {
         </div>
       </section>
 
-      {/* Detail Tables 2x2 */}
-      <div className="intern__grid-2x2">
-        <section className="intern__section">
-          <h2>Klicks pro Produkt {isDayFiltered && <span className="intern__filter-tag">{displayLabel}</span>}</h2>
-          <table className="intern-table">
-            <thead>
-              <tr><th>Produkt</th><th>Klicks</th></tr>
-            </thead>
-            <tbody>
-              {Object.entries(displayProducts)
-                .sort(([, a], [, b]) => b - a)
-                .map(([product, clicks]) => (
-                  <tr key={product}>
-                    <td>{product}</td>
-                    <td>{clicks}</td>
-                  </tr>
-                ))}
-              {Object.keys(displayProducts).length === 0 && (
-                <tr><td colSpan={2}>{isDayFiltered ? 'Keine Klicks an diesem Tag' : 'Noch keine Klicks'}</td></tr>
-              )}
-            </tbody>
-          </table>
-        </section>
-
-        <section className="intern__section">
-          <h2>Ref-Codes {isDayFiltered && <span className="intern__filter-tag">{displayLabel}</span>}</h2>
-          <table className="intern-table">
-            <thead>
-              <tr><th>Code</th><th>Aufrufe</th><th>Anteil</th></tr>
-            </thead>
-            <tbody>
-              {Object.entries(displayRefCodes)
-                .sort(([, a], [, b]) => b - a)
-                .map(([code, count]) => (
-                  <tr key={code}>
-                    <td>{code}</td>
-                    <td>{count}</td>
-                    <td>{displayViews > 0 ? ((count / displayViews) * 100).toFixed(1) : '0'} %</td>
-                  </tr>
-                ))}
-              {Object.keys(displayRefCodes).length === 0 && (
-                <tr><td colSpan={3}>{isDayFiltered ? 'Keine Ref-Codes an diesem Tag' : 'Noch keine Ref-Code-Daten'}</td></tr>
-              )}
-            </tbody>
-          </table>
-        </section>
-
-        <section className="intern__section">
-          <h2>Traffic-Quellen {isDayFiltered && <span className="intern__filter-tag">{displayLabel}</span>}</h2>
-          <table className="intern-table">
-            <thead>
-              <tr><th>Quelle</th><th>Aufrufe</th><th>Anteil</th></tr>
-            </thead>
-            <tbody>
-              {Object.entries(displaySources)
-                .sort(([, a], [, b]) => b - a)
-                .map(([src, count]) => (
-                  <tr key={src}>
-                    <td>{src}</td>
-                    <td>{count}</td>
-                    <td>{displayViews > 0 ? ((count / displayViews) * 100).toFixed(1) : '0'} %</td>
-                  </tr>
-                ))}
-              {Object.keys(displaySources).length === 0 && (
-                <tr><td colSpan={3}>Keine Daten</td></tr>
-              )}
-            </tbody>
-          </table>
-        </section>
-
-        <section className="intern__section">
-          <h2>Referrer {isDayFiltered && <span className="intern__filter-tag">{displayLabel}</span>}</h2>
-          <table className="intern-table">
-            <thead>
-              <tr><th>Herkunft</th><th>Aufrufe</th><th>Anteil</th></tr>
-            </thead>
-            <tbody>
-              {Object.entries(displayReferrers)
-                .sort(([, a], [, b]) => b - a)
-                .map(([ref, count]) => (
-                  <tr key={ref}>
-                    <td>{ref}</td>
-                    <td>{count}</td>
-                    <td>{displayViews > 0 ? ((count / displayViews) * 100).toFixed(1) : '0'} %</td>
-                  </tr>
-                ))}
-              {Object.keys(displayReferrers).length === 0 && (
-                <tr><td colSpan={3}>{isDayFiltered ? 'Keine Referrer an diesem Tag' : 'Noch keine Referrer-Daten'}</td></tr>
-              )}
-            </tbody>
-          </table>
-        </section>
-
-        <section className="intern__section">
-          <h2>Kampagnen / UTM {isDayFiltered && <span className="intern__filter-tag">{displayLabel}</span>}</h2>
-          <table className="intern-table">
-            <thead>
-              <tr><th>Quelle</th><th>Medium</th><th>Kampagne</th><th>Views</th><th>Klicks</th></tr>
-            </thead>
-            <tbody>
-              {displayCampaigns.map((c, i) => (
-                <tr key={i}>
-                  <td>{c.utm_source || c.campaign_id || '–'}</td>
-                  <td>{c.utm_medium || '–'}</td>
-                  <td>{c.utm_campaign || c.campaign_id || '–'}</td>
-                  <td>{c.views}</td>
-                  <td>{c.clicks}</td>
-                </tr>
-              ))}
-              {displayCampaigns.length === 0 && (
-                <tr><td colSpan={5}>{isDayFiltered ? 'Keine Kampagnen-Daten an diesem Tag' : 'Noch keine Kampagnen-Daten'}</td></tr>
-              )}
-            </tbody>
-          </table>
-        </section>
+      {/* Tab Navigation */}
+      <div className="detail-tabs">
+        {([
+          { key: 'quellen' as const, label: 'Quellen' },
+          { key: 'klicks' as const, label: 'Klicks' },
+          { key: 'bestellungen' as const, label: 'Bestellungen' },
+        ]).map(tab => (
+          <button
+            key={tab.key}
+            className={`detail-tabs__btn ${activeTab === tab.key ? 'detail-tabs__btn--active' : ''}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
+
+      {/* Tab: Quellen */}
+      {activeTab === 'quellen' && (
+        <div className="detail-tab-content">
+          <CollapsibleSection title="Traffic-Quellen" filterTag={isDayFiltered ? displayLabel : undefined}>
+            <table className="intern-table">
+              <thead>
+                <tr><th>Quelle</th><th>Aufrufe</th><th>Anteil</th></tr>
+              </thead>
+              <tbody>
+                {Object.entries(displaySources)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([src, count]) => (
+                    <tr key={src}>
+                      <td>{src}</td>
+                      <td>{count}</td>
+                      <td>{displayViews > 0 ? ((count / displayViews) * 100).toFixed(1) : '0'} %</td>
+                    </tr>
+                  ))}
+                {Object.keys(displaySources).length === 0 && (
+                  <tr><td colSpan={3}>Keine Daten</td></tr>
+                )}
+              </tbody>
+            </table>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Referrer" filterTag={isDayFiltered ? displayLabel : undefined}>
+            <table className="intern-table">
+              <thead>
+                <tr><th>Herkunft</th><th>Aufrufe</th><th>Anteil</th></tr>
+              </thead>
+              <tbody>
+                {Object.entries(displayReferrers)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([ref, count]) => (
+                    <tr key={ref}>
+                      <td>{ref}</td>
+                      <td>{count}</td>
+                      <td>{displayViews > 0 ? ((count / displayViews) * 100).toFixed(1) : '0'} %</td>
+                    </tr>
+                  ))}
+                {Object.keys(displayReferrers).length === 0 && (
+                  <tr><td colSpan={3}>{isDayFiltered ? 'Keine Referrer an diesem Tag' : 'Noch keine Referrer-Daten'}</td></tr>
+                )}
+              </tbody>
+            </table>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Ref-Codes" filterTag={isDayFiltered ? displayLabel : undefined}>
+            <table className="intern-table">
+              <thead>
+                <tr><th>Code</th><th>Aufrufe</th><th>Anteil</th></tr>
+              </thead>
+              <tbody>
+                {Object.entries(displayRefCodes)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([code, count]) => (
+                    <tr key={code}>
+                      <td>{code}</td>
+                      <td>{count}</td>
+                      <td>{displayViews > 0 ? ((count / displayViews) * 100).toFixed(1) : '0'} %</td>
+                    </tr>
+                  ))}
+                {Object.keys(displayRefCodes).length === 0 && (
+                  <tr><td colSpan={3}>{isDayFiltered ? 'Keine Ref-Codes an diesem Tag' : 'Noch keine Ref-Code-Daten'}</td></tr>
+                )}
+              </tbody>
+            </table>
+          </CollapsibleSection>
+        </div>
+      )}
+
+      {/* Tab: Klicks */}
+      {activeTab === 'klicks' && (
+        <div className="detail-tab-content">
+          <CollapsibleSection title="Klicks pro Produkt" filterTag={isDayFiltered ? displayLabel : undefined}>
+            <table className="intern-table">
+              <thead>
+                <tr><th>Produkt</th><th>Klicks</th></tr>
+              </thead>
+              <tbody>
+                {Object.entries(displayProducts)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([product, clicks]) => (
+                    <tr key={product}>
+                      <td>{product}</td>
+                      <td>{clicks}</td>
+                    </tr>
+                  ))}
+                {Object.keys(displayProducts).length === 0 && (
+                  <tr><td colSpan={2}>{isDayFiltered ? 'Keine Klicks an diesem Tag' : 'Noch keine Klicks'}</td></tr>
+                )}
+              </tbody>
+            </table>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Kampagnen / UTM" filterTag={isDayFiltered ? displayLabel : undefined}>
+            <table className="intern-table">
+              <thead>
+                <tr><th>Quelle</th><th>Medium</th><th>Kampagne</th><th>Views</th><th>Klicks</th></tr>
+              </thead>
+              <tbody>
+                {displayCampaigns.map((c, i) => (
+                  <tr key={i}>
+                    <td>{c.utm_source || c.campaign_id || '–'}</td>
+                    <td>{c.utm_medium || '–'}</td>
+                    <td>{c.utm_campaign || c.campaign_id || '–'}</td>
+                    <td>{c.views}</td>
+                    <td>{c.clicks}</td>
+                  </tr>
+                ))}
+                {displayCampaigns.length === 0 && (
+                  <tr><td colSpan={5}>{isDayFiltered ? 'Keine Kampagnen-Daten an diesem Tag' : 'Noch keine Kampagnen-Daten'}</td></tr>
+                )}
+              </tbody>
+            </table>
+          </CollapsibleSection>
+        </div>
+      )}
+
+      {/* Tab: Bestellungen */}
+      {activeTab === 'bestellungen' && (
+        <div className="detail-tab-content">
+          <CollapsibleSection title="Bestellungen pro Campaign" filterTag={isDayFiltered ? displayLabel : undefined}>
+            <table className="intern-table">
+              <thead>
+                <tr><th>Campaign</th><th>Bestellungen</th><th>Neue Kunden</th><th>Umsatz</th></tr>
+              </thead>
+              <tbody>
+                {Object.entries(displayOrdersByCampaign)
+                  .sort(([, a], [, b]) => b.count - a.count)
+                  .map(([cid, v]) => (
+                    <tr key={cid}>
+                      <td>{cid}</td>
+                      <td>{v.count}</td>
+                      <td>{v.newOrders}</td>
+                      <td>{v.revenue.toFixed(2).replace('.', ',')} &euro;</td>
+                    </tr>
+                  ))}
+                {Object.keys(displayOrdersByCampaign).length === 0 && (
+                  <tr><td colSpan={4}>{isDayFiltered ? 'Keine Bestellungen an diesem Tag' : 'Noch keine Bestellungen'}</td></tr>
+                )}
+              </tbody>
+            </table>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Einzelne Bestellungen" filterTag={isDayFiltered ? displayLabel : undefined}>
+            <table className="intern-table">
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th>Order-ID</th>
+                  <th>Plan</th>
+                  <th>Campaign</th>
+                  <th>Land</th>
+                  <th>Zahlung</th>
+                  <th>Neu</th>
+                  <th>Betrag</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredOrders.map(o => (
+                  <tr key={o.order_id}>
+                    <td>{new Date(o.ordered_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })}</td>
+                    <td>{o.order_id}</td>
+                    <td>{o.plan_name || '–'}</td>
+                    <td>{o.campaign_id || '–'}</td>
+                    <td>{o.country_code || '–'}</td>
+                    <td>{o.payment_method || '–'}</td>
+                    <td>{o.is_new_order ? 'Ja' : 'Nein'}</td>
+                    <td>{Number(o.amount).toFixed(2).replace('.', ',')} &euro;</td>
+                  </tr>
+                ))}
+                {filteredOrders.length === 0 && (
+                  <tr><td colSpan={8}>{isDayFiltered ? 'Keine Bestellungen an diesem Tag' : 'Noch keine Bestellungen'}</td></tr>
+                )}
+              </tbody>
+            </table>
+          </CollapsibleSection>
+        </div>
+      )}
     </div>
   )
 }
