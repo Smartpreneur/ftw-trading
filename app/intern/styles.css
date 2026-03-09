@@ -1111,6 +1111,16 @@
     margin-right: 16px;
   }
 
+  .funnel__group .funnel__step--visitors .funnel__step-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .funnel__group .funnel__step--visitors .funnel__step-value {
+    font-size: 1.8rem;
+  }
+
   .funnel__group .funnel__step--visitors .funnel__step-sub {
     margin-bottom: 0;
   }
@@ -1122,11 +1132,13 @@
   }
 
   .funnel__group .funnel__step--clicks .funnel__step-header {
-    justify-content: flex-end;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
   }
 
   .funnel__group .funnel__step--clicks .funnel__step-value {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
   }
 
   .funnel__group .funnel__step--clicks .funnel__step-rate {
@@ -1177,6 +1189,11 @@
 
   .bar-chart__gridlabel {
     font-size: 0.48rem;
+  }
+
+  /* Hide per-bar euro labels on mobile — gridlines provide scale */
+  .bar-chart--with-grid .bar-chart__val--revenue {
+    display: none;
   }
 
   .bar-chart__col {
