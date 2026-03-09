@@ -308,7 +308,7 @@ export default async function DashboardPage({
             )}
           </CardTitle>
           <Link
-            href="/trades"
+            href={tradesHref}
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             Alle Trades
@@ -321,30 +321,31 @@ export default async function DashboardPage({
               Keine geschlossenen Trades
             </p>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-6">Basiswert</TableHead>
-                  <TableHead>Long/Short</TableHead>
+                  <TableHead className="pl-6 w-16">ID</TableHead>
+                  <TableHead>Basiswert</TableHead>
+                  <TableHead className="w-14 text-right">Gew.</TableHead>
+                  <TableHead>L/S</TableHead>
                   <TableHead>Eröffnung</TableHead>
                   <TableHead>Schließung</TableHead>
-                  <TableHead className="text-right">Einstiegskurs</TableHead>
-                  <TableHead className="text-right">Ausstiegskurs</TableHead>
-                  <TableHead className="text-right">G/V in %</TableHead>
-                  <TableHead className="text-right pr-6">Haltedauer</TableHead>
+                  <TableHead className="text-right">Einstieg</TableHead>
+                  <TableHead className="text-right">Ausstieg</TableHead>
+                  <TableHead className="text-right">G/V</TableHead>
+                  <TableHead className="text-right pr-6">Tage</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recentClosedTrades.map((trade) => (
                   <TableRow key={trade.id}>
-                    <TableCell className="pl-6">
+                    <TableCell className="pl-6 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                      {trade.trade_id ? trade.trade_id.replace(/^T-0*/, '') : '—'}
+                    </TableCell>
+                    <TableCell>
                       <div>
                         <span className="font-medium">{trade.asset}</span>
-                        {trade.gewichtung < 1 && (
-                          <span className="ml-1 text-[10px] text-muted-foreground">
-                            {Math.round(trade.gewichtung * 100)}%
-                          </span>
-                        )}
                         {partialCloseLabels.has(trade.id) && (
                           <span className={cn(
                             "ml-1.5 text-[10px] font-semibold",
@@ -355,16 +356,19 @@ export default async function DashboardPage({
                         )}
                       </div>
                     </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
+                      {Math.round(trade.gewichtung * 100)}%
+                    </TableCell>
                     <TableCell>
                       {trade.richtung && <DirectionBadge direction={trade.richtung} />}
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">
                         {formatDate(trade.datum_eroeffnung)}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">
                         {trade.datum_schliessung ? formatDate(trade.datum_schliessung) : '—'}
                       </span>
                     </TableCell>
@@ -396,14 +400,15 @@ export default async function DashboardPage({
                     <TableCell className="text-right pr-6">
                       <span className="text-sm text-muted-foreground">
                         {trade.haltedauer_tage === 0
-                          ? '< 1 Tag'
-                          : `${trade.haltedauer_tage} ${trade.haltedauer_tage === 1 ? 'Tag' : 'Tage'}`}
+                          ? '< 1'
+                          : `${trade.haltedauer_tage}`}
                       </span>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
