@@ -293,8 +293,9 @@ export function InternDashboard() {
     return lines
   }
   function formatK(v: number): string {
-    if (v >= 1000) return `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k`
-    return `${v}`
+    if (v >= 10000) return `${(v / 1000).toFixed(1)}k`
+    if (v >= 1000) return `${(v / 1000).toFixed(1)}k`
+    return `${Math.round(v)}`
   }
 
   const displayLabel = isDayFiltered ? formatDay(selectedDay) : rangeLabel
@@ -546,7 +547,7 @@ export function InternDashboard() {
                   const bp = revenueByPlanByDay[day] || { jahres: 0, quartal: 0, halbjahres: 0 }
                   return (
                     <>
-                      <div className="bar-chart__count bar-chart__val--revenue">{revenue > 0 ? `${revenue}€` : ''}</div>
+                      <div className="bar-chart__count bar-chart__val--revenue">{revenue > 0 ? formatK(revenue) : ''}</div>
                       <div className="bar-chart__stack bar-chart__stack--stacked">
                         {bp.quartal > 0 && <div className="bar-chart__layer bar-chart__layer--quartal" style={{ height: `${(bp.quartal / maxRevenue) * 100}%` }} />}
                         {bp.halbjahres > 0 && <div className="bar-chart__layer bar-chart__layer--halbjahres" style={{ height: `${(bp.halbjahres / maxRevenue) * 100}%` }} />}
@@ -560,7 +561,7 @@ export function InternDashboard() {
                   const total = bp.jahres + bp.quartal + bp.halbjahres
                   return (
                     <>
-                      <div className="bar-chart__count bar-chart__val--revenue">{total > 0 ? `${total}€` : ''}</div>
+                      <div className="bar-chart__count bar-chart__val--revenue">{total > 0 ? formatK(total) : ''}</div>
                       <div className="bar-chart__stack bar-chart__stack--stacked">
                         {bp.quartal > 0 && <div className="bar-chart__layer bar-chart__layer--quartal" style={{ height: `${(bp.quartal / maxARR) * 100}%` }} />}
                         {bp.halbjahres > 0 && <div className="bar-chart__layer bar-chart__layer--halbjahres" style={{ height: `${(bp.halbjahres / maxARR) * 100}%` }} />}

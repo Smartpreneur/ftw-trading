@@ -1191,11 +1191,6 @@
     font-size: 0.48rem;
   }
 
-  /* Hide per-bar euro labels on mobile — gridlines provide scale */
-  .bar-chart--with-grid .bar-chart__val--revenue {
-    display: none;
-  }
-
   .bar-chart__col {
     min-width: 28px;
   }
