@@ -65,7 +65,7 @@ function CheckoutContent() {
             </ul>
 
             <div className="co-price-hint">
-              {coupon ? 'Ab 0,82 € pro Tag' : 'Ab 0,90 € pro Tag'} &nbsp;·&nbsp; weniger als ein Kaffee
+              {coupon || planId ? 'Ab 0,81 € pro Tag' : 'Ab 0,90 € pro Tag'} &nbsp;·&nbsp; weniger als ein Kaffee
             </div>
 
             <div className="co-guarantee">

@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import type { Trade } from '@/lib/types'
 import { toast } from 'sonner'
 import { useState } from 'react'
@@ -47,6 +48,14 @@ const asNullableStr = (v: unknown) => toNullableString(v)
 
 export function TradeForm({ trade, onSuccess }: TradeFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [manuell, setManuell] = useState(trade?.manuell_getrackt ?? false)
+  const [tpSlTimestamps, setTpSlTimestamps] = useState({
+    tp1_erreicht_am: trade?.tp1_erreicht_am?.split('T')[0] ?? '',
+    tp2_erreicht_am: trade?.tp2_erreicht_am?.split('T')[0] ?? '',
+    tp3_erreicht_am: trade?.tp3_erreicht_am?.split('T')[0] ?? '',
+    tp4_erreicht_am: trade?.tp4_erreicht_am?.split('T')[0] ?? '',
+    sl_erreicht_am: trade?.sl_erreicht_am?.split('T')[0] ?? '',
+  })
 
   const {
     register,
@@ -87,11 +96,22 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
   async function onSubmit(values: TradeSchemaValues) {
     setIsSubmitting(true)
     try {
+      const payload = {
+        ...values,
+        manuell_getrackt: manuell,
+        ...(manuell ? {
+          tp1_erreicht_am: tpSlTimestamps.tp1_erreicht_am || null,
+          tp2_erreicht_am: tpSlTimestamps.tp2_erreicht_am || null,
+          tp3_erreicht_am: tpSlTimestamps.tp3_erreicht_am || null,
+          tp4_erreicht_am: tpSlTimestamps.tp4_erreicht_am || null,
+          sl_erreicht_am: tpSlTimestamps.sl_erreicht_am || null,
+        } : {}),
+      }
       if (trade) {
-        await updateTrade(trade.id, values as any)
+        await updateTrade(trade.id, payload as any)
         toast.success('Trade aktualisiert')
       } else {
-        await createTrade(values as any)
+        await createTrade(payload as any)
         toast.success('Trade erstellt')
       }
       onSuccess()
@@ -227,6 +247,39 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
           {...register('bemerkungen', { setValueAs: asNullableStr })}
         />
       </Field>
+
+      {/* Manual tracking toggle */}
+      <div className="border-t pt-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-xs font-medium">Manuell tracken</Label>
+            <p className="text-[10px] text-muted-foreground">
+              Auto-Erkennung deaktivieren, TP/SL manuell pflegen
+            </p>
+          </div>
+          <Switch checked={manuell} onCheckedChange={setManuell} />
+        </div>
+
+        {manuell && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {(['tp1', 'tp2', 'tp3', 'tp4', 'sl'] as const).map((key) => {
+              const field = `${key}_erreicht_am` as keyof typeof tpSlTimestamps
+              const label = key === 'sl' ? 'SL erreicht am' : `${key.toUpperCase()} erreicht am`
+              return (
+                <Field key={field} label={label}>
+                  <Input
+                    type="date"
+                    value={tpSlTimestamps[field]}
+                    onChange={(e) =>
+                      setTpSlTimestamps((prev) => ({ ...prev, [field]: e.target.value }))
+                    }
+                  />
+                </Field>
+              )
+            })}
+          </div>
+        )}
+      </div>
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onSuccess}>

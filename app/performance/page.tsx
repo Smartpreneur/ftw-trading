@@ -17,9 +17,9 @@ import {
 import { PerformanceChart } from '@/components/trades/PerformanceChart'
 import { AssetClassChart } from '@/components/trades/AssetClassChart'
 import { WinRateGauge } from '@/components/trades/WinRateGauge'
-import { StatusBadge } from '@/components/trades/StatusBadge'
 import { DirectionBadge } from '@/components/trades/DirectionBadge'
 import { RefreshPricesButton } from '@/components/trades/RefreshPricesButton'
+import { ActiveTradesTable } from '@/components/trades/ActiveTradesTable'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -29,8 +29,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { formatDate, formatPercent, formatPrice } from '@/lib/formatters'
+import { formatDate, formatPrice } from '@/lib/formatters'
 import { ArrowRight, TrendingUp, TrendingDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import type { TradingProfile } from '@/lib/types'
 
@@ -57,7 +58,6 @@ export default async function DashboardPage({
 
   // Fetch live prices for active trades
   const activePrices = await getActiveTradePrices()
-  const priceMap = new Map(activePrices.map(p => [p.trade_id, p]))
 
   // Fetch active setups
   let activeSetups: Awaited<ReturnType<typeof getSetups>> = []
@@ -68,18 +68,92 @@ export default async function DashboardPage({
     // silently ignore
   }
 
-  const kpis = calculateKPIs(trades)
-  const monthly = calculateMonthlyPerformance(trades)
-  const byAssetClass = calculateAssetClassPerformance(trades)
-  const activeTrades = trades.filter((t) => t.status === 'Aktiv')
-  const recentClosedTrades = trades
-    .filter((t) => t.status !== 'Aktiv')
+  // SL-hit trades are effectively closed → don't show in active
+  const allAktiv = trades.filter((t) => t.status === 'Aktiv')
+  const activeTrades = allAktiv.filter((t) => !t.sl_erreicht_am)
+
+  // Generate virtual close entries from TP hits and SL hits
+  const partialCloseEntries: typeof trades = []
+  const partialCloseLabels = new Map<string, string>()
+
+  function calcHoldingDays(openDate: string, closeIso: string) {
+    const close = closeIso.split('T')[0]
+    return Math.max(0, Math.round(
+      (new Date(close).getTime() - new Date(openDate).getTime()) / (1000 * 60 * 60 * 24)
+    ))
+  }
+
+  for (const trade of allAktiv) {
+    if (!trade.einstiegspreis || !trade.richtung) continue
+
+    // TP partial close entries
+    const tpLevels = [
+      { key: 'tp1', level: trade.tp1, hitAt: trade.tp1_erreicht_am, label: 'TP1' },
+      { key: 'tp2', level: trade.tp2, hitAt: trade.tp2_erreicht_am, label: 'TP2' },
+      { key: 'tp3', level: trade.tp3, hitAt: trade.tp3_erreicht_am, label: 'TP3' },
+      { key: 'tp4', level: trade.tp4, hitAt: trade.tp4_erreicht_am, label: 'TP4' },
+    ]
+
+    for (const tp of tpLevels) {
+      if (!tp.level || !tp.hitAt) continue
+
+      const perfRaw =
+        trade.richtung === 'LONG'
+          ? ((tp.level - trade.einstiegspreis) / trade.einstiegspreis) * 100
+          : ((trade.einstiegspreis - tp.level) / trade.einstiegspreis) * 100
+
+      const virtualId = `${trade.id}-${tp.key}`
+      partialCloseLabels.set(virtualId, `(${tp.label})`)
+
+      partialCloseEntries.push({
+        ...trade,
+        id: virtualId,
+        ausstiegspreis: tp.level,
+        datum_schliessung: tp.hitAt.split('T')[0],
+        performance_pct: Math.round(perfRaw * 100) / 100,
+        status: 'Erfolgreich',
+        haltedauer_tage: calcHoldingDays(trade.datum_eroeffnung, tp.hitAt),
+      })
+    }
+
+    // SL close entry – entire remaining position closed
+    if (trade.sl_erreicht_am && trade.stop_loss) {
+      const slPerfRaw =
+        trade.richtung === 'LONG'
+          ? ((trade.stop_loss - trade.einstiegspreis) / trade.einstiegspreis) * 100
+          : ((trade.einstiegspreis - trade.stop_loss) / trade.einstiegspreis) * 100
+
+      const virtualId = `${trade.id}-sl`
+      partialCloseLabels.set(virtualId, '(SL)')
+
+      partialCloseEntries.push({
+        ...trade,
+        id: virtualId,
+        ausstiegspreis: trade.stop_loss,
+        datum_schliessung: trade.sl_erreicht_am.split('T')[0],
+        performance_pct: Math.round(slPerfRaw * 100) / 100,
+        status: 'Ausgestoppt',
+        haltedauer_tage: calcHoldingDays(trade.datum_eroeffnung, trade.sl_erreicht_am),
+      })
+    }
+  }
+
+  // Include partial close entries in KPI calculations
+  const tradesWithPartials = [...trades, ...partialCloseEntries]
+  const kpis = calculateKPIs(tradesWithPartials)
+  const monthly = calculateMonthlyPerformance(tradesWithPartials)
+  const byAssetClass = calculateAssetClassPerformance(tradesWithPartials)
+
+  const recentClosedTrades = [
+    ...trades.filter((t) => t.status !== 'Aktiv'),
+    ...partialCloseEntries,
+  ]
     .sort((a, b) => {
       const dateA = a.datum_schliessung || a.datum_eroeffnung
       const dateB = b.datum_schliessung || b.datum_eroeffnung
-      return dateB.localeCompare(dateA) // Descending order (newest first)
+      return dateB.localeCompare(dateA)
     })
-    .slice(0, 5)
+    .slice(0, 15)
 
   const pfColor =
     kpis.profit_factor >= 1.5
@@ -212,177 +286,11 @@ export default async function DashboardPage({
             </div>
           </CardHeader>
           <CardContent className="px-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-6">Datum</TableHead>
-                  <TableHead>Basiswert</TableHead>
-                  <TableHead>Long/Short</TableHead>
-                  <TableHead className="text-right">Einstiegskurs</TableHead>
-                  <TableHead className="text-right">Aktueller Kurs</TableHead>
-                  <TableHead className="text-right">G/V in %</TableHead>
-                  <TableHead className="text-right">SL</TableHead>
-                  <TableHead className="text-right">TP1</TableHead>
-                  <TableHead className="text-right">TP2</TableHead>
-                  <TableHead className="text-right">TP3</TableHead>
-                  <TableHead className="text-right">TP4</TableHead>
-                  <TableHead className="pr-6">Bemerkung</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activeTrades.map((trade) => {
-                  const priceData = priceMap.get(trade.id)
-                  const currentPrice = priceData?.current_price
-                  const entryPrice = trade.einstiegspreis
-
-                  let unrealizedPct: number | null = null
-                  if (currentPrice && entryPrice && trade.richtung) {
-                    if (trade.richtung === 'LONG') {
-                      unrealizedPct = ((currentPrice - entryPrice) / entryPrice) * 100
-                    } else {
-                      unrealizedPct = ((entryPrice - currentPrice) / entryPrice) * 100
-                    }
-                  }
-
-                  return (
-                    <TableRow key={`trade-${trade.id}`}>
-                      <TableCell className="pl-6">
-                        <span className="text-sm text-muted-foreground">
-                          {formatDate(trade.datum_eroeffnung)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium">{trade.asset}</span>
-                      </TableCell>
-                      <TableCell>
-                        {trade.richtung && <DirectionBadge direction={trade.richtung} />}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-mono text-sm">
-                          {entryPrice ? formatPrice(entryPrice) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-mono text-sm">
-                          {currentPrice ? formatPrice(currentPrice) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {unrealizedPct !== null ? (
-                          <span
-                            className={`font-mono text-sm font-semibold ${
-                              unrealizedPct >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                            }`}
-                          >
-                            {unrealizedPct >= 0 ? '+' : ''}
-                            {unrealizedPct.toFixed(2)}%
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-mono text-sm">
-                          {trade.stop_loss ? formatPrice(trade.stop_loss) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-mono text-sm">
-                          {trade.tp1 ? formatPrice(trade.tp1) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-mono text-sm">
-                          {trade.tp2 ? formatPrice(trade.tp2) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-mono text-sm">
-                          {trade.tp3 ? formatPrice(trade.tp3) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-mono text-sm">
-                          {trade.tp4 ? formatPrice(trade.tp4) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="pr-6 max-w-[150px]">
-                        <span
-                          className="text-sm text-muted-foreground truncate block cursor-help"
-                          title={trade.bemerkungen || undefined}
-                        >
-                          {trade.bemerkungen || '—'}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-                {activeSetups.map((setup) => (
-                  <TableRow key={`setup-${setup.id}`}>
-                    <TableCell className="pl-6">
-                      <span className="text-sm text-muted-foreground">
-                        {formatDate(setup.datum)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{setup.asset}</span>
-                    </TableCell>
-                    <TableCell>
-                      <DirectionBadge direction={setup.richtung} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {formatPrice(setup.einstieg_von)}
-                        {setup.einstieg_von !== setup.einstieg_bis && (
-                          <span className="text-muted-foreground"> – {formatPrice(setup.einstieg_bis)}</span>
-                        )}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {formatPrice(setup.aktueller_kurs)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="text-muted-foreground">—</span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {formatPrice(setup.stop_loss)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {formatPrice(setup.tp1)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {setup.tp2 ? formatPrice(setup.tp2) : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {setup.tp3 ? formatPrice(setup.tp3) : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {setup.tp4 ? formatPrice(setup.tp4) : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="pr-6 max-w-[150px]">
-                      <span
-                        className="text-sm text-muted-foreground truncate block cursor-help"
-                        title={setup.bemerkungen || undefined}
-                      >
-                        {setup.bemerkungen || '—'}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <ActiveTradesTable
+              trades={activeTrades}
+              setups={activeSetups}
+              activePrices={activePrices}
+            />
           </CardContent>
         </Card>
       )}
@@ -415,38 +323,44 @@ export default async function DashboardPage({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-6">ID</TableHead>
-                  <TableHead>Datum</TableHead>
-                  <TableHead>Basiswert</TableHead>
+                  <TableHead className="pl-6">Basiswert</TableHead>
                   <TableHead>Long/Short</TableHead>
+                  <TableHead>Eröffnung</TableHead>
+                  <TableHead>Schließung</TableHead>
                   <TableHead className="text-right">Einstiegskurs</TableHead>
                   <TableHead className="text-right">Ausstiegskurs</TableHead>
                   <TableHead className="text-right">G/V in %</TableHead>
-                  <TableHead className="text-right">SL</TableHead>
-                  <TableHead className="text-right">TP1</TableHead>
-                  <TableHead className="text-right">TP2</TableHead>
-                  <TableHead className="text-right">TP3</TableHead>
-                  <TableHead className="text-right pr-6">TP4</TableHead>
+                  <TableHead className="text-right pr-6">Haltedauer</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recentClosedTrades.map((trade) => (
                   <TableRow key={trade.id}>
                     <TableCell className="pl-6">
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {trade.trade_id ? trade.trade_id.replace(/^T-0*/, '') : '—'}
+                      <div>
+                        <span className="font-medium">{trade.asset}</span>
+                        {partialCloseLabels.has(trade.id) && (
+                          <span className={cn(
+                            "ml-1.5 text-[10px] font-semibold",
+                            partialCloseLabels.get(trade.id) === '(SL)' ? 'text-rose-600' : 'text-emerald-600'
+                          )}>
+                            {partialCloseLabels.get(trade.id)}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {trade.richtung && <DirectionBadge direction={trade.richtung} />}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">
+                        {formatDate(trade.datum_eroeffnung)}
                       </span>
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground">
-                        {formatDate(trade.datum_schliessung || trade.datum_eroeffnung)}
+                        {trade.datum_schliessung ? formatDate(trade.datum_schliessung) : '—'}
                       </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{trade.asset}</span>
-                    </TableCell>
-                    <TableCell>
-                      {trade.richtung && <DirectionBadge direction={trade.richtung} />}
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="font-mono text-sm">
@@ -461,9 +375,10 @@ export default async function DashboardPage({
                     <TableCell className="text-right">
                       {trade.performance_pct !== null ? (
                         <span
-                          className={`font-mono text-sm font-semibold ${
+                          className={cn(
+                            "font-mono text-sm font-semibold",
                             trade.performance_pct >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                          }`}
+                          )}
                         >
                           {trade.performance_pct >= 0 ? '+' : ''}
                           {trade.performance_pct.toFixed(2)}%
@@ -472,29 +387,11 @@ export default async function DashboardPage({
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {trade.stop_loss ? formatPrice(trade.stop_loss) : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {trade.tp1 ? formatPrice(trade.tp1) : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {trade.tp2 ? formatPrice(trade.tp2) : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">
-                        {trade.tp3 ? formatPrice(trade.tp3) : '—'}
-                      </span>
-                    </TableCell>
                     <TableCell className="text-right pr-6">
-                      <span className="font-mono text-sm">
-                        {trade.tp4 ? formatPrice(trade.tp4) : '—'}
+                      <span className="text-sm text-muted-foreground">
+                        {trade.haltedauer_tage === 0
+                          ? '< 1 Tag'
+                          : `${trade.haltedauer_tage} ${trade.haltedauer_tage === 1 ? 'Tag' : 'Tage'}`}
                       </span>
                     </TableCell>
                   </TableRow>

@@ -14,6 +14,12 @@ const sections = [
     icon: '📊',
   },
   {
+    title: 'YouTube',
+    description: 'Kanal-KPIs, Video-Performance und Kommentar-Analyse',
+    href: '/intern/youtube',
+    icon: '🎬',
+  },
+  {
     title: 'Rabattcodes',
     description: 'Gutscheincodes verwalten, Gültigkeitszeiträume pflegen',
     href: '/intern/rabattcodes',

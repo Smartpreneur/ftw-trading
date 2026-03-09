@@ -4,10 +4,13 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { setupSchema, toNullableNumber, toNullableString, type SetupSchemaValues } from '@/lib/schemas'
 import { createSetup, updateSetup, uploadChartImage, deleteChartImage } from '@/lib/setup-actions'
+import { fetchInstrumentPrice } from '@/lib/price-actions'
 import { ASSET_CLASSES, TRADE_DIRECTIONS, TRADING_PROFILES } from '@/lib/constants'
+import { INSTRUMENTS, type Instrument } from '@/lib/asset-mapping'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { InstrumentSearch } from '@/components/ui/instrument-search'
 import {
   Select,
   SelectContent,
@@ -18,7 +21,7 @@ import {
 import type { TradeSetup } from '@/lib/types'
 import { toast } from 'sonner'
 import { useState, useRef } from 'react'
-import { Upload, X, ImageIcon } from 'lucide-react'
+import { Upload, X, ImageIcon, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 
 interface SetupFormProps {
@@ -55,6 +58,17 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(setup?.chart_bild_url ?? null)
   const [imagePreview, setImagePreview] = useState<string | null>(setup?.chart_bild_url ?? null)
   const [isUploading, setIsUploading] = useState(false)
+  const [isFetchingPrice, setIsFetchingPrice] = useState(false)
+  const [assetValue, setAssetValue] = useState(() => {
+    if (!setup?.asset) return ''
+    // Show display name if we find a matching instrument
+    const match = INSTRUMENTS.find(
+      (i) => i.symbol.toLowerCase() === setup.asset.toLowerCase() ||
+             i.name.toLowerCase() === setup.asset.toLowerCase()
+    )
+    return match?.name ?? setup.asset
+  })
+  const [selectedAssetKlasse, setSelectedAssetKlasse] = useState(setup?.asset_klasse ?? 'Index')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const {
@@ -167,15 +181,46 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {/* Row 1: Asset, Klasse, Richtung, Profil */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Field label="Asset *" error={errors.asset?.message}>
-          <Input placeholder="z.B. Silber, DAX" {...register('asset')} />
-        </Field>
+      {/* Row 1: Instrument-Suche (volle Breite) */}
+      <Field label="Instrument *" error={errors.asset?.message}>
+        <InstrumentSearch
+          value={assetValue}
+          placeholder="z.B. Apple, DAX, Gold, BTC, EUR/USD..."
+          onSelect={async (instrument) => {
+            setAssetValue(instrument.name)
+            setValue('asset', instrument.symbol, { shouldValidate: true })
+            setValue('asset_klasse', instrument.asset_klasse)
+            setSelectedAssetKlasse(instrument.asset_klasse)
+
+            // Fetch current price
+            setIsFetchingPrice(true)
+            try {
+              const price = await fetchInstrumentPrice(instrument.api, instrument.type)
+              if (price !== null) {
+                setValue('aktueller_kurs', price)
+              }
+            } catch {
+              // silently ignore
+            } finally {
+              setIsFetchingPrice(false)
+            }
+          }}
+          onManualInput={(val) => {
+            setAssetValue(val)
+            setValue('asset', val, { shouldValidate: true })
+          }}
+        />
+      </Field>
+
+      {/* Row 2: Klasse, Richtung, Profil */}
+      <div className="grid grid-cols-3 gap-3">
         <Field label="Asset-Klasse *" error={errors.asset_klasse?.message}>
           <Select
-            defaultValue={setup?.asset_klasse ?? 'Index'}
-            onValueChange={(v) => setValue('asset_klasse', v as any)}
+            value={selectedAssetKlasse}
+            onValueChange={(v) => {
+              setValue('asset_klasse', v as any)
+              setSelectedAssetKlasse(v as any)
+            }}
           >
             <SelectTrigger>
               <SelectValue />
@@ -219,18 +264,23 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         </Field>
       </div>
 
-      {/* Row 2: Datum, Aktueller Kurs, Status */}
+      {/* Row 3: Datum, Aktueller Kurs, Status */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Field label="Datum *" error={errors.datum?.message}>
           <Input type="datetime-local" {...register('datum')} />
         </Field>
         <Field label="Aktueller Kurs *" error={errors.aktueller_kurs?.message}>
-          <Input
-            type="number"
-            step="any"
-            placeholder="0.00"
-            {...register('aktueller_kurs', { valueAsNumber: true })}
-          />
+          <div className="relative">
+            <Input
+              type="number"
+              step="any"
+              placeholder="0.00"
+              {...register('aktueller_kurs', { valueAsNumber: true })}
+            />
+            {isFetchingPrice && (
+              <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+            )}
+          </div>
         </Field>
         <Field label="Status *" error={errors.status?.message}>
           <Select

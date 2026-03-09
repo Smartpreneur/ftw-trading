@@ -89,12 +89,14 @@ export function InternDashboard() {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
-  const [dateRange, setDateRange] = useState<number | null>(14)
+  const [dateRange, setDateRange] = useState<number | null>(7)
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [activeTab, setActiveTab] = useState<'quellen' | 'klicks' | 'bestellungen'>('quellen')
-  const [funnelOpen, setFunnelOpen] = useState(false)
-  const [chartMode, setChartMode] = useState<'funnel' | 'visitors' | 'revenue'>('funnel')
+  const [clicksOpen, setClicksOpen] = useState(false)
+  const [ordersOpen, setOrdersOpen] = useState(false)
+  const [arrOpen, setArrOpen] = useState(false)
+  const [chartMode, setChartMode] = useState<'funnel' | 'visitors' | 'revenue' | 'arr'>('funnel')
   const [customRangeOpen, setCustomRangeOpen] = useState(false)
 
   useEffect(() => {
@@ -154,6 +156,34 @@ export function InternDashboard() {
   }
   const maxRevenue = Math.max(...chartDays.map(d => revenueByDay[d] || 0), 1)
 
+  // Per-plan breakdown for stacked bars
+  function planCategory(planName: string): 'jahres' | 'quartal' | 'halbjahres' {
+    const lower = planName.toLowerCase()
+    if (lower.includes('quartal')) return 'quartal'
+    if (lower.includes('halbjahr') || lower.includes('halbjährl')) return 'halbjahres'
+    return 'jahres'
+  }
+  type PlanBreakdown = { jahres: number; quartal: number; halbjahres: number }
+  const revenueByPlanByDay: Record<string, PlanBreakdown> = {}
+  const arrByPlanByDay: Record<string, PlanBreakdown> = {}
+  for (const d of chartDays) {
+    const dayOrders = data.ordersByDay[d] || []
+    const rev: PlanBreakdown = { jahres: 0, quartal: 0, halbjahres: 0 }
+    const arr: PlanBreakdown = { jahres: 0, quartal: 0, halbjahres: 0 }
+    for (const o of dayOrders) {
+      const cat = planCategory(o.plan_name || '')
+      const amount = Number(o.amount) || 0
+      rev[cat] += amount
+      arr[cat] += amount * arrMultiplier(o.plan_name || '')
+    }
+    revenueByPlanByDay[d] = rev
+    arrByPlanByDay[d] = arr
+  }
+  const maxARR = Math.max(...chartDays.map(d => {
+    const a = arrByPlanByDay[d]
+    return a ? a.jahres + a.quartal + a.halbjahres : 0
+  }), 1)
+
   // Helper: sum values from a Record for days in range
   function sumRange(byDay: Record<string, number>): number {
     return rangeDays.reduce((s, d) => s + (byDay[d] || 0), 0)
@@ -203,7 +233,7 @@ export function InternDashboard() {
   const displayCampaigns = isDayFiltered ? (data.campaignsByDay[selectedDay] || []) : mergeRangeCampaigns(data.campaignsByDay)
   const displayRefCodes = isDayFiltered ? (data.refCodesByDay[selectedDay] || {}) : mergeRange(data.refCodesByDay)
   const rangeLabel = isCustomRange
-    ? `${customFrom || '...'} – ${customTo || '...'}`
+    ? `${customFrom ? formatDE(customFrom) : '...'} – ${customTo ? formatDE(customTo) : '...'}`
     : dateRange !== null ? `Letzte ${dateRange} Tage` : 'Gesamt'
   // --- Orders filtered by range/day ---
   const filteredOrders = isDayFiltered
@@ -214,15 +244,43 @@ export function InternDashboard() {
   const displayNewOrders = filteredOrders.filter(o => o.is_new_order).length
 
   const displayOrdersByCampaign: Record<string, { count: number; revenue: number; newOrders: number }> = {}
-  const displayOrdersByPlan: Record<string, number> = {}
+  const displayOrdersByPlan: Record<string, { count: number; revenue: number; unitPrice: number; arr: number; multiplier: number }> = {}
   for (const o of filteredOrders) {
     const cid = o.campaign_id || 'Ohne Campaign'
     if (!displayOrdersByCampaign[cid]) displayOrdersByCampaign[cid] = { count: 0, revenue: 0, newOrders: 0 }
     displayOrdersByCampaign[cid].count++
     displayOrdersByCampaign[cid].revenue += Number(o.amount) || 0
     if (o.is_new_order) displayOrdersByCampaign[cid].newOrders++
-    const plan = o.plan_name || 'Unbekannt'
-    displayOrdersByPlan[plan] = (displayOrdersByPlan[plan] || 0) + 1
+    const plan = shortenPlan(o.plan_name || 'Unbekannt')
+    const amount = Number(o.amount) || 0
+    const mult = arrMultiplier(o.plan_name || '')
+    const key = `${plan} (${amount.toFixed(0)} €)`
+    if (!displayOrdersByPlan[key]) displayOrdersByPlan[key] = { count: 0, revenue: 0, unitPrice: amount, arr: 0, multiplier: mult }
+    displayOrdersByPlan[key].count++
+    displayOrdersByPlan[key].revenue += amount
+    displayOrdersByPlan[key].arr += amount * mult
+  }
+  const displayARR = Object.values(displayOrdersByPlan).reduce((s, v) => s + v.arr, 0)
+
+  // Format ISO date to dd.mm.yy
+  function formatDE(iso: string) {
+    const [y, m, d] = iso.split('-')
+    return `${d}.${m}.${y.slice(2)}`
+  }
+
+  // Shorten plan names: "Quartalsmitgliedschaft inkl. 30 Tage..." → "Quartalsmitgliedschaft"
+  function shortenPlan(name: string): string {
+    return name
+      .replace(/\s*(inkl\.?|inklusive|mit|–|\().*$/i, '')
+      .trim() || name
+  }
+
+  // ARR multiplier: Quartal ×4, Halbjahr ×2, Jahr ×1
+  function arrMultiplier(planName: string): number {
+    const lower = planName.toLowerCase()
+    if (lower.includes('quartal')) return 4
+    if (lower.includes('halbjahr') || lower.includes('halbjährl')) return 2
+    return 1
   }
 
   const displayLabel = isDayFiltered ? formatDay(selectedDay) : rangeLabel
@@ -246,7 +304,7 @@ export function InternDashboard() {
             onClick={() => setCustomRangeOpen(!customRangeOpen)}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4, verticalAlign: -2 }}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            {isCustomRange ? `${customFrom || '...'} – ${customTo || '...'}` : 'Zeitraum'}
+            {isCustomRange ? `${customFrom ? formatDE(customFrom) : '...'} – ${customTo ? formatDE(customTo) : '...'}` : 'Zeitraum'}
           </button>
           {customRangeOpen && (
             <div className="range-filter__dropdown">
@@ -267,7 +325,7 @@ export function InternDashboard() {
               {isCustomRange && (
                 <button
                   className="range-filter__btn range-filter__btn--clear"
-                  onClick={() => { setCustomFrom(''); setCustomTo(''); setDateRange(14); setCustomRangeOpen(false) }}
+                  onClick={() => { setCustomFrom(''); setCustomTo(''); setDateRange(7); setCustomRangeOpen(false) }}
                 >
                   Zurücksetzen
                 </button>
@@ -279,7 +337,7 @@ export function InternDashboard() {
 
       {/* Funnel Overview */}
       <div className="funnel">
-        <div className="funnel__step" onClick={() => setFunnelOpen(!funnelOpen)} role="button">
+        <div className="funnel__step">
           <div className="funnel__step-header">
             <span className="funnel__step-label">Besucher</span>
             <span className="funnel__step-value">{displaySessions}</span>
@@ -289,16 +347,16 @@ export function InternDashboard() {
 
         <div className="funnel__arrow">&#9654;</div>
 
-        <div className="funnel__step" onClick={() => setFunnelOpen(!funnelOpen)} role="button">
+        <div className="funnel__step" onClick={() => setClicksOpen(!clicksOpen)} role="button">
           <div className="funnel__step-header">
             <span className="funnel__step-label">Checkout-Klicks</span>
             <span className="funnel__step-value">{displayClicks}</span>
-            <span className={`funnel__step-chevron ${funnelOpen ? 'funnel__step-chevron--open' : ''}`}>&#9662;</span>
+            <span className={`funnel__step-chevron ${clicksOpen ? 'funnel__step-chevron--open' : ''}`}>&#9662;</span>
           </div>
           <div className="funnel__step-rate">
             {displaySessions > 0 ? ((displayClicks / displaySessions) * 100).toFixed(1) : '0'} % der Besucher
           </div>
-          {funnelOpen && (
+          {clicksOpen && (
             <div className="funnel__breakdown">
               {Object.entries(displayProducts)
                 .sort(([, a], [, b]) => b - a)
@@ -316,11 +374,11 @@ export function InternDashboard() {
 
         <div className="funnel__arrow">&#9654;</div>
 
-        <div className="funnel__step" onClick={() => setFunnelOpen(!funnelOpen)} role="button">
+        <div className="funnel__step" onClick={() => setOrdersOpen(!ordersOpen)} role="button">
           <div className="funnel__step-header">
             <span className="funnel__step-label">Bestellungen</span>
             <span className="funnel__step-value">{displayOrderCount}</span>
-            <span className={`funnel__step-chevron ${funnelOpen ? 'funnel__step-chevron--open' : ''}`}>&#9662;</span>
+            <span className={`funnel__step-chevron ${ordersOpen ? 'funnel__step-chevron--open' : ''}`}>&#9662;</span>
           </div>
           <div className="funnel__step-rate">
             {displayClicks > 0 ? ((displayOrderCount / displayClicks) * 100).toFixed(1) : '0'}&nbsp;% der Klicks
@@ -330,19 +388,46 @@ export function InternDashboard() {
           {displayRevenue > 0 && (
             <div className="funnel__revenue">
               {displayRevenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} &euro; Umsatz
+              {displayARR > displayRevenue && (
+                <span className="funnel__arr-hint">
+                  &nbsp;| {displayARR.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} &euro; ARR-Potenzial
+                </span>
+              )}
             </div>
           )}
-          {funnelOpen && (
+          {ordersOpen && (
             <div className="funnel__breakdown">
               {Object.entries(displayOrdersByPlan)
-                .sort(([, a], [, b]) => b - a)
-                .map(([plan, count]) => (
+                .sort(([, a], [, b]) => b.revenue - a.revenue)
+                .map(([plan, v]) => (
                   <div key={plan} className="funnel__breakdown-row">
-                    <span>{plan}</span><span>{count}</span>
+                    <span>{plan}</span>
+                    <span>{v.count} &times; {v.unitPrice.toFixed(0)} € = {v.revenue.toFixed(0)} €</span>
                   </div>
                 ))}
               {Object.keys(displayOrdersByPlan).length === 0 && (
                 <div className="funnel__breakdown-empty">Keine Bestellungen</div>
+              )}
+              {displayARR > displayRevenue && (
+                <div className="funnel__arr-section">
+                  <button className="funnel__arr-toggle" onClick={e => { e.stopPropagation(); setArrOpen(!arrOpen) }}>
+                    ARR-Potenzial: {displayARR.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} &euro;
+                    <span className={`funnel__arr-chevron ${arrOpen ? 'funnel__arr-chevron--open' : ''}`}>&#9662;</span>
+                  </button>
+                  {arrOpen && (
+                    <div className="funnel__arr-detail">
+                      <div className="funnel__arr-explain">Hochrechnung: Jahresumsatz wenn das Abo aktiv bleibt</div>
+                      {Object.entries(displayOrdersByPlan)
+                        .sort(([, a], [, b]) => b.arr - a.arr)
+                        .map(([plan, v]) => (
+                          <div key={plan} className="funnel__breakdown-row">
+                            <span>{plan} &times;{v.multiplier}/Jahr</span>
+                            <span>{v.count} &times; {v.unitPrice.toFixed(0)} &times; {v.multiplier} = {v.arr.toFixed(0)} €</span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -359,6 +444,7 @@ export function InternDashboard() {
               { key: 'funnel' as const, label: 'Konvertierung' },
               { key: 'visitors' as const, label: 'Besucher' },
               { key: 'revenue' as const, label: 'Umsatz' },
+              { key: 'arr' as const, label: 'ARR' },
             ]).map(m => (
               <button
                 key={m.key}
@@ -381,6 +467,13 @@ export function InternDashboard() {
             <span className="chart-legend__item chart-legend__item--sessions">Besucher</span>
             <span className="chart-legend__item chart-legend__item--clicks">Checkout</span>
             <span className="chart-legend__item chart-legend__item--orders">Bestellungen</span>
+          </div>
+        )}
+        {(chartMode === 'revenue' || chartMode === 'arr') && (
+          <div className="chart-legend">
+            <span className="chart-legend__item chart-legend__item--jahres">Jahres</span>
+            <span className="chart-legend__item chart-legend__item--halbjahres">Halbjahres</span>
+            <span className="chart-legend__item chart-legend__item--quartal">Quartal</span>
           </div>
         )}
 
@@ -419,14 +512,33 @@ export function InternDashboard() {
                     </div>
                   </>
                 )}
-                {chartMode === 'revenue' && (
-                  <>
-                    <div className="bar-chart__count bar-chart__val--revenue">{revenue > 0 ? `${revenue}€` : ''}</div>
-                    <div className="bar-chart__stack">
-                      <div className="bar-chart__layer bar-chart__layer--revenue" style={{ height: `${(revenue / maxRevenue) * 100}%`, width: '70%' }} />
-                    </div>
-                  </>
-                )}
+                {chartMode === 'revenue' && (() => {
+                  const bp = revenueByPlanByDay[day] || { jahres: 0, quartal: 0, halbjahres: 0 }
+                  return (
+                    <>
+                      <div className="bar-chart__count bar-chart__val--revenue">{revenue > 0 ? `${revenue}€` : ''}</div>
+                      <div className="bar-chart__stack bar-chart__stack--stacked">
+                        {bp.quartal > 0 && <div className="bar-chart__layer bar-chart__layer--quartal" style={{ height: `${(bp.quartal / maxRevenue) * 100}%` }} />}
+                        {bp.halbjahres > 0 && <div className="bar-chart__layer bar-chart__layer--halbjahres" style={{ height: `${(bp.halbjahres / maxRevenue) * 100}%` }} />}
+                        {bp.jahres > 0 && <div className="bar-chart__layer bar-chart__layer--jahres" style={{ height: `${(bp.jahres / maxRevenue) * 100}%` }} />}
+                      </div>
+                    </>
+                  )
+                })()}
+                {chartMode === 'arr' && (() => {
+                  const bp = arrByPlanByDay[day] || { jahres: 0, quartal: 0, halbjahres: 0 }
+                  const total = bp.jahres + bp.quartal + bp.halbjahres
+                  return (
+                    <>
+                      <div className="bar-chart__count bar-chart__val--revenue">{total > 0 ? `${total}€` : ''}</div>
+                      <div className="bar-chart__stack bar-chart__stack--stacked">
+                        {bp.quartal > 0 && <div className="bar-chart__layer bar-chart__layer--quartal" style={{ height: `${(bp.quartal / maxARR) * 100}%` }} />}
+                        {bp.halbjahres > 0 && <div className="bar-chart__layer bar-chart__layer--halbjahres" style={{ height: `${(bp.halbjahres / maxARR) * 100}%` }} />}
+                        {bp.jahres > 0 && <div className="bar-chart__layer bar-chart__layer--jahres" style={{ height: `${(bp.jahres / maxARR) * 100}%` }} />}
+                      </div>
+                    </>
+                  )
+                })()}
                 <div className="bar-chart__label">
                   {formatDayShort(day)}
                 </div>
@@ -619,7 +731,7 @@ export function InternDashboard() {
                   <tr key={o.order_id}>
                     <td>{new Date(o.ordered_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })}</td>
                     <td>{o.order_id}</td>
-                    <td>{o.plan_name || '–'}</td>
+                    <td>{o.plan_name ? shortenPlan(o.plan_name) : '–'}</td>
                     <td>{o.campaign_id || '–'}</td>
                     <td>{o.country_code || '–'}</td>
                     <td>{o.payment_method || '–'}</td>

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 const navLinks = [
   { href: '/intern', label: 'Übersicht', icon: 'home' },
   { href: '/intern/analytics', label: 'Analytics', icon: 'chart' },
+  { href: '/intern/youtube', label: 'YouTube', icon: 'youtube' },
   { href: '/intern/planung', label: 'Planung', icon: 'kanban' },
   { href: '/intern/rabattcodes', label: 'Rabattcodes', icon: 'tag' },
 ]
@@ -20,6 +21,8 @@ function NavIcon({ type }: { type: string }) {
       return <svg {...props}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     case 'kanban':
       return <svg {...props}><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+    case 'youtube':
+      return <svg {...props}><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.1c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.33 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>
     case 'tag':
       return <svg {...props}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
     default:

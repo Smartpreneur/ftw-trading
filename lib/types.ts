@@ -2,7 +2,7 @@ export type AssetClass = 'Index' | 'Rohstoff' | 'Krypto' | 'Aktie' | 'FX'
 export type TradeDirection = 'LONG' | 'SHORT'
 export type TradeStatus = 'Aktiv' | 'Erfolgreich' | 'Ausgestoppt' | 'Ungültig' | 'Einstand' | 'Geschlossen'
 export type SetupStatus = 'Aktiv' | 'Getriggert' | 'Abgelaufen'
-export type TradingProfile = 'MB' | 'MB2' | 'SJ'
+export type TradingProfile = 'MB' | 'MB2' | 'MB3' | 'SJ' | 'SJ2'
 
 export interface Trade {
   id: string
@@ -22,6 +22,12 @@ export interface Trade {
   ausstiegspreis: number | null
   bemerkungen: string | null
   profil: TradingProfile
+  tp1_erreicht_am: string | null
+  tp2_erreicht_am: string | null
+  tp3_erreicht_am: string | null
+  tp4_erreicht_am: string | null
+  sl_erreicht_am: string | null
+  manuell_getrackt: boolean
   created_at: string
   updated_at: string
 }
@@ -50,6 +56,12 @@ export type TradeFormData = {
   ausstiegspreis: number | null
   bemerkungen: string | null
   profil: TradingProfile
+  manuell_getrackt?: boolean
+  tp1_erreicht_am?: string | null
+  tp2_erreicht_am?: string | null
+  tp3_erreicht_am?: string | null
+  tp4_erreicht_am?: string | null
+  sl_erreicht_am?: string | null
 }
 
 export interface PerformanceKPIs {

@@ -107,7 +107,37 @@ export default function LandingPage() {
   const [coupon, setCoupon] = useState('')
   const [campaign, setCampaign] = useState('')
   const [discountValidUntil, setDiscountValidUntil] = useState<string | null>(null)
+  const [customPrices, setCustomPrices] = useState<{quarterly: number; halfYear: number; yearly: number} | null>(null)
+  const [customPlanIds, setCustomPlanIds] = useState<{quarterly: number; halfYear: number; yearly: number} | null>(null)
   const [countdown, setCountdown] = useState<string | null>(null)
+
+  // Compute display pricing (custom prices override defaults)
+  const dp = customPrices ? {
+    quarterly: {
+      normal: pricing.quarterly.normal,
+      discounted: customPrices.quarterly,
+      monthly: +(customPrices.quarterly / 3).toFixed(2),
+      discountPct: Math.round((1 - customPrices.quarterly / pricing.quarterly.normal) * 100),
+    },
+    halfYear: {
+      normal: pricing.halfYear.normal,
+      discounted: customPrices.halfYear,
+      monthly: +(customPrices.halfYear / 6).toFixed(2),
+      discountPct: Math.round((1 - customPrices.halfYear / pricing.halfYear.normal) * 100),
+    },
+    yearly: {
+      normal: pricing.yearly.normal,
+      discounted: customPrices.yearly,
+      monthly: +(customPrices.yearly / 12).toFixed(2),
+      discountPct: Math.round((1 - customPrices.yearly / pricing.yearly.normal) * 100),
+    },
+  } : pricing
+
+  const pid = customPlanIds ? {
+    quarterly: { normal: customPlanIds.quarterly, discounted: customPlanIds.quarterly },
+    halfYear: { normal: customPlanIds.halfYear, discounted: customPlanIds.halfYear },
+    yearly: { normal: customPlanIds.yearly, discounted: customPlanIds.yearly },
+  } : PLAN_IDS
 
   // Baut den Checkout-Link mit plan_id, Gutschein, Kampagne + Quelle zusammen
   const checkoutLink = (planId: number) => {
@@ -139,7 +169,7 @@ export default function LandingPage() {
         // Ref-Code: z.B. ?ref=y26 → Supabase-Abfrage
         const { data: dc } = await supabase
           .from('discount_codes')
-          .select('source, coupon, campaign_id, is_active, valid_from, valid_until')
+          .select('source, coupon, campaign_id, is_active, valid_from, valid_until, custom_prices, custom_plan_ids')
           .eq('code', ref)
           .single()
 
@@ -148,19 +178,27 @@ export default function LandingPage() {
           const fromOk = !dc.valid_from || new Date(dc.valid_from) <= now
           const untilOk = !dc.valid_until || new Date(dc.valid_until) >= now
           if (fromOk && untilOk) {
+            localStorage.setItem('ftw_ref', ref)
             localStorage.setItem('ftw_source', dc.source)
-            localStorage.setItem('ftw_promo', dc.coupon)
+            if (dc.coupon) {
+              localStorage.setItem('ftw_promo', dc.coupon)
+            } else {
+              localStorage.removeItem('ftw_promo')
+            }
             if (dc.valid_until) localStorage.setItem('ftw_valid_until', dc.valid_until)
             setSource(dc.source)
             setCoupon(dc.coupon)
             if (!urlCampaign && dc.campaign_id) setCampaign(dc.campaign_id)
             setDiscountActive(true)
             setDiscountValidUntil(dc.valid_until)
+            if (dc.custom_prices) setCustomPrices(dc.custom_prices)
+            if (dc.custom_plan_ids) setCustomPlanIds(dc.custom_plan_ids)
             trackEvent('page_view', dc.source)
             return
           }
         }
         // Ungültiger/abgelaufener Code → localStorage leeren
+        localStorage.removeItem('ftw_ref')
         localStorage.removeItem('ftw_promo')
         localStorage.removeItem('ftw_source')
         localStorage.removeItem('ftw_valid_until')
@@ -216,6 +254,35 @@ export default function LandingPage() {
           localStorage.removeItem('ftw_promo')
           localStorage.removeItem('ftw_valid_until')
         }
+      } else {
+        // Gespeicherter Ref-Code aus vorherigem Besuch (z.B. b26 mit Custom-Preisen)
+        const savedRef = localStorage.getItem('ftw_ref')
+        if (savedRef) {
+          const { data: dc } = await supabase
+            .from('discount_codes')
+            .select('source, coupon, campaign_id, is_active, valid_from, valid_until, custom_prices, custom_plan_ids')
+            .eq('code', savedRef)
+            .single()
+
+          if (dc && dc.is_active) {
+            const now = new Date()
+            const fromOk = !dc.valid_from || new Date(dc.valid_from) <= now
+            const untilOk = !dc.valid_until || new Date(dc.valid_until) >= now
+            if (fromOk && untilOk) {
+              setSource(dc.source)
+              setCoupon(dc.coupon)
+              if (!urlCampaign && dc.campaign_id) setCampaign(dc.campaign_id)
+              setDiscountActive(true)
+              setDiscountValidUntil(dc.valid_until)
+              if (dc.custom_prices) setCustomPrices(dc.custom_prices)
+              if (dc.custom_plan_ids) setCustomPlanIds(dc.custom_plan_ids)
+            } else {
+              localStorage.removeItem('ftw_ref')
+            }
+          } else {
+            localStorage.removeItem('ftw_ref')
+          }
+        }
       }
 
       // Gespeicherte Quelle aus vorherigem Besuch laden
@@ -234,16 +301,29 @@ export default function LandingPage() {
 
     const update = () => {
       const diffMs = end - Date.now()
-      if (diffMs <= 0 || diffMs > SEVENTY_TWO_HOURS) { setCountdown(null); return }
-      const totalMin = Math.floor(diffMs / 60_000)
-      const d = Math.floor(totalMin / 1440)
-      const h = Math.floor((totalMin % 1440) / 60)
-      const m = totalMin % 60
-      setCountdown(JSON.stringify({ d, h, m }))
+      if (diffMs <= 0) {
+        // Rabatt abgelaufen → komplett deaktivieren
+        setCountdown(null)
+        setDiscountActive(false)
+        setCoupon('')
+        setCustomPrices(null)
+        setCustomPlanIds(null)
+        localStorage.removeItem('ftw_promo')
+        localStorage.removeItem('ftw_valid_until')
+        localStorage.removeItem('ftw_ref')
+        return
+      }
+      if (diffMs > SEVENTY_TWO_HOURS) { setCountdown(null); return }
+      const totalSec = Math.floor(diffMs / 1000)
+      const d = Math.floor(totalSec / 86400)
+      const h = Math.floor((totalSec % 86400) / 3600)
+      const m = Math.floor((totalSec % 3600) / 60)
+      const s = totalSec % 60
+      setCountdown(JSON.stringify({ d, h, m, s }))
     }
 
     update()
-    const id = setInterval(update, 60_000)
+    const id = setInterval(update, 1_000)
     return () => clearInterval(id)
   }, [discountValidUntil])
 
@@ -313,8 +393,44 @@ export default function LandingPage() {
 
   return (
     <>
+      {/* STICKY COUNTDOWN BANNER */}
+      {discountActive && countdown && (
+        <div className="countdown-bar" id="countdownBar">
+          {(() => {
+            const t = JSON.parse(countdown)
+            return (
+              <>
+                <span className="countdown-bar__pulse" />
+                <span className="countdown-bar__label">Rabatt endet in</span>
+                <div className="countdown-bar__timer">
+                  <span className="countdown-bar__block">
+                    <strong>{String(t.d).padStart(2, '0')}</strong>
+                    <small>Tage</small>
+                  </span>
+                  <span className="countdown-bar__sep">:</span>
+                  <span className="countdown-bar__block">
+                    <strong>{String(t.h).padStart(2, '0')}</strong>
+                    <small>Std</small>
+                  </span>
+                  <span className="countdown-bar__sep">:</span>
+                  <span className="countdown-bar__block">
+                    <strong>{String(t.m).padStart(2, '0')}</strong>
+                    <small>Min</small>
+                  </span>
+                  <span className="countdown-bar__sep">:</span>
+                  <span className="countdown-bar__block">
+                    <strong>{String(t.s).padStart(2, '0')}</strong>
+                    <small>Sek</small>
+                  </span>
+                </div>
+              </>
+            )
+          })()}
+        </div>
+      )}
+
       {/* NAV */}
-      <nav className="nav" id="nav">
+      <nav className={`nav ${discountActive && countdown ? 'nav--with-banner' : ''}`} id="nav">
         <div className="container">
           <div className="nav__inner">
             <a href="#" className="nav__logo">
@@ -328,7 +444,7 @@ export default function LandingPage() {
       </nav>
 
       {/* HERO */}
-      <section className="hero">
+      <section className={`hero ${discountActive && countdown ? 'hero--with-banner' : ''}`}>
         <div className="container">
           <div className="hero__content">
             <h1>
@@ -602,7 +718,7 @@ export default function LandingPage() {
       <section className="section section--alt" id="pricing">
         <div className="container">
           <h2 className="text-center reveal">
-            {discountActive ? 'Ab 0,82 € pro Tag' : 'Ab 0,90 € pro Tag'}
+            Ab {((discountActive ? dp.yearly.discounted : dp.yearly.normal) / 365).toFixed(2).replace('.', ',')} € pro Tag
           </h2>
           <p className="subtitle text-center reveal">
             Weniger als ein Kaffee – für professionelle Trading-Setups.
@@ -628,6 +744,10 @@ export default function LandingPage() {
                           <span className="discount-countdown__value">{t.m}</span>
                           <span className="discount-countdown__desc">Min</span>
                         </div>
+                        <div className="discount-countdown__unit">
+                          <span className="discount-countdown__value">{String(t.s).padStart(2, '0')}</span>
+                          <span className="discount-countdown__desc">Sek</span>
+                        </div>
                       </div>
                     </div>
                   )
@@ -639,19 +759,19 @@ export default function LandingPage() {
             {/* Quarterly */}
             <div className="pricing-card reveal">
               <div className="pricing-card__period">
-                Quartalsabo{discountActive && <span className="pricing-card__discount">-{pricing.quarterly.discountPct} %</span>}
+                Quartalsabo{discountActive && <span className="pricing-card__discount">-{dp.quarterly.discountPct} %</span>}
               </div>
               <div className="pricing-card__price">
                 {discountActive
-                  ? <>{pricing.quarterly.discounted} € <span className="price-original">{pricing.quarterly.normal} €</span> <span>/ 3 Monate</span></>
-                  : <>{pricing.quarterly.normal} € <span>/ 3 Monate</span></>
+                  ? <>{dp.quarterly.discounted} € <span className="price-original">{dp.quarterly.normal} €</span> <span>/ 3 Monate</span></>
+                  : <>{dp.quarterly.normal} € <span>/ 3 Monate</span></>
                 }
               </div>
               <div className="pricing-card__detail">
-                {discountActive ? `${pricing.quarterly.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '33,00 € pro Monat'}
+                {discountActive ? `${dp.quarterly.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '33,00 € pro Monat'}
               </div>
               <a
-                href={checkoutLink(discountActive ? PLAN_IDS.quarterly.discounted : PLAN_IDS.quarterly.normal)}
+                href={checkoutLink(discountActive ? pid.quarterly.discounted : pid.quarterly.normal)}
                 className="cta-btn cta-btn--ghost cta-btn--full"
                 onClick={() => trackEvent('checkout_quarterly', source || undefined)}
               >
@@ -661,19 +781,19 @@ export default function LandingPage() {
             {/* 6 months */}
             <div className="pricing-card reveal">
               <div className="pricing-card__period">
-                Halbjahresabo{discountActive && <span className="pricing-card__discount">-{pricing.halfYear.discountPct} %</span>}
+                Halbjahresabo{discountActive && <span className="pricing-card__discount">-{dp.halfYear.discountPct} %</span>}
               </div>
               <div className="pricing-card__price">
                 {discountActive
-                  ? <>{pricing.halfYear.discounted} € <span className="price-original">{pricing.halfYear.normal} €</span> <span>/ 6 Monate</span></>
-                  : <>{pricing.halfYear.normal} € <span>/ 6 Monate</span></>
+                  ? <>{dp.halfYear.discounted} € <span className="price-original">{dp.halfYear.normal} €</span> <span>/ 6 Monate</span></>
+                  : <>{dp.halfYear.normal} € <span>/ 6 Monate</span></>
                 }
               </div>
               <div className="pricing-card__detail">
-                {discountActive ? `${pricing.halfYear.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '31,33 € pro Monat'}
+                {discountActive ? `${dp.halfYear.monthly.toFixed(2).replace('.', ',')} € pro Monat` : '31,33 € pro Monat'}
               </div>
               <a
-                href={checkoutLink(discountActive ? PLAN_IDS.halfYear.discounted : PLAN_IDS.halfYear.normal)}
+                href={checkoutLink(discountActive ? pid.halfYear.discounted : pid.halfYear.normal)}
                 className="cta-btn cta-btn--ghost cta-btn--full"
                 onClick={() => trackEvent('checkout_halfyear', source || undefined)}
               >
@@ -684,22 +804,22 @@ export default function LandingPage() {
             <div className="pricing-card pricing-card--featured reveal">
               <div className="pricing-card__label">Bester Preis</div>
               <div className="pricing-card__period">
-                Jahresabo{discountActive && <span className="pricing-card__discount">-{pricing.yearly.discountPct} %</span>}
+                Jahresabo{discountActive && <span className="pricing-card__discount">-{dp.yearly.discountPct} %</span>}
               </div>
               <div className="pricing-card__price">
                 {discountActive
-                  ? <>{pricing.yearly.discounted} € <span className="price-original">{pricing.yearly.normal} €</span> <span>/ Jahr</span></>
-                  : <>{pricing.yearly.normal} € <span>/ Jahr</span></>
+                  ? <>{dp.yearly.discounted} € <span className="price-original">{dp.yearly.normal} €</span> <span>/ Jahr</span></>
+                  : <>{dp.yearly.normal} € <span>/ Jahr</span></>
                 }
               </div>
               <div className="pricing-card__detail">
                 {discountActive
-                  ? `${pricing.yearly.monthly.toFixed(2).replace('.', ',')} € pro Monat – nur 0,82 € pro Tag`
-                  : '27,42 € pro Monat – nur 0,90 € pro Tag'
+                  ? `${dp.yearly.monthly.toFixed(2).replace('.', ',')} € pro Monat – nur ${(dp.yearly.discounted / 365).toFixed(2).replace('.', ',')} € pro Tag`
+                  : `${(dp.yearly.normal / 12).toFixed(2).replace('.', ',')} € pro Monat – nur ${(dp.yearly.normal / 365).toFixed(2).replace('.', ',')} € pro Tag`
                 }
               </div>
               <a
-                href={checkoutLink(discountActive ? PLAN_IDS.yearly.discounted : PLAN_IDS.yearly.normal)}
+                href={checkoutLink(discountActive ? pid.yearly.discounted : pid.yearly.normal)}
                 className="cta-btn cta-btn--full"
                 onClick={() => trackEvent('checkout_yearly', source || undefined)}
               >

@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { checkAuth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
+export type CustomPrices = { quarterly: number; halfYear: number; yearly: number }
+export type CustomPlanIds = { quarterly: number; halfYear: number; yearly: number }
+
 export type DiscountCode = {
   id: string
   code: string
@@ -15,6 +18,8 @@ export type DiscountCode = {
   valid_until: string | null
   campaign_id: string | null
   is_active: boolean
+  custom_prices: CustomPrices | null
+  custom_plan_ids: CustomPlanIds | null
   created_at: string
   updated_at: string
 }

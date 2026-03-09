@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/formatters'
-import { deleteSetup, deleteChartImage } from '@/lib/setup-actions'
+import { deleteSetup, deleteChartImage, convertSetupToTrade } from '@/lib/setup-actions'
 import { SetupDialog } from './SetupDialog'
-import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2 } from 'lucide-react'
+import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2, Play } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -21,9 +21,30 @@ export function SetupCard({ setup }: SetupCardProps) {
   const isLong = setup.richtung === 'LONG'
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isConverting, setIsConverting] = useState(false)
 
   const date = new Date(setup.datum)
   const formattedDate = `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+
+  async function handleConvertToTrade() {
+    const priceStr = prompt('Einstiegspreis eingeben:', setup.aktueller_kurs.toString())
+    if (!priceStr) return
+    const price = parseFloat(priceStr.replace(',', '.'))
+    if (isNaN(price)) {
+      toast.error('Ungültiger Preis')
+      return
+    }
+    setIsConverting(true)
+    try {
+      await convertSetupToTrade(setup.id, price)
+      toast.success('Trade eröffnet')
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Fehler beim Eröffnen')
+    } finally {
+      setIsConverting(false)
+    }
+  }
 
   async function handleDelete() {
     if (!confirm('Setup wirklich löschen?')) return
@@ -201,6 +222,19 @@ export function SetupCard({ setup }: SetupCardProps) {
         <p className="text-xs text-muted-foreground">
           {formattedDate}
         </p>
+
+        {/* Convert to Trade button - only for active setups */}
+        {setup.status === 'Aktiv' && (
+          <Button
+            onClick={handleConvertToTrade}
+            disabled={isConverting}
+            className="w-full mt-2"
+            size="sm"
+          >
+            <Play className="h-3.5 w-3.5 mr-1.5" />
+            {isConverting ? 'Wird eröffnet...' : 'Trade eröffnen'}
+          </Button>
+        )}
       </CardContent>
     </Card>
   )

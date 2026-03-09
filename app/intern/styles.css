@@ -234,19 +234,19 @@
 /* Range Filter */
 .range-filter {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   margin-bottom: 20px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .range-filter__btn {
   background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text-muted);
-  padding: 6px 16px;
+  padding: 6px 14px;
   border-radius: 8px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s, background 0.2s;
   white-space: nowrap;
@@ -436,6 +436,54 @@
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--accent);
+}
+
+.funnel__arr-hint {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.funnel__arr-section {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--table-border);
+}
+
+.funnel__arr-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.funnel__arr-toggle:hover {
+  color: var(--accent);
+}
+
+.funnel__arr-chevron {
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+}
+
+.funnel__arr-chevron--open {
+  transform: rotate(180deg);
+}
+
+.funnel__arr-detail {
+  margin-top: 6px;
+}
+
+.funnel__arr-explain {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-style: italic;
 }
 
 .funnel__meta {
@@ -746,6 +794,56 @@
   z-index: 1;
 }
 
+/* Stacked bar chart (revenue/ARR by plan) */
+.bar-chart__stack--stacked {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+}
+
+.bar-chart__stack--stacked .bar-chart__layer {
+  position: static;
+  width: 70%;
+  border-radius: 0;
+  min-height: 0;
+}
+
+.bar-chart__stack--stacked .bar-chart__layer:first-child {
+  border-radius: 0 0 4px 4px;
+}
+
+.bar-chart__stack--stacked .bar-chart__layer:last-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.bar-chart__stack--stacked .bar-chart__layer:only-child {
+  border-radius: 4px;
+}
+
+.bar-chart__layer--jahres {
+  background: linear-gradient(180deg, #A78BFA, #7C3AED);
+}
+
+.bar-chart__layer--halbjahres {
+  background: linear-gradient(180deg, #FBBF24, #D97706);
+}
+
+.bar-chart__layer--quartal {
+  background: linear-gradient(180deg, #22D3EE, #0891B2);
+}
+
+.chart-legend__item--jahres::before {
+  background: #A78BFA;
+}
+
+.chart-legend__item--halbjahres::before {
+  background: #FBBF24;
+}
+
+.chart-legend__item--quartal::before {
+  background: #22D3EE;
+}
+
 .bar-chart__val--revenue {
   color: #A78BFA;
   font-weight: 600;
@@ -941,13 +1039,45 @@
     grid-template-columns: 1fr;
   }
 
+  .intern__section {
+    overflow-x: auto;
+  }
+
   .bar-chart {
     height: 140px;
+    min-width: 0;
+  }
+
+  .bar-chart__col {
+    min-width: 28px;
+  }
+
+  .bar-chart__label {
+    font-size: 0.55rem;
+  }
+
+  .bar-chart__val {
+    font-size: 0.5rem;
+  }
+
+  .bar-chart__count {
+    font-size: 0.6rem;
+  }
+
+  .range-filter {
+    gap: 3px;
+  }
+
+  .range-filter__btn {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+    border-radius: 6px;
   }
 
   .range-filter__dropdown {
     right: auto;
     left: 0;
+    min-width: 180px;
   }
 }
 
@@ -1674,5 +1804,179 @@
 
   .kb-field-row--3 {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ══════════════════════════════════════
+   YOUTUBE DASHBOARD
+══════════════════════════════════════ */
+
+/* Summary row */
+.yt-summary {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.yt-summary span {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Video type badges */
+.yt-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.yt-type-badge--long {
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--accent);
+}
+
+.yt-type-badge--short {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+
+/* Bar chart colors for YT */
+.bar-chart__layer--yt-long {
+  background: linear-gradient(to top, rgba(0, 212, 255, 0.6), rgba(0, 212, 255, 0.25));
+  border-radius: 3px 3px 0 0;
+  width: 70%;
+}
+
+.bar-chart__layer--yt-short {
+  background: linear-gradient(to top, rgba(255, 193, 7, 0.6), rgba(255, 193, 7, 0.25));
+  border-radius: 3px 3px 0 0;
+  width: 70%;
+}
+
+.chart-legend__item--yt-long::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(0, 212, 255, 0.6);
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.chart-legend__item--yt-short::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(255, 193, 7, 0.6);
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+/* Video title link in table */
+.yt-video-title {
+  display: block;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.yt-video-title:hover {
+  color: var(--accent);
+}
+
+/* Keyword tags */
+.yt-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.yt-keyword-tag {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 0.82rem;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.yt-keyword-count {
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Comments */
+.yt-comment {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--table-border-light);
+}
+
+.yt-comment:last-child {
+  border-bottom: none;
+}
+
+.yt-comment__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.yt-comment__author {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.yt-comment__date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.yt-comment__likes {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.yt-comment__text {
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.yt-comment__text a {
+  color: var(--accent);
+}
+
+.yt-comment__meta {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .yt-video-title {
+    max-width: 160px;
+  }
+
+  .yt-summary {
+    flex-wrap: wrap;
+    gap: 12px;
   }
 }
