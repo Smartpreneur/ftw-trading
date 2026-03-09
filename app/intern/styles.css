@@ -867,7 +867,7 @@
 }
 
 .bar-chart__val--revenue {
-  color: #A78BFA;
+  color: var(--text-heading);
   font-weight: 600;
 }
 
@@ -1026,11 +1026,16 @@
 
   .chart-mode-toggle {
     width: 100%;
+    overflow: hidden;
   }
 
   .chart-mode-toggle__btn {
     flex: 1;
     text-align: center;
+    padding: 4px 6px;
+    font-size: 0.7rem;
+    min-width: 0;
+    white-space: nowrap;
   }
 
   .funnel {
