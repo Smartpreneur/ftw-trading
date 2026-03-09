@@ -646,6 +646,31 @@
   position: relative;
 }
 
+.bar-chart--with-grid {
+  margin-left: 42px;
+}
+
+/* Y-axis gridlines */
+.bar-chart__gridline {
+  position: absolute;
+  left: -42px;
+  right: 0;
+  height: 0;
+  border-top: 1px dashed var(--table-border);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bar-chart__gridlabel {
+  position: absolute;
+  right: calc(100% + 6px);
+  top: -8px;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .bar-chart__col {
   flex: 1;
   display: flex;
@@ -655,6 +680,7 @@
   justify-content: flex-end;
   position: relative;
   cursor: pointer;
+  z-index: 1;
   border-radius: 6px;
   padding: 4px 2px 0;
   transition: background 0.15s;
@@ -1150,6 +1176,18 @@
   .bar-chart {
     height: 140px;
     min-width: 0;
+  }
+
+  .bar-chart--with-grid {
+    margin-left: 32px;
+  }
+
+  .bar-chart__gridline {
+    left: -32px;
+  }
+
+  .bar-chart__gridlabel {
+    font-size: 0.5rem;
   }
 
   .bar-chart__col {

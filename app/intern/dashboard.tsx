@@ -283,6 +283,20 @@ export function InternDashboard() {
     return 1
   }
 
+  // Y-axis gridlines for revenue/ARR charts
+  function niceGridLines(maxVal: number): number[] {
+    if (maxVal <= 0) return []
+    const steps = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]
+    const step = steps.find(s => maxVal / s <= 5) || Math.ceil(maxVal / 4 / 10000) * 10000
+    const lines: number[] = []
+    for (let v = step; v < maxVal; v += step) lines.push(v)
+    return lines
+  }
+  function formatK(v: number): string {
+    if (v >= 1000) return `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k`
+    return `${v}`
+  }
+
   const displayLabel = isDayFiltered ? formatDay(selectedDay) : rangeLabel
 
   return (
@@ -481,7 +495,19 @@ export function InternDashboard() {
           </div>
         )}
 
-        <div className="bar-chart">
+        <div className={`bar-chart ${chartMode === 'revenue' || chartMode === 'arr' ? 'bar-chart--with-grid' : ''}`}>
+          {(chartMode === 'revenue' || chartMode === 'arr') && (() => {
+            const max = chartMode === 'revenue' ? maxRevenue : maxARR
+            return niceGridLines(max).map(v => (
+              <div
+                key={v}
+                className="bar-chart__gridline"
+                style={{ bottom: `${(v / max) * 100}%` }}
+              >
+                <span className="bar-chart__gridlabel">{formatK(v)} €</span>
+              </div>
+            ))
+          })()}
           {chartDays.map(day => {
             const sessions = data.uniqueSessionsByDay[day] || 0
             const clicks = data.clicksByDay[day] || 0
