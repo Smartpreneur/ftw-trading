@@ -444,17 +444,18 @@ export function InternDashboard() {
           <h2>Tagesübersicht</h2>
           <div className="chart-mode-toggle">
             {([
-              { key: 'funnel' as const, label: 'Konvertierung' },
-              { key: 'visitors' as const, label: 'Besucher' },
-              { key: 'revenue' as const, label: 'Umsatz' },
-              { key: 'arr' as const, label: 'ARR' },
+              { key: 'funnel' as const, label: 'Konvertierung', short: 'Konvert.' },
+              { key: 'visitors' as const, label: 'Besucher', short: 'Besucher' },
+              { key: 'revenue' as const, label: 'Umsatz', short: 'Umsatz' },
+              { key: 'arr' as const, label: 'ARR', short: 'ARR' },
             ]).map(m => (
               <button
                 key={m.key}
                 className={`chart-mode-toggle__btn ${chartMode === m.key ? 'chart-mode-toggle__btn--active' : ''}`}
                 onClick={() => setChartMode(m.key)}
               >
-                {m.label}
+                <span className="chart-mode-toggle__full">{m.label}</span>
+                <span className="chart-mode-toggle__short">{m.short}</span>
               </button>
             ))}
           </div>
