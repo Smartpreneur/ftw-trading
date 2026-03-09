@@ -424,7 +424,7 @@ export function InternDashboard() {
                         .sort(([, a], [, b]) => b.arr - a.arr)
                         .map(([plan, v]) => (
                           <div key={plan} className="funnel__breakdown-row">
-                            <span>{plan} &times;{v.multiplier}/Jahr</span>
+                            <span>{plan}</span>
                             <span>{v.count} &times; {v.unitPrice.toFixed(0)} &times; {v.multiplier} = {v.arr.toFixed(0)} €</span>
                           </div>
                         ))}
