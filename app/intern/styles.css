@@ -20,7 +20,9 @@
   --table-border-light: rgba(255, 255, 255, 0.04);
 }
 
-.intern-shell.light, .intern.light, .intern-login.light {
+.intern-shell.light,
+.light .intern,
+.intern-login.light {
   --bg: #f5f7fa;
   --bg-card: #ffffff;
   --text: #2d3748;
@@ -313,8 +315,12 @@
   width: 100%;
 }
 
-.intern:not(.light) .range-filter__date {
+.intern-shell:not(.light) .range-filter__date {
   color-scheme: dark;
+}
+
+.light .range-filter__date {
+  color-scheme: light;
 }
 
 .range-filter__date:focus {
@@ -1190,8 +1196,12 @@
   min-width: 180px;
 }
 
-.intern:not(.light) .rabatt-input {
+.intern-shell:not(.light) .rabatt-input {
   color-scheme: dark;
+}
+
+.light .rabatt-input {
+  color-scheme: light;
 }
 
 .rabatt-input:focus {
@@ -1558,8 +1568,12 @@
   transition: border-color 0.2s;
 }
 
-.intern:not(.light) .kb-input {
+.intern-shell:not(.light) .kb-input {
   color-scheme: dark;
+}
+
+.light .kb-input {
+  color-scheme: light;
 }
 
 .kb-input:focus {
@@ -1606,8 +1620,12 @@
   font-family: inherit;
 }
 
-.intern:not(.light) .kb-select {
+.intern-shell:not(.light) .kb-select {
   color-scheme: dark;
+}
+
+.light .kb-select {
+  color-scheme: light;
 }
 
 .kb-select:focus {
