@@ -40,7 +40,7 @@ export default async function TradesPage({
         </div>
       )}
 
-      <TradeTable trades={trades} />
+      <TradeTable trades={trades} initialProfiles={selectedProfiles} />
     </div>
   )
 }

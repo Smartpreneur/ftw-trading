@@ -121,6 +121,7 @@ export async function convertSetupToTrade(setupId: string, einstiegspreis: numbe
     ausstiegspreis: null,
     bemerkungen: setup.bemerkungen,
     profil: setup.profil,
+    gewichtung: 1.0,
   }
 
   const { error: insertError } = await supabase.from('trades').insert([tradeData])

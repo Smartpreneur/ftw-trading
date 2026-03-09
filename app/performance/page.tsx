@@ -46,6 +46,7 @@ export default async function DashboardPage({
   const params = await searchParams
   const profilesParam = params.profiles
   const selectedProfiles = profilesParam?.split(',') as TradingProfile[] | undefined
+  const tradesHref = profilesParam ? `/trades?profiles=${profilesParam}` : '/trades'
 
   let trades: Awaited<ReturnType<typeof getTrades>> = []
   let error: string | null = null
@@ -78,7 +79,7 @@ export default async function DashboardPage({
 
   function calcHoldingDays(openDate: string, closeIso: string) {
     const close = closeIso.split('T')[0]
-    return Math.max(0, Math.round(
+    return Math.max(1, Math.round(
       (new Date(close).getTime() - new Date(openDate).getTime()) / (1000 * 60 * 60 * 24)
     ))
   }
@@ -277,7 +278,7 @@ export default async function DashboardPage({
             <div className="flex items-center gap-2">
               <RefreshPricesButton />
               <Link
-                href="/trades"
+                href={tradesHref}
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Alle Trades
@@ -339,6 +340,11 @@ export default async function DashboardPage({
                     <TableCell className="pl-6">
                       <div>
                         <span className="font-medium">{trade.asset}</span>
+                        {trade.gewichtung < 1 && (
+                          <span className="ml-1 text-[10px] text-muted-foreground">
+                            {Math.round(trade.gewichtung * 100)}%
+                          </span>
+                        )}
                         {partialCloseLabels.has(trade.id) && (
                           <span className={cn(
                             "ml-1.5 text-[10px] font-semibold",

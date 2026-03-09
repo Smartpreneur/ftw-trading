@@ -18,14 +18,16 @@ export function calculateKPIs(trades: TradeWithPerformance[]): PerformanceKPIs {
 
   const winRate = closed.length > 0 ? (winners.length / closed.length) * 100 : 0
 
+  const totalWinWeight = winners.reduce((s, t) => s + (t.gewichtung ?? 1), 0)
   const avgWin =
-    winners.length > 0
-      ? winners.reduce((s, t) => s + (t.performance_pct ?? 0), 0) / winners.length
+    totalWinWeight > 0
+      ? winners.reduce((s, t) => s + (t.performance_pct ?? 0) * (t.gewichtung ?? 1), 0) / totalWinWeight
       : 0
 
+  const totalLossWeight = losers.reduce((s, t) => s + (t.gewichtung ?? 1), 0)
   const avgLoss =
-    losers.length > 0
-      ? Math.abs(losers.reduce((s, t) => s + (t.performance_pct ?? 0), 0) / losers.length)
+    totalLossWeight > 0
+      ? Math.abs(losers.reduce((s, t) => s + (t.performance_pct ?? 0) * (t.gewichtung ?? 1), 0) / totalLossWeight)
       : 0
 
   const perfValues = closed.map((t) => t.performance_pct ?? 0)
@@ -53,7 +55,7 @@ export function calculateMonthlyPerformance(
     (t) => t.status !== 'Aktiv' && t.performance_pct !== null
   )
 
-  const byMonth: Record<string, { month: string; sum: number; count: number; wins: number }> = {}
+  const byMonth: Record<string, { month: string; sum: number; totalWeight: number; count: number; wins: number }> = {}
 
   for (const trade of closed) {
     // Use closing date if available, otherwise use opening date
@@ -63,11 +65,14 @@ export function calculateMonthlyPerformance(
       byMonth[key] = {
         month: getMonthLabel(dateToUse),
         sum: 0,
+        totalWeight: 0,
         count: 0,
         wins: 0,
       }
     }
-    byMonth[key].sum += trade.performance_pct ?? 0
+    const w = trade.gewichtung ?? 1
+    byMonth[key].sum += (trade.performance_pct ?? 0) * w
+    byMonth[key].totalWeight += w
     byMonth[key].count++
     if ((trade.performance_pct ?? 0) > 0) byMonth[key].wins++
   }
@@ -76,7 +81,7 @@ export function calculateMonthlyPerformance(
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, v]) => ({
       month: v.month,
-      avg_pct: Math.round((v.sum / v.count) * 100) / 100,
+      avg_pct: v.totalWeight > 0 ? Math.round((v.sum / v.totalWeight) * 100) / 100 : 0,
       trade_count: v.count,
       win_count: v.wins,
     }))
@@ -91,12 +96,14 @@ export function calculateAssetClassPerformance(
       t.performance_pct !== null
   )
 
-  const byClass: Record<string, { sum: number; count: number; wins: number }> = {}
+  const byClass: Record<string, { sum: number; totalWeight: number; count: number; wins: number }> = {}
 
   for (const trade of closed) {
     const key = trade.asset_klasse
-    if (!byClass[key]) byClass[key] = { sum: 0, count: 0, wins: 0 }
-    byClass[key].sum += trade.performance_pct ?? 0
+    if (!byClass[key]) byClass[key] = { sum: 0, totalWeight: 0, count: 0, wins: 0 }
+    const w = trade.gewichtung ?? 1
+    byClass[key].sum += (trade.performance_pct ?? 0) * w
+    byClass[key].totalWeight += w
     byClass[key].count++
     if ((trade.performance_pct ?? 0) > 0) byClass[key].wins++
   }
@@ -106,7 +113,7 @@ export function calculateAssetClassPerformance(
     trade_count: v.count,
     win_count: v.wins,
     win_rate: Math.round((v.wins / v.count) * 1000) / 10,
-    avg_pct: Math.round((v.sum / v.count) * 100) / 100,
+    avg_pct: v.totalWeight > 0 ? Math.round((v.sum / v.totalWeight) * 100) / 100 : 0,
   }))
 }
 
@@ -122,14 +129,14 @@ export function calculateEquityCurve(
     }))
     .sort((a, b) => a.displayDate.localeCompare(b.displayDate))
 
-  // Equal weighting: assume each trade uses 10% of depot
-  const positionSize = 0.1
+  // Base position size: 10% of depot, scaled by trade weight
+  const basePositionSize = 0.1
   let depotValue = 100 // Start with 100%
 
   return closed.map((t) => {
-    // Apply trade performance to the position size
     const tradeReturn = (t.performance_pct ?? 0) / 100
-    depotValue = depotValue * (1 + positionSize * tradeReturn)
+    const weight = t.gewichtung ?? 1
+    depotValue = depotValue * (1 + weight * basePositionSize * tradeReturn)
     const cumulativePct = depotValue - 100
 
     const date = t.displayDate
@@ -140,6 +147,7 @@ export function calculateEquityCurve(
       asset: t.asset,
       richtung: t.richtung ?? 'LONG',
       trade_pct: t.performance_pct ?? 0,
+      gewichtung: weight,
     }
   })
 }

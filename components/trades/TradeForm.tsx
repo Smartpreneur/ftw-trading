@@ -48,6 +48,9 @@ const asNullableStr = (v: unknown) => toNullableString(v)
 
 export function TradeForm({ trade, onSuccess }: TradeFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [gewichtungPct, setGewichtungPct] = useState(
+    Math.round((trade?.gewichtung ?? 1) * 100)
+  )
   const [manuell, setManuell] = useState(trade?.manuell_getrackt ?? false)
   const [tpSlTimestamps, setTpSlTimestamps] = useState({
     tp1_erreicht_am: trade?.tp1_erreicht_am?.split('T')[0] ?? '',
@@ -82,12 +85,14 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
           datum_schliessung: trade.datum_schliessung ?? undefined,
           ausstiegspreis: trade.ausstiegspreis ?? undefined,
           bemerkungen: trade.bemerkungen ?? undefined,
+          gewichtung: trade.gewichtung ?? 1,
         }
       : {
           status: 'Aktiv',
           richtung: 'LONG',
           asset_klasse: 'Index',
           datum_eroeffnung: new Date().toISOString().split('T')[0],
+          gewichtung: 1,
         },
   })
 
@@ -98,6 +103,7 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
     try {
       const payload = {
         ...values,
+        gewichtung: gewichtungPct / 100,
         manuell_getrackt: manuell,
         ...(manuell ? {
           tp1_erreicht_am: tpSlTimestamps.tp1_erreicht_am || null,
@@ -219,8 +225,8 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
         ))}
       </div>
 
-      {/* Closing fields */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Closing fields + Gewichtung */}
+      <div className="grid grid-cols-3 gap-3">
         <Field label="Schließungsdatum" error={errors.datum_schliessung?.message}>
           <Input
             type="date"
@@ -235,6 +241,16 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
             placeholder="0.00"
             disabled={status === 'Aktiv'}
             {...register('ausstiegspreis', { setValueAs: asNullableNum })}
+          />
+        </Field>
+        <Field label="Gewichtung (%)">
+          <Input
+            type="number"
+            min="0"
+            max="100"
+            step="5"
+            value={gewichtungPct}
+            onChange={(e) => setGewichtungPct(Number(e.target.value) || 100)}
           />
         </Field>
       </div>

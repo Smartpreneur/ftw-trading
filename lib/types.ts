@@ -28,6 +28,7 @@ export interface Trade {
   tp4_erreicht_am: string | null
   sl_erreicht_am: string | null
   manuell_getrackt: boolean
+  gewichtung: number
   created_at: string
   updated_at: string
 }
@@ -62,6 +63,7 @@ export type TradeFormData = {
   tp3_erreicht_am?: string | null
   tp4_erreicht_am?: string | null
   sl_erreicht_am?: string | null
+  gewichtung?: number
 }
 
 export interface PerformanceKPIs {
@@ -97,6 +99,7 @@ export interface EquityCurvePoint {
   asset: string
   richtung: TradeDirection
   trade_pct: number
+  gewichtung: number
 }
 
 export interface TradeSetup {

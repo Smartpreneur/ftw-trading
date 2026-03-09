@@ -48,10 +48,11 @@ function enrichTrade(trade: Trade): TradeWithPerformance {
     }
   }
 
-  // Holding days
+  // Holding days – closed same-day trades count as 1 day
   const start = parseISO(trade.datum_eroeffnung)
   const end = trade.datum_schliessung ? parseISO(trade.datum_schliessung) : new Date()
-  const haltedauer_tage = Math.max(0, differenceInCalendarDays(end, start))
+  const diffDays = differenceInCalendarDays(end, start)
+  const haltedauer_tage = trade.datum_schliessung ? Math.max(1, diffDays) : Math.max(0, diffDays)
 
   return { ...trade, performance_pct, risiko_pct, risk_reward, haltedauer_tage }
 }

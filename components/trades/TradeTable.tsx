@@ -29,14 +29,15 @@ type SortOrder = 'asc' | 'desc'
 
 interface TradeTableProps {
   trades: TradeWithPerformance[]
+  initialProfiles?: string[]
 }
 
-export function TradeTable({ trades }: TradeTableProps) {
+export function TradeTable({ trades, initialProfiles }: TradeTableProps) {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string[]>(TRADE_STATUSES)
   const [filterDirection, setFilterDirection] = useState<string[]>(['LONG', 'SHORT'])
   const [filterAssetClass, setFilterAssetClass] = useState<string[]>(ASSET_CLASSES)
-  const [filterTrader, setFilterTrader] = useState<string[]>(TRADING_PROFILES)
+  const [filterTrader, setFilterTrader] = useState<string[]>(initialProfiles ?? TRADING_PROFILES)
   const [sortBy, setSortBy] = useState<SortField>('id')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
@@ -323,7 +324,14 @@ export function TradeTable({ trades }: TradeTableProps) {
                   <TableCell className="text-sm whitespace-nowrap">
                     {formatDate(trade.datum_schliessung)}
                   </TableCell>
-                  <TableCell className="font-medium">{trade.asset}</TableCell>
+                  <TableCell className="font-medium">
+                    {trade.asset}
+                    {trade.gewichtung < 1 && (
+                      <span className="ml-1.5 text-[10px] text-muted-foreground font-normal">
+                        {Math.round(trade.gewichtung * 100)}%
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="text-xs">
                       {trade.asset_klasse}

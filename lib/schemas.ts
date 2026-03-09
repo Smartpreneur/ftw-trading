@@ -16,6 +16,7 @@ export const tradeSchema = z.object({
   datum_schliessung: z.string().nullable().optional(),
   ausstiegspreis: z.number().nullable().optional(),
   bemerkungen: z.string().nullable().optional(),
+  gewichtung: z.number().min(0, 'Min. 0%').max(1, 'Max. 100%'),
 })
 
 export type TradeSchemaValues = z.infer<typeof tradeSchema>
