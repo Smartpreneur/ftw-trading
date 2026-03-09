@@ -646,14 +646,10 @@
   position: relative;
 }
 
-.bar-chart--with-grid {
-  margin-left: 42px;
-}
-
 /* Y-axis gridlines */
 .bar-chart__gridline {
   position: absolute;
-  left: -42px;
+  left: 0;
   right: 0;
   height: 0;
   border-top: 1px dashed var(--table-border);
@@ -663,12 +659,13 @@
 
 .bar-chart__gridlabel {
   position: absolute;
-  right: calc(100% + 6px);
-  top: -8px;
-  font-size: 0.6rem;
+  left: 2px;
+  top: -14px;
+  font-size: 0.58rem;
   color: var(--text-muted);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  opacity: 0.7;
 }
 
 .bar-chart__col {
@@ -1178,16 +1175,8 @@
     min-width: 0;
   }
 
-  .bar-chart--with-grid {
-    margin-left: 32px;
-  }
-
-  .bar-chart__gridline {
-    left: -32px;
-  }
-
   .bar-chart__gridlabel {
-    font-size: 0.5rem;
+    font-size: 0.48rem;
   }
 
   .bar-chart__col {
