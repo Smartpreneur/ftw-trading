@@ -337,27 +337,30 @@ export function InternDashboard() {
 
       {/* Funnel Overview */}
       <div className="funnel">
-        <div className="funnel__step">
-          <div className="funnel__step-header">
-            <span className="funnel__step-label">Besucher</span>
-            <span className="funnel__step-value">{displaySessions}</span>
+        <div className="funnel__group" onClick={() => setClicksOpen(!clicksOpen)} role="button">
+          <div className="funnel__step funnel__step--visitors">
+            <div className="funnel__step-header">
+              <span className="funnel__step-label">Besucher</span>
+              <span className="funnel__step-value">{displaySessions}</span>
+            </div>
+            <div className="funnel__step-sub">{displayViews} Seitenaufrufe</div>
           </div>
-          <div className="funnel__step-sub">{displayViews} Seitenaufrufe</div>
-        </div>
 
-        <div className="funnel__arrow">&#9654;</div>
+          <div className="funnel__arrow">&#9654;</div>
 
-        <div className="funnel__step" onClick={() => setClicksOpen(!clicksOpen)} role="button">
-          <div className="funnel__step-header">
-            <span className="funnel__step-label">Checkout-Klicks</span>
-            <span className="funnel__step-value">{displayClicks}</span>
-            <span className={`funnel__step-chevron ${clicksOpen ? 'funnel__step-chevron--open' : ''}`}>&#9662;</span>
+          <div className="funnel__step funnel__step--clicks">
+            <div className="funnel__step-header">
+              <span className="funnel__step-label">Checkout-Klicks</span>
+              <span className="funnel__step-value">{displayClicks}</span>
+              <span className={`funnel__step-chevron ${clicksOpen ? 'funnel__step-chevron--open' : ''}`}>&#9662;</span>
+            </div>
+            <div className="funnel__step-rate">
+              {displaySessions > 0 ? ((displayClicks / displaySessions) * 100).toFixed(1) : '0'} % der Besucher
+            </div>
           </div>
-          <div className="funnel__step-rate">
-            {displaySessions > 0 ? ((displayClicks / displaySessions) * 100).toFixed(1) : '0'} % der Besucher
-          </div>
+
           {clicksOpen && (
-            <div className="funnel__breakdown">
+            <div className="funnel__group-breakdown">
               {Object.entries(displayProducts)
                 .sort(([, a], [, b]) => b - a)
                 .map(([product, clicks]) => (

@@ -342,6 +342,21 @@
   margin-bottom: 8px;
 }
 
+/* Desktop: group is transparent to grid */
+.funnel__group {
+  display: contents;
+  cursor: pointer;
+}
+
+.funnel__group-breakdown {
+  grid-column: 1 / 3;
+  background: var(--bg-card);
+  border: 1px solid var(--border-accent);
+  border-radius: 12px;
+  padding: 12px 20px;
+  margin-top: -4px;
+}
+
 .funnel__step {
   background: var(--bg-card);
   border-radius: 12px;
@@ -1023,10 +1038,60 @@
     gap: 8px;
   }
 
-  .funnel__arrow {
+  .funnel > .funnel__arrow {
     transform: rotate(90deg);
     margin: 0;
     padding: 4px 0;
+  }
+
+  /* Besucher + Checkout combined in one card on mobile */
+  .funnel__group {
+    display: flex;
+    flex-wrap: wrap;
+    background: var(--bg-card);
+    border: 1px solid var(--border-accent);
+    border-radius: 12px;
+    padding: 16px;
+    gap: 0;
+    cursor: pointer;
+  }
+
+  .funnel__group .funnel__step {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .funnel__group .funnel__step--visitors {
+    flex: 0 0 auto;
+    padding-right: 16px;
+    border-right: 1px solid var(--border);
+    margin-right: 16px;
+  }
+
+  .funnel__group .funnel__step--visitors .funnel__step-sub {
+    margin-bottom: 0;
+  }
+
+  .funnel__group .funnel__step--clicks {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .funnel__group .funnel__arrow {
+    display: none;
+  }
+
+  .funnel__group-breakdown {
+    grid-column: auto;
+    flex-basis: 100%;
+    border: none;
+    border-top: 1px solid var(--border);
+    border-radius: 0;
+    background: none;
+    padding: 12px 0 0;
+    margin-top: 12px;
   }
 
   .kpi-grid {
