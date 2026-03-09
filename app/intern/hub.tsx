@@ -1,5 +1,8 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { useDevMode } from './use-dev-mode'
+
 const sections = [
   {
     title: 'Planung',
@@ -18,6 +21,7 @@ const sections = [
     description: 'Kanal-KPIs, Video-Performance und Kommentar-Analyse',
     href: '/intern/youtube',
     icon: '🎬',
+    dev: true,
   },
   {
     title: 'Rabattcodes',
@@ -34,9 +38,12 @@ const sections = [
 ]
 
 export function InternHub() {
+  const devMode = useDevMode()
+  const visible = sections.filter(s => !s.dev || devMode)
+
   return (
     <div className="hub-grid">
-      {sections.map(s => (
+      {visible.map(s => (
         <a key={s.href} href={s.href} className="hub-card">
           <span className="hub-card__icon">{s.icon}</span>
           <h2 className="hub-card__title">{s.title}</h2>

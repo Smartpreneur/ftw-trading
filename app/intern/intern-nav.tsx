@@ -3,11 +3,12 @@
 import { usePathname } from 'next/navigation'
 import { logout } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
+import { useDevMode } from './use-dev-mode'
 
 const navLinks = [
   { href: '/intern', label: 'Übersicht', icon: 'home' },
   { href: '/intern/analytics', label: 'Analytics', icon: 'chart' },
-  { href: '/intern/youtube', label: 'YouTube', icon: 'youtube' },
+  { href: '/intern/youtube', label: 'YouTube', icon: 'youtube', dev: true },
   { href: '/intern/planung', label: 'Planung', icon: 'kanban' },
   { href: '/intern/rabattcodes', label: 'Rabattcodes', icon: 'tag' },
 ]
@@ -33,17 +34,20 @@ function NavIcon({ type }: { type: string }) {
 export function InternNav({ light, toggle }: { light: boolean; toggle: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
+  const devMode = useDevMode()
 
   const handleLogout = async () => {
     await logout()
     router.refresh()
   }
 
+  const visibleLinks = navLinks.filter(l => !l.dev || devMode)
+
   return (
     <nav className="intern-nav">
       <div className="intern-nav__inner">
         <div className="intern-nav__links">
-          {navLinks.map(link => (
+          {visibleLinks.map(link => (
             <a
               key={link.href}
               href={link.href}
