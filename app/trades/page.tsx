@@ -1,6 +1,6 @@
 import { getTrades } from '@/lib/actions'
 import { TradeTable } from '@/components/trades/TradeTable'
-import { checkAuth } from '@/lib/auth'
+import { checkAuth, checkAdmin } from '@/lib/auth'
 import { PasswordGate } from '@/components/password-gate'
 import type { TradingProfile } from '@/lib/types'
 
@@ -11,6 +11,8 @@ export default async function TradesPage({
 }) {
   const isAuthed = await checkAuth()
   if (!isAuthed) return <PasswordGate />
+
+  const isAdmin = await checkAdmin()
 
   const params = await searchParams
   const profilesParam = params.profiles
@@ -40,7 +42,7 @@ export default async function TradesPage({
         </div>
       )}
 
-      <TradeTable trades={trades} initialProfiles={selectedProfiles} />
+      <TradeTable trades={trades} initialProfiles={selectedProfiles} isAdmin={isAdmin} />
     </div>
   )
 }

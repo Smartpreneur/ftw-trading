@@ -1,12 +1,12 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { BookOpen, LayoutDashboard, TrendingUp, Menu } from 'lucide-react'
 import Image from 'next/image'
-import { ProfileFilter } from '@/components/profile-filter'
+import { AdminLoginDialog } from '@/components/AdminLoginDialog'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -22,7 +22,11 @@ const links = [
   { href: '/setups', label: 'Trade-Setups', icon: TrendingUp },
 ]
 
-export function Nav() {
+interface NavProps {
+  isAdmin: boolean
+}
+
+export function Nav({ isAdmin }: NavProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
@@ -61,12 +65,8 @@ export function Nav() {
             ))}
           </nav>
 
-          {/* Desktop Profile Filter */}
-          <div className="hidden md:block">
-            <Suspense fallback={<div className="h-9 w-24 bg-muted animate-pulse rounded-md" />}>
-              <ProfileFilter />
-            </Suspense>
-          </div>
+          {/* Admin Login */}
+          <AdminLoginDialog isAdmin={isAdmin} />
 
           {/* Mobile Menu Button */}
           <Sheet open={open} onOpenChange={setOpen}>
@@ -100,14 +100,6 @@ export function Nav() {
                     </Link>
                   ))}
                 </nav>
-
-                {/* Trader Filter */}
-                <div className="border-t pt-4">
-                  <p className="text-sm font-medium mb-3 px-3">Trader Filter</p>
-                  <Suspense fallback={<div className="h-9 w-full bg-muted animate-pulse rounded-md" />}>
-                    <ProfileFilter />
-                  </Suspense>
-                </div>
               </div>
             </SheetContent>
           </Sheet>

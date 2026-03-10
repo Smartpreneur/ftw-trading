@@ -4,6 +4,7 @@ import './globals.css'
 import { ConditionalNav } from '@/components/conditional-nav'
 import { ConditionalMain } from '@/components/conditional-main'
 import { Toaster } from '@/components/ui/sonner'
+import { checkAdmin } from '@/lib/auth'
 
 const geist = Geist({
   variable: '--font-geist-sans',
@@ -15,15 +16,17 @@ export const metadata: Metadata = {
   description: 'Fertige Analysen für jede Marktlage – direkt ins Postfach, sofort umsetzbar.',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const isAdmin = await checkAdmin()
+
   return (
     <html lang="de">
       <body className={`${geist.variable} font-sans antialiased`} suppressHydrationWarning>
-        <ConditionalNav />
+        <ConditionalNav isAdmin={isAdmin} />
         <ConditionalMain>{children}</ConditionalMain>
         <Toaster richColors position="bottom-right" />
       </body>

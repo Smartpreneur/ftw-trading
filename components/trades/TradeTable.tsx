@@ -30,9 +30,10 @@ type SortOrder = 'asc' | 'desc'
 interface TradeTableProps {
   trades: TradeWithPerformance[]
   initialProfiles?: string[]
+  isAdmin?: boolean
 }
 
-export function TradeTable({ trades, initialProfiles }: TradeTableProps) {
+export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTableProps) {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string[]>(TRADE_STATUSES)
   const [filterDirection, setFilterDirection] = useState<string[]>(['LONG', 'SHORT'])
@@ -204,17 +205,19 @@ export function TradeTable({ trades, initialProfiles }: TradeTableProps) {
           </Button>
         )}
 
-        {/* New Trade Button - right side */}
-        <div className="ml-auto">
-          <TradeDialog
-            trigger={
-              <Button size="sm" className="gap-1.5">
-                <Plus className="h-4 w-4" />
-                Neuer Trade
-              </Button>
-            }
-          />
-        </div>
+        {/* New Trade Button - right side (admin only) */}
+        {isAdmin && (
+          <div className="ml-auto">
+            <TradeDialog
+              trigger={
+                <Button size="sm" className="gap-1.5">
+                  <Plus className="h-4 w-4" />
+                  Neuer Trade
+                </Button>
+              }
+            />
+          </div>
+        )}
       </div>
 
       {/* Count */}
@@ -302,13 +305,13 @@ export function TradeTable({ trades, initialProfiles }: TradeTableProps) {
                   <SortIcon field="performance" />
                 </button>
               </TableHead>
-              <TableHead className="text-right">Aktionen</TableHead>
+              {isAdmin && <TableHead className="text-right">Aktionen</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={isAdmin ? 11 : 10} className="h-24 text-center text-muted-foreground">
                   {hasFilters ? 'Keine Trades für diese Filter' : 'Noch keine Trades vorhanden'}
                 </TableCell>
               </TableRow>
@@ -367,26 +370,28 @@ export function TradeTable({ trades, initialProfiles }: TradeTableProps) {
                       <span className="text-muted-foreground text-sm">–</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <TradeDialog
-                        trade={trade}
-                        trigger={
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                        }
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(trade.id, trade.asset)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
+                  {isAdmin && (
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <TradeDialog
+                          trade={trade}
+                          trigger={
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          }
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(trade.id, trade.asset)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}

@@ -15,9 +15,10 @@ import type { TradeSetup } from '@/lib/types'
 
 interface SetupCardProps {
   setup: TradeSetup
+  isAdmin?: boolean
 }
 
-export function SetupCard({ setup }: SetupCardProps) {
+export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
   const isLong = setup.richtung === 'LONG'
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
@@ -89,25 +90,27 @@ export function SetupCard({ setup }: SetupCardProps) {
               <p className="text-xs text-muted-foreground">Kurs bei Signal</p>
               <p className="text-base font-bold tabular-nums">{formatPrice(setup.aktueller_kurs)}</p>
             </div>
-            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              <SetupDialog
-                setup={setup}
-                trigger={
-                  <Button variant="ghost" size="icon" className="h-7 w-7">
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                }
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-destructive hover:text-destructive"
-                onClick={handleDelete}
-                disabled={isDeleting}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
+            {isAdmin && (
+              <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <SetupDialog
+                  setup={setup}
+                  trigger={
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  }
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-destructive hover:text-destructive"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -247,8 +250,8 @@ export function SetupCard({ setup }: SetupCardProps) {
           {formattedDate}
         </p>
 
-        {/* Convert to Trade button - only for active setups */}
-        {setup.status === 'Aktiv' && (
+        {/* Convert to Trade button - only for active setups, admin only */}
+        {isAdmin && setup.status === 'Aktiv' && (
           <Button
             onClick={handleConvertToTrade}
             disabled={isConverting}

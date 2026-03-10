@@ -3,9 +3,10 @@ import type { TradeSetup } from '@/lib/types'
 
 interface SetupGridProps {
   setups: TradeSetup[]
+  isAdmin?: boolean
 }
 
-export function SetupGrid({ setups }: SetupGridProps) {
+export function SetupGrid({ setups, isAdmin = false }: SetupGridProps) {
   if (setups.length === 0) {
     return (
       <div className="rounded-md border border-dashed p-12 text-center">
@@ -22,7 +23,7 @@ export function SetupGrid({ setups }: SetupGridProps) {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {setups.map((setup) => (
-        <SetupCard key={setup.id} setup={setup} />
+        <SetupCard key={setup.id} setup={setup} isAdmin={isAdmin} />
       ))}
     </div>
   )

@@ -35,45 +35,46 @@ import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { ProfileTabs } from '@/components/performance/ProfileTabs'
-import type { TradingProfile } from '@/lib/types'
+import { resolveTab } from '@/lib/profile-tabs'
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ profiles?: string }>
+  searchParams: Promise<{ tab?: string }>
 }) {
   const isAuthed = await checkAuth()
   if (!isAuthed) return <PasswordGate />
 
   const params = await searchParams
-  const profilesParam = params.profiles
-  // Default to "Gesamt" profiles (MB3 + SJ + SJ2) if none specified
-  const selectedProfiles: TradingProfile[] = profilesParam
-    ? (profilesParam.split(',') as TradingProfile[])
-    : ['MB3', 'SJ', 'SJ2']
-  const tradesHref = `/trades?profiles=${selectedProfiles.join(',')}`
+  const tabConfig = resolveTab(params.tab)
+  const tradesHref = `/trades`
 
-  let trades: Awaited<ReturnType<typeof getCachedTrades>> = []
+  let kpiTrades: Awaited<ReturnType<typeof getCachedTrades>> = []
   let activePrices: Awaited<ReturnType<typeof getActiveTradePrices>> = []
-  let activeSetups: Awaited<ReturnType<typeof getCachedSetups>> = []
+  let allSetups: Awaited<ReturnType<typeof getCachedSetups>> = []
   let error: string | null = null
 
-  // Fetch trades, prices, and setups in parallel (trades + setups are cached)
+  // Fetch KPI trades (all historical), prices, and setups in parallel
   try {
-    const [tradesResult, pricesResult, setupsResult] = await Promise.all([
-      getCachedTrades(selectedProfiles),
+    const [kpiResult, pricesResult, setupsResult] = await Promise.all([
+      getCachedTrades(tabConfig.kpiProfiles),
       getActiveTradePrices(),
-      getCachedSetups(selectedProfiles),
+      getCachedSetups(tabConfig.listProfiles),
     ])
-    trades = tradesResult
+    kpiTrades = kpiResult
     activePrices = pricesResult
-    activeSetups = setupsResult.filter(s => s.status === 'Aktiv')
+    allSetups = setupsResult
   } catch (e: any) {
     error = e?.message ?? 'Fehler beim Laden der Daten'
   }
 
+  // Filter list-profile trades from kpiTrades for trade lists
+  const listProfileSet = new Set(tabConfig.listProfiles)
+  const listTrades = kpiTrades.filter((t) => listProfileSet.has(t.profil))
+  const activeSetups = allSetups.filter(s => s.status === 'Aktiv')
+
   // SL-hit or fully-TP-reached trades are effectively closed → don't show in active
-  const allAktiv = trades.filter((t) => t.status === 'Aktiv')
+  const allAktiv = listTrades.filter((t) => t.status === 'Aktiv')
   const activeTrades = allAktiv.filter((t) => {
     if (t.sl_erreicht_am) return false
     // Check if all defined TPs are reached
@@ -87,8 +88,8 @@ export default async function DashboardPage({
     return true
   })
 
-  // Generate virtual close entries from TP hits and SL hits (all trades, not just active)
-  const partialCloseEntries: typeof trades = []
+  // Generate virtual close entries from TP hits and SL hits (all KPI trades)
+  const partialCloseEntries: typeof kpiTrades = []
   const partialCloseLabels = new Map<string, string>()
   const replacedTradeIds = new Set<string>()
 
@@ -99,12 +100,10 @@ export default async function DashboardPage({
     ))
   }
 
-  for (const trade of trades) {
+  for (const trade of kpiTrades) {
     if (!trade.einstiegspreis || !trade.richtung) continue
 
     // Trades with explicit partial weight (< 1) already represent partial positions
-    // (e.g. DAX tranches: 50% at TP1, 25% at TP2, 25% at TP3).
-    // Don't split them further into virtual entries.
     if (trade.gewichtung < 1) continue
 
     // TP partial close entries
@@ -179,9 +178,8 @@ export default async function DashboardPage({
   }
 
   // Partial-weight active trades that are effectively closed (all TPs or SL hit)
-  // These need to appear in "Letzte Trades" even though status is still 'Aktiv'
-  const effectivelyClosedPartials: typeof trades = []
-  for (const trade of trades) {
+  const effectivelyClosedPartials: typeof kpiTrades = []
+  for (const trade of kpiTrades) {
     if (trade.gewichtung >= 1 || trade.status !== 'Aktiv') continue
     if (!trade.einstiegspreis || !trade.richtung) continue
 
@@ -230,8 +228,7 @@ export default async function DashboardPage({
   }
 
   // Add TP/SL labels for closed trades that weren't split into virtual entries
-  // (e.g. older trades without auto-detection timestamps, or closed partial-weight trades)
-  for (const trade of trades) {
+  for (const trade of kpiTrades) {
     if (replacedTradeIds.has(trade.id)) continue
     if (partialCloseLabels.has(trade.id)) continue
     if (!trade.einstiegspreis || !trade.richtung) continue
@@ -271,9 +268,9 @@ export default async function DashboardPage({
     }
   }
 
-  // KPI calculations: replace original trades that have virtual entries to avoid double-counting
+  // KPI calculations: use all KPI trades with virtual entries
   const tradesWithPartials = [
-    ...trades.filter((t) => !replacedTradeIds.has(t.id)),
+    ...kpiTrades.filter((t) => !replacedTradeIds.has(t.id)),
     ...partialCloseEntries,
     ...effectivelyClosedPartials,
   ]
@@ -282,10 +279,11 @@ export default async function DashboardPage({
 
   const RECENT_TRADES_CUTOFF = '2026-01-01'
 
+  // Recent trades list: only list-profile trades from 2026+
   const recentClosedTrades = [
-    ...trades.filter((t) => t.status !== 'Aktiv' && !replacedTradeIds.has(t.id)),
-    ...partialCloseEntries,
-    ...effectivelyClosedPartials,
+    ...listTrades.filter((t) => t.status !== 'Aktiv' && !replacedTradeIds.has(t.id)),
+    ...partialCloseEntries.filter((t) => listProfileSet.has(t.profil)),
+    ...effectivelyClosedPartials.filter((t) => listProfileSet.has(t.profil)),
   ]
     .filter((t) => {
       const closeDate = t.datum_schliessung || t.datum_eroeffnung
