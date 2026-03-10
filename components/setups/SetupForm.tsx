@@ -323,9 +323,9 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       </div>
 
       {/* Row 3: Datum, Aktueller Kurs, Status */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-3">
         <Field label="Datum *" error={errors.datum?.message}>
-          <Input type="datetime-local" {...register('datum')} />
+          <Input type="datetime-local" className="tabular-nums" {...register('datum')} />
         </Field>
         <Field label="Aktueller Kurs *" error={errors.aktueller_kurs?.message}>
           <div className="relative">
@@ -386,106 +386,51 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
             onClick={distributeEvenly}
             className="text-xs text-primary hover:underline"
           >
-            Gleichm. verteilen
+            Gleichmäßig verteilen
           </button>
         </div>
-        <div className="space-y-2">
-          {/* TP1 */}
-          <div className="grid grid-cols-[1fr_100px] gap-3 items-end">
-            <Field label="TP1 (Pflicht)" error={errors.tp1?.message}>
-              <Input
-                type="number"
-                step="any"
-                placeholder="Zielpreis"
-                {...register('tp1', { valueAsNumber: true })}
-              />
-            </Field>
-            <Field label="Anteil %" error={errors.tp1_gewichtung?.message}>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                step={5}
-                placeholder="%"
-                {...register('tp1_gewichtung', { setValueAs: asNullableNum })}
-              />
-            </Field>
-          </div>
-          {/* TP2 */}
-          <div className="grid grid-cols-[1fr_100px] gap-3 items-end">
-            <Field label="TP2" error={errors.tp2?.message}>
-              <Input
-                type="number"
-                step="any"
-                placeholder="Zielpreis"
-                {...register('tp2', { setValueAs: asNullableNum })}
-              />
-            </Field>
-            <Field label="Anteil %" error={errors.tp2_gewichtung?.message}>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                step={5}
-                placeholder="%"
-                {...register('tp2_gewichtung', { setValueAs: asNullableNum })}
-              />
-            </Field>
-          </div>
-          {/* TP3 */}
-          <div className="grid grid-cols-[1fr_100px] gap-3 items-end">
-            <Field label="TP3" error={errors.tp3?.message}>
-              <Input
-                type="number"
-                step="any"
-                placeholder="Zielpreis"
-                {...register('tp3', { setValueAs: asNullableNum })}
-              />
-            </Field>
-            <Field label="Anteil %" error={errors.tp3_gewichtung?.message}>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                step={5}
-                placeholder="%"
-                {...register('tp3_gewichtung', { setValueAs: asNullableNum })}
-              />
-            </Field>
-          </div>
-          {/* TP4 */}
-          <div className="grid grid-cols-[1fr_100px] gap-3 items-end">
-            <Field label="TP4" error={errors.tp4?.message}>
-              <Input
-                type="number"
-                step="any"
-                placeholder="Zielpreis"
-                {...register('tp4', { setValueAs: asNullableNum })}
-              />
-            </Field>
-            <Field label="Anteil %" error={errors.tp4_gewichtung?.message}>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                step={5}
-                placeholder="%"
-                {...register('tp4_gewichtung', { setValueAs: asNullableNum })}
-              />
-            </Field>
-          </div>
+        <div className="grid grid-cols-4 gap-3">
+          {([
+            { tp: 'tp1' as const, w: 'tp1_gewichtung' as const, label: 'TP1 *', reg: { valueAsNumber: true } },
+            { tp: 'tp2' as const, w: 'tp2_gewichtung' as const, label: 'TP2', reg: { setValueAs: asNullableNum } },
+            { tp: 'tp3' as const, w: 'tp3_gewichtung' as const, label: 'TP3', reg: { setValueAs: asNullableNum } },
+            { tp: 'tp4' as const, w: 'tp4_gewichtung' as const, label: 'TP4', reg: { setValueAs: asNullableNum } },
+          ]).map(({ tp, w, label, reg }) => (
+            <div key={tp} className="space-y-2">
+              <Field label={label} error={errors[tp]?.message}>
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder="Kurs"
+                  {...register(tp, reg)}
+                />
+              </Field>
+              <Field label="Anteil %" error={errors[w]?.message}>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  placeholder="%"
+                  {...register(w, { setValueAs: asNullableNum })}
+                />
+              </Field>
+            </div>
+          ))}
         </div>
         {/* Summe indicator */}
-        <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/50">
-          <span className="text-xs text-muted-foreground">Summe:</span>
-          <span className={`text-sm font-semibold tabular-nums ${weightSum === 100 ? 'text-emerald-600' : 'text-destructive'}`}>
-            {weightSum}%
-          </span>
-          {weightSum === 100 && <span className="text-emerald-600 text-xs">&#10003;</span>}
-          {weightSum !== 100 && activeCount > 0 && (
-            <span className="text-destructive text-xs">(muss 100% sein)</span>
-          )}
-        </div>
+        {activeCount > 0 && (
+          <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/50">
+            <span className="text-xs text-muted-foreground">Summe:</span>
+            <span className={`text-sm font-semibold tabular-nums ${weightSum === 100 ? 'text-emerald-600' : 'text-amber-600'}`}>
+              {weightSum}%
+            </span>
+            {weightSum === 100 && <span className="text-emerald-600 text-xs">&#10003;</span>}
+            {weightSum !== 100 && (
+              <span className="text-amber-600 text-xs">(idealerweise 100%)</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Row 5: CRV, Zeiteinheit, Dauer */}
