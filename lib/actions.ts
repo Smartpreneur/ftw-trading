@@ -76,7 +76,7 @@ export async function getTrades(profiles?: TradingProfile[]): Promise<TradeWithP
 }
 
 /** Cached wrapper – varies by profile combination, invalidated via revalidateTag('trades', 'max') */
-export function getCachedTrades(profiles?: TradingProfile[]) {
+export async function getCachedTrades(profiles?: TradingProfile[]) {
   const profileKey = profiles ? [...profiles].sort().join(',') : 'all'
   return unstable_cache(
     () => getTrades(profiles),

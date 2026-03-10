@@ -55,7 +55,7 @@ export async function getSetups(profiles?: TradingProfile[]): Promise<TradeSetup
 }
 
 /** Cached wrapper – varies by profile combination, invalidated via revalidateTag('setups', 'max') */
-export function getCachedSetups(profiles?: TradingProfile[]) {
+export async function getCachedSetups(profiles?: TradingProfile[]) {
   const profileKey = profiles ? [...profiles].sort().join(',') : 'all'
   return unstable_cache(
     () => getSetups(profiles),
