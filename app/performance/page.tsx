@@ -99,6 +99,11 @@ export default async function DashboardPage({
   for (const trade of trades) {
     if (!trade.einstiegspreis || !trade.richtung) continue
 
+    // Trades with explicit partial weight (< 1) already represent partial positions
+    // (e.g. DAX tranches: 50% at TP1, 25% at TP2, 25% at TP3).
+    // Don't split them further into virtual entries.
+    if (trade.gewichtung < 1) continue
+
     // TP partial close entries
     const tpLevels = [
       { key: 'tp1', level: trade.tp1, hitAt: trade.tp1_erreicht_am, label: 'TP1' },
@@ -112,9 +117,9 @@ export default async function DashboardPage({
 
     replacedTradeIds.add(trade.id)
 
-    // Distribute gewichtung evenly across defined TPs (unless trade already has explicit partial weight)
+    // Distribute gewichtung evenly across defined TPs
     const definedTPCount = tpLevels.filter((tp) => tp.level != null).length
-    const tpWeight = definedTPCount > 0 && trade.gewichtung >= 1
+    const tpWeight = definedTPCount > 0
       ? Math.round((trade.gewichtung / definedTPCount) * 100) / 100
       : trade.gewichtung
 
@@ -150,7 +155,7 @@ export default async function DashboardPage({
 
       // SL weight = total weight minus weight of TPs already hit
       const hitsCount = tpLevels.filter((tp) => tp.level && tp.hitAt).length
-      const slWeight = definedTPCount > 0 && trade.gewichtung >= 1
+      const slWeight = definedTPCount > 0
         ? Math.round(((definedTPCount - hitsCount) / definedTPCount) * trade.gewichtung * 100) / 100
         : trade.gewichtung
 
@@ -170,10 +175,62 @@ export default async function DashboardPage({
     }
   }
 
+  // Partial-weight active trades that are effectively closed (all TPs or SL hit)
+  // These need to appear in "Letzte Trades" even though status is still 'Aktiv'
+  const effectivelyClosedPartials: typeof trades = []
+  for (const trade of trades) {
+    if (trade.gewichtung >= 1 || trade.status !== 'Aktiv') continue
+    if (!trade.einstiegspreis || !trade.richtung) continue
+
+    const isSLHit = !!trade.sl_erreicht_am
+    const definedTPs = [
+      { level: trade.tp1, hit: trade.tp1_erreicht_am, label: 'TP1' },
+      { level: trade.tp2, hit: trade.tp2_erreicht_am, label: 'TP2' },
+      { level: trade.tp3, hit: trade.tp3_erreicht_am, label: 'TP3' },
+      { level: trade.tp4, hit: trade.tp4_erreicht_am, label: 'TP4' },
+    ].filter((tp) => tp.level != null)
+    const allTPsHit = definedTPs.length > 0 && definedTPs.every((tp) => tp.hit)
+
+    if (!isSLHit && !allTPsHit) continue
+
+    // Determine highest reached TP for label and exit price
+    const highestHitTP = [...definedTPs].reverse().find((tp) => tp.hit)
+    if (highestHitTP) {
+      partialCloseLabels.set(trade.id, `(${highestHitTP.label})`)
+    } else if (isSLHit) {
+      partialCloseLabels.set(trade.id, '(SL)')
+    }
+
+    // Compute performance from highest TP or SL
+    const exitPrice = isSLHit && !allTPsHit
+      ? trade.stop_loss
+      : highestHitTP?.level ?? trade.ausstiegspreis
+    let perfPct = trade.performance_pct
+    if (perfPct === null && exitPrice && trade.einstiegspreis) {
+      const raw = trade.richtung === 'LONG'
+        ? ((exitPrice - trade.einstiegspreis) / trade.einstiegspreis) * 100
+        : ((trade.einstiegspreis - exitPrice) / trade.einstiegspreis) * 100
+      perfPct = Math.round(raw * 100) / 100
+    }
+
+    const hitDate = isSLHit && !allTPsHit
+      ? trade.sl_erreicht_am!
+      : highestHitTP?.hit ?? trade.datum_eroeffnung
+
+    effectivelyClosedPartials.push({
+      ...trade,
+      ausstiegspreis: exitPrice,
+      performance_pct: perfPct,
+      datum_schliessung: hitDate.split('T')[0],
+      haltedauer_tage: calcHoldingDays(trade.datum_eroeffnung, hitDate),
+    })
+  }
+
   // KPI calculations: replace original trades that have virtual entries to avoid double-counting
   const tradesWithPartials = [
     ...trades.filter((t) => !replacedTradeIds.has(t.id)),
     ...partialCloseEntries,
+    ...effectivelyClosedPartials,
   ]
   const kpis = calculateKPIs(tradesWithPartials)
   const monthly = calculateMonthlyPerformance(tradesWithPartials)
@@ -182,6 +239,7 @@ export default async function DashboardPage({
   const recentClosedTrades = [
     ...trades.filter((t) => t.status !== 'Aktiv' && !replacedTradeIds.has(t.id)),
     ...partialCloseEntries,
+    ...effectivelyClosedPartials,
   ]
     .sort((a, b) => {
       const dateA = a.datum_schliessung || a.datum_eroeffnung
