@@ -121,9 +121,9 @@ export interface TradeSetup {
   tp2_gewichtung: number | null
   tp3_gewichtung: number | null
   tp4_gewichtung: number | null
-  risiko_reward_min: number
-  risiko_reward_max: number
-  zeiteinheit: string
+  risiko_reward_min: number | null
+  risiko_reward_max: number | null
+  zeiteinheit: string | null
   dauer_erwartung: string | null
   status: SetupStatus
   bemerkungen: string | null
@@ -149,9 +149,9 @@ export type SetupFormData = {
   tp2_gewichtung?: number | null
   tp3_gewichtung?: number | null
   tp4_gewichtung?: number | null
-  risiko_reward_min: number
-  risiko_reward_max: number
-  zeiteinheit: string
+  risiko_reward_min: number | null
+  risiko_reward_max: number | null
+  zeiteinheit: string | null
   dauer_erwartung: string | null
   status: SetupStatus
   bemerkungen: string | null

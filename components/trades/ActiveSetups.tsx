@@ -66,8 +66,8 @@ export function ActiveSetups({ setups }: ActiveSetupsProps) {
                 </div>
               </div>
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                <span>CRV {setup.risiko_reward_min.toFixed(1)}–{setup.risiko_reward_max.toFixed(1)}</span>
-                <span>{setup.zeiteinheit}</span>
+                <span>{setup.risiko_reward_min != null && setup.risiko_reward_max != null ? `CRV ${setup.risiko_reward_min.toFixed(1)}–${setup.risiko_reward_max.toFixed(1)}` : ''}</span>
+                <span>{setup.zeiteinheit || ''}</span>
                 <Badge variant="outline" className="text-[10px]">{setup.profil}</Badge>
               </div>
             </a>

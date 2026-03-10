@@ -102,9 +102,9 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           tp2_gewichtung: setup.tp2_gewichtung ?? undefined,
           tp3_gewichtung: setup.tp3_gewichtung ?? undefined,
           tp4_gewichtung: setup.tp4_gewichtung ?? undefined,
-          risiko_reward_min: setup.risiko_reward_min,
-          risiko_reward_max: setup.risiko_reward_max,
-          zeiteinheit: setup.zeiteinheit,
+          risiko_reward_min: setup.risiko_reward_min ?? undefined,
+          risiko_reward_max: setup.risiko_reward_max ?? undefined,
+          zeiteinheit: setup.zeiteinheit ?? undefined,
           dauer_erwartung: setup.dauer_erwartung ?? undefined,
           status: setup.status,
           bemerkungen: setup.bemerkungen ?? undefined,
@@ -213,6 +213,9 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         tp2_gewichtung: values.tp2_gewichtung ?? null,
         tp3_gewichtung: values.tp3_gewichtung ?? null,
         tp4_gewichtung: values.tp4_gewichtung ?? null,
+        risiko_reward_min: values.risiko_reward_min ?? null,
+        risiko_reward_max: values.risiko_reward_max ?? null,
+        zeiteinheit: values.zeiteinheit ?? null,
         dauer_erwartung: values.dauer_erwartung ?? null,
         bemerkungen: values.bemerkungen ?? null,
         chart_bild_url: imageUrl,
@@ -487,23 +490,23 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
 
       {/* Row 5: CRV, Zeiteinheit, Dauer */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Field label="CRV min *" error={errors.risiko_reward_min?.message}>
+        <Field label="CRV min" error={errors.risiko_reward_min?.message}>
           <Input
             type="number"
             step="any"
             placeholder="1.5"
-            {...register('risiko_reward_min', { valueAsNumber: true })}
+            {...register('risiko_reward_min', { setValueAs: asNullableNum })}
           />
         </Field>
-        <Field label="CRV max *" error={errors.risiko_reward_max?.message}>
+        <Field label="CRV max" error={errors.risiko_reward_max?.message}>
           <Input
             type="number"
             step="any"
             placeholder="3.0"
-            {...register('risiko_reward_max', { valueAsNumber: true })}
+            {...register('risiko_reward_max', { setValueAs: asNullableNum })}
           />
         </Field>
-        <Field label="Zeiteinheit *" error={errors.zeiteinheit?.message}>
+        <Field label="Zeiteinheit" error={errors.zeiteinheit?.message}>
           <Select
             defaultValue={setup?.zeiteinheit ?? '4H'}
             onValueChange={(v) => setValue('zeiteinheit', v)}

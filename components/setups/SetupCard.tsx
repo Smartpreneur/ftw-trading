@@ -203,7 +203,9 @@ export function SetupCard({ setup }: SetupCardProps) {
               <span>CRV</span>
             </div>
             <p className="font-semibold text-sm">
-              {setup.risiko_reward_min.toFixed(1)}-{setup.risiko_reward_max.toFixed(1)}
+              {setup.risiko_reward_min != null && setup.risiko_reward_max != null
+                ? `${setup.risiko_reward_min.toFixed(1)}-${setup.risiko_reward_max.toFixed(1)}`
+                : '–'}
             </p>
           </div>
           <div>
@@ -211,7 +213,7 @@ export function SetupCard({ setup }: SetupCardProps) {
               <Clock className="h-3 w-3" />
               <span>Zeiteinheit</span>
             </div>
-            <p className="font-semibold text-sm">{setup.zeiteinheit}</p>
+            <p className="font-semibold text-sm">{setup.zeiteinheit || '–'}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-0.5">Dauer</p>
