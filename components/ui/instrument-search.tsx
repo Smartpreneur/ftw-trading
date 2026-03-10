@@ -74,7 +74,9 @@ export function InstrumentSearch({
   // Show manual option when query has text and isn't an exact match
   const showManualOption = query.trim().length > 0 && !exactMatch
 
-  const totalItems = allResults.length + (showManualOption ? 1 : 0)
+  // Manual option is at index 0 when shown; instrument results shift by 1
+  const manualOffset = showManualOption ? 1 : 0
+  const totalItems = allResults.length + manualOffset
 
   // Debounced API search
   useEffect(() => {
@@ -173,10 +175,10 @@ export function InstrumentSearch({
         break
       case 'Enter':
         e.preventDefault()
-        if (highlightIndex < allResults.length) {
-          selectInstrument(allResults[highlightIndex])
-        } else if (showManualOption) {
+        if (showManualOption && highlightIndex === 0) {
           selectManual()
+        } else if (highlightIndex - manualOffset >= 0 && highlightIndex - manualOffset < allResults.length) {
+          selectInstrument(allResults[highlightIndex - manualOffset])
         }
         break
       case 'Escape':
@@ -216,113 +218,19 @@ export function InstrumentSearch({
 
       {isOpen && (totalItems > 0 || isSearching) && (
         <div
-          ref={listRef}
-          className="absolute z-50 mt-1 w-full min-w-[320px] max-h-72 overflow-y-auto rounded-md border bg-popover shadow-lg"
+          className="absolute z-50 mt-1 w-full min-w-[320px] rounded-md border bg-popover shadow-lg"
         >
-          {/* Local results */}
-          {localFiltered.length > 0 && (
-            <>
-              {uniqueApiResults.length > 0 && (
-                <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/50">
-                  Favoriten
-                </div>
-              )}
-              {localFiltered.map((inst, idx) => (
-                <button
-                  key={`local-${inst.symbol}`}
-                  type="button"
-                  className={cn(
-                    'flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors',
-                    idx === highlightIndex
-                      ? 'bg-accent text-accent-foreground'
-                      : 'hover:bg-accent/50'
-                  )}
-                  onMouseEnter={() => setHighlightIndex(idx)}
-                  onClick={() => selectInstrument(inst)}
-                >
-                  <span className="font-medium flex-1 truncate">
-                    {inst.name}
-                  </span>
-                  {inst.name !== inst.symbol && (
-                    <span className="text-xs text-muted-foreground">
-                      {inst.symbol}
-                    </span>
-                  )}
-                  <span
-                    className={cn(
-                      'text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0',
-                      ASSET_CLASS_COLORS[inst.asset_klasse] ||
-                        'bg-gray-100 text-gray-700'
-                    )}
-                  >
-                    {inst.asset_klasse}
-                  </span>
-                </button>
-              ))}
-            </>
-          )}
-
-          {/* API results */}
-          {uniqueApiResults.length > 0 && (
-            <>
-              <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/50 border-t">
-                Weitere Ergebnisse
-              </div>
-              {uniqueApiResults.map((inst, idx) => {
-                const globalIdx = localFiltered.length + idx
-                return (
-                  <button
-                    key={`api-${inst.api}`}
-                    type="button"
-                    className={cn(
-                      'flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors',
-                      globalIdx === highlightIndex
-                        ? 'bg-accent text-accent-foreground'
-                        : 'hover:bg-accent/50'
-                    )}
-                    onMouseEnter={() => setHighlightIndex(globalIdx)}
-                    onClick={() => selectInstrument(inst)}
-                  >
-                    <span className="font-medium flex-1 truncate">
-                      {inst.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {inst.symbol}
-                    </span>
-                    <span
-                      className={cn(
-                        'text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0',
-                        ASSET_CLASS_COLORS[inst.asset_klasse] ||
-                          'bg-gray-100 text-gray-700'
-                      )}
-                    >
-                      {inst.asset_klasse}
-                    </span>
-                  </button>
-                )
-              })}
-            </>
-          )}
-
-          {/* Loading indicator */}
-          {isSearching && allResults.length === 0 && (
-            <div className="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Suche...
-            </div>
-          )}
-
-          {/* Manual entry option */}
+          {/* Manual entry option – pinned at top, always visible */}
           {showManualOption && (
             <button
               type="button"
               className={cn(
-                'flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm border-t transition-colors',
-                highlightIndex === allResults.length
+                'flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm border-b transition-colors',
+                highlightIndex === 0
                   ? 'bg-accent text-accent-foreground'
                   : 'hover:bg-accent/50'
               )}
-              onMouseEnter={() => setHighlightIndex(allResults.length)}
+              onMouseEnter={() => setHighlightIndex(0)}
               onClick={selectManual}
             >
               <PenLine className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -332,6 +240,108 @@ export function InstrumentSearch({
               </span>
             </button>
           )}
+
+          {/* Scrollable results area */}
+          <div
+            ref={listRef}
+            className="max-h-64 overflow-y-auto"
+          >
+            {/* Local results */}
+            {localFiltered.length > 0 && (
+              <>
+                {uniqueApiResults.length > 0 && (
+                  <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/50">
+                    Favoriten
+                  </div>
+                )}
+                {localFiltered.map((inst, idx) => {
+                  const globalIdx = idx + manualOffset
+                  return (
+                    <button
+                      key={`local-${inst.symbol}`}
+                      type="button"
+                      className={cn(
+                        'flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors',
+                        globalIdx === highlightIndex
+                          ? 'bg-accent text-accent-foreground'
+                          : 'hover:bg-accent/50'
+                      )}
+                      onMouseEnter={() => setHighlightIndex(globalIdx)}
+                      onClick={() => selectInstrument(inst)}
+                    >
+                      <span className="font-medium flex-1 truncate">
+                        {inst.name}
+                      </span>
+                      {inst.name !== inst.symbol && (
+                        <span className="text-xs text-muted-foreground">
+                          {inst.symbol}
+                        </span>
+                      )}
+                      <span
+                        className={cn(
+                          'text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0',
+                          ASSET_CLASS_COLORS[inst.asset_klasse] ||
+                            'bg-gray-100 text-gray-700'
+                        )}
+                      >
+                        {inst.asset_klasse}
+                      </span>
+                    </button>
+                  )
+                })}
+              </>
+            )}
+
+            {/* API results */}
+            {uniqueApiResults.length > 0 && (
+              <>
+                <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/50 border-t">
+                  Weitere Ergebnisse
+                </div>
+                {uniqueApiResults.map((inst, idx) => {
+                  const globalIdx = localFiltered.length + idx + manualOffset
+                  return (
+                    <button
+                      key={`api-${inst.api}`}
+                      type="button"
+                      className={cn(
+                        'flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors',
+                        globalIdx === highlightIndex
+                          ? 'bg-accent text-accent-foreground'
+                          : 'hover:bg-accent/50'
+                      )}
+                      onMouseEnter={() => setHighlightIndex(globalIdx)}
+                      onClick={() => selectInstrument(inst)}
+                    >
+                      <span className="font-medium flex-1 truncate">
+                        {inst.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {inst.symbol}
+                      </span>
+                      <span
+                        className={cn(
+                          'text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0',
+                          ASSET_CLASS_COLORS[inst.asset_klasse] ||
+                            'bg-gray-100 text-gray-700'
+                        )}
+                      >
+                        {inst.asset_klasse}
+                      </span>
+                    </button>
+                  )
+                })}
+              </>
+            )}
+
+            {/* Loading indicator */}
+            {isSearching && allResults.length === 0 && (
+              <div className="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Suche...
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
