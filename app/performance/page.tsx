@@ -84,9 +84,10 @@ export default async function DashboardPage({
     return true
   })
 
-  // Generate virtual close entries from TP hits and SL hits
+  // Generate virtual close entries from TP hits and SL hits (all trades, not just active)
   const partialCloseEntries: typeof trades = []
   const partialCloseLabels = new Map<string, string>()
+  const replacedTradeIds = new Set<string>()
 
   function calcHoldingDays(openDate: string, closeIso: string) {
     const close = closeIso.split('T')[0]
@@ -95,7 +96,7 @@ export default async function DashboardPage({
     ))
   }
 
-  for (const trade of allAktiv) {
+  for (const trade of trades) {
     if (!trade.einstiegspreis || !trade.richtung) continue
 
     // TP partial close entries
@@ -105,6 +106,11 @@ export default async function DashboardPage({
       { key: 'tp3', level: trade.tp3, hitAt: trade.tp3_erreicht_am, label: 'TP3' },
       { key: 'tp4', level: trade.tp4, hitAt: trade.tp4_erreicht_am, label: 'TP4' },
     ]
+
+    const hasAnyHit = tpLevels.some((tp) => tp.level && tp.hitAt) || (trade.sl_erreicht_am && trade.stop_loss)
+    if (!hasAnyHit) continue
+
+    replacedTradeIds.add(trade.id)
 
     // Distribute gewichtung evenly across defined TPs (unless trade already has explicit partial weight)
     const definedTPCount = tpLevels.filter((tp) => tp.level != null).length
@@ -164,14 +170,17 @@ export default async function DashboardPage({
     }
   }
 
-  // Include partial close entries in KPI calculations
-  const tradesWithPartials = [...trades, ...partialCloseEntries]
+  // KPI calculations: replace original trades that have virtual entries to avoid double-counting
+  const tradesWithPartials = [
+    ...trades.filter((t) => !replacedTradeIds.has(t.id)),
+    ...partialCloseEntries,
+  ]
   const kpis = calculateKPIs(tradesWithPartials)
   const monthly = calculateMonthlyPerformance(tradesWithPartials)
   const byAssetClass = calculateAssetClassPerformance(tradesWithPartials)
 
   const recentClosedTrades = [
-    ...trades.filter((t) => t.status !== 'Aktiv'),
+    ...trades.filter((t) => t.status !== 'Aktiv' && !replacedTradeIds.has(t.id)),
     ...partialCloseEntries,
   ]
     .sort((a, b) => {
