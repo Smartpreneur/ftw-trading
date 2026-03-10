@@ -53,12 +53,12 @@ export function ActiveSetups({ setups }: ActiveSetupsProps) {
                 <div>
                   <span className="text-muted-foreground">Einstieg</span>
                   <p className="font-mono font-medium">
-                    {formatPrice(setup.einstieg_von)}{setup.einstieg_von !== setup.einstieg_bis ? ` – ${formatPrice(setup.einstieg_bis)}` : ''}
+                    {formatPrice(setup.einstiegskurs)}
                   </p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">SL</span>
-                  <p className="font-mono font-medium text-rose-600">{formatPrice(setup.stop_loss)}</p>
+                  <p className="font-mono font-medium text-rose-600">{setup.stop_loss != null ? formatPrice(setup.stop_loss) : '–'}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">TP1</span>

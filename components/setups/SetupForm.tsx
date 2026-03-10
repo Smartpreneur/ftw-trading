@@ -6,7 +6,7 @@ import { setupSchema, toNullableNumber, toNullableString, type SetupSchemaValues
 import { createSetup, updateSetup, uploadChartImage, deleteChartImage } from '@/lib/setup-actions'
 import { fetchInstrumentPrice } from '@/lib/price-actions'
 import { ASSET_CLASSES, TRADE_DIRECTIONS, TRADING_PROFILES } from '@/lib/constants'
-import { INSTRUMENTS, type Instrument } from '@/lib/asset-mapping'
+import { INSTRUMENTS } from '@/lib/asset-mapping'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -53,6 +53,13 @@ function Field({
 const asNullableNum = (v: unknown) => toNullableNumber(v)
 const asNullableStr = (v: unknown) => toNullableString(v)
 
+function getBerlinNow(): string {
+  return new Date()
+    .toLocaleString('sv-SE', { timeZone: 'Europe/Berlin' })
+    .replace(' ', 'T')
+    .slice(0, 16)
+}
+
 export function SetupForm({ setup, onSuccess }: SetupFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(setup?.chart_bild_url ?? null)
@@ -61,7 +68,6 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
   const [isFetchingPrice, setIsFetchingPrice] = useState(false)
   const [assetValue, setAssetValue] = useState(() => {
     if (!setup?.asset) return ''
-    // Show display name if we find a matching instrument
     const match = INSTRUMENTS.find(
       (i) => i.symbol.toLowerCase() === setup.asset.toLowerCase() ||
              i.name.toLowerCase() === setup.asset.toLowerCase()
@@ -83,12 +89,11 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       ? {
           asset: setup.asset,
           asset_klasse: setup.asset_klasse,
-          datum: setup.datum.slice(0, 16), // datetime-local format
+          datum: setup.datum.slice(0, 16),
           aktueller_kurs: setup.aktueller_kurs,
           richtung: setup.richtung,
-          einstieg_von: setup.einstieg_von,
-          einstieg_bis: setup.einstieg_bis,
-          stop_loss: setup.stop_loss,
+          einstiegskurs: setup.einstiegskurs,
+          stop_loss: setup.stop_loss ?? undefined,
           tp1: setup.tp1,
           tp2: setup.tp2 ?? undefined,
           tp3: setup.tp3 ?? undefined,
@@ -110,7 +115,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           richtung: 'LONG',
           asset_klasse: 'Index',
           profil: 'MB',
-          datum: new Date().toLocaleString('sv-SE', { timeZone: 'Europe/Berlin' }).replace(' ', 'T').slice(0, 16),
+          datum: getBerlinNow(),
           zeiteinheit: '4H',
           tp1_gewichtung: 100,
         },
@@ -126,32 +131,30 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
   const watchW3 = watch('tp3_gewichtung')
   const watchW4 = watch('tp4_gewichtung')
 
-  const activeCount = [watchTp1, watchTp2, watchTp3, watchTp4].filter(
-    (v) => v !== null && v !== undefined && !isNaN(Number(v)) && Number(v) > 0
-  ).length
+  const hasTp = (v: unknown) => v !== null && v !== undefined && !isNaN(Number(v)) && Number(v) > 0
+  const activeCount = [watchTp1, watchTp2, watchTp3, watchTp4].filter(hasTp).length
   const weightSum = (watchW1 ?? 0) + (watchW2 ?? 0) + (watchW3 ?? 0) + (watchW4 ?? 0)
 
   const distributeEvenly = useCallback(() => {
-    const hasTp = (v: unknown) => v !== null && v !== undefined && !isNaN(Number(v)) && Number(v) > 0
     const active = [hasTp(watchTp1), hasTp(watchTp2), hasTp(watchTp3), hasTp(watchTp4)]
     const count = active.filter(Boolean).length
     if (count === 0) return
     const each = Math.floor(100 / count)
     const remainder = 100 - each * count
     const keys = ['tp1_gewichtung', 'tp2_gewichtung', 'tp3_gewichtung', 'tp4_gewichtung'] as const
-    let assigned = 0
+    let firstAssigned = false
     keys.forEach((key, i) => {
       if (active[i]) {
-        const w = each + (assigned === 0 ? remainder : 0)
+        const w = each + (!firstAssigned ? remainder : 0)
         setValue(key, w)
-        assigned++
+        firstAssigned = true
       } else {
         setValue(key, null)
       }
     })
   }, [watchTp1, watchTp2, watchTp3, watchTp4, setValue])
 
-  // Auto-distribute on first render for new setups (when only TP1 exists initially)
+  // Auto-distribute when TP count changes
   const prevActiveCountRef = useRef(activeCount)
   useEffect(() => {
     if (prevActiveCountRef.current !== activeCount) {
@@ -164,7 +167,6 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Show local preview immediately
     const reader = new FileReader()
     reader.onload = () => setImagePreview(reader.result as string)
     reader.readAsDataURL(file)
@@ -179,7 +181,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       toast.success('Bild hochgeladen')
     } catch (err: any) {
       toast.error(err?.message ?? 'Upload fehlgeschlagen')
-      setImagePreview(imageUrl) // revert to previous
+      setImagePreview(imageUrl)
     } finally {
       setIsUploading(false)
     }
@@ -203,15 +205,19 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     try {
       const formData = {
         ...values,
+        stop_loss: values.stop_loss ?? null,
         tp2: values.tp2 ?? null,
         tp3: values.tp3 ?? null,
         tp4: values.tp4 ?? null,
+        tp1_gewichtung: values.tp1_gewichtung ?? null,
+        tp2_gewichtung: values.tp2_gewichtung ?? null,
+        tp3_gewichtung: values.tp3_gewichtung ?? null,
+        tp4_gewichtung: values.tp4_gewichtung ?? null,
         dauer_erwartung: values.dauer_erwartung ?? null,
         bemerkungen: values.bemerkungen ?? null,
         chart_bild_url: imageUrl,
       }
       if (setup) {
-        // If image changed, delete old one
         if (setup.chart_bild_url && setup.chart_bild_url !== imageUrl) {
           await deleteChartImage(setup.chart_bild_url)
         }
@@ -242,7 +248,6 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
             setValue('asset_klasse', instrument.asset_klasse)
             setSelectedAssetKlasse(instrument.asset_klasse)
 
-            // Fetch current price
             setIsFetchingPrice(true)
             try {
               const price = await fetchInstrumentPrice(instrument.api, instrument.type)
@@ -349,30 +354,22 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         </Field>
       </div>
 
-      {/* Row 3: Einstieg von/bis, Stop Loss */}
-      <div className="grid grid-cols-3 gap-3">
-        <Field label="Einstieg von *" error={errors.einstieg_von?.message}>
+      {/* Row 4: Einstiegskurs, Stop Loss */}
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Einstiegskurs *" error={errors.einstiegskurs?.message}>
           <Input
             type="number"
             step="any"
             placeholder="0.00"
-            {...register('einstieg_von', { valueAsNumber: true })}
+            {...register('einstiegskurs', { valueAsNumber: true })}
           />
         </Field>
-        <Field label="Einstieg bis *" error={errors.einstieg_bis?.message}>
+        <Field label="Stop Loss" error={errors.stop_loss?.message}>
           <Input
             type="number"
             step="any"
             placeholder="0.00"
-            {...register('einstieg_bis', { valueAsNumber: true })}
-          />
-        </Field>
-        <Field label="Stop Loss *" error={errors.stop_loss?.message}>
-          <Input
-            type="number"
-            step="any"
-            placeholder="0.00"
-            {...register('stop_loss', { valueAsNumber: true })}
+            {...register('stop_loss', { setValueAs: asNullableNum })}
           />
         </Field>
       </div>
@@ -386,10 +383,9 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
             onClick={distributeEvenly}
             className="text-xs text-primary hover:underline"
           >
-            Gleichmäßig verteilen
+            Gleichm. verteilen
           </button>
         </div>
-        {/* TP rows */}
         <div className="space-y-2">
           {/* TP1 */}
           <div className="grid grid-cols-[1fr_100px] gap-3 items-end">

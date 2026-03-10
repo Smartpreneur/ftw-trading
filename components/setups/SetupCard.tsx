@@ -124,7 +124,7 @@ export function SetupCard({ setup }: SetupCardProps) {
           <p className="text-sm">
             <span className="font-medium">Einstieg:</span>{' '}
             <span className="font-mono font-semibold">
-              {formatPrice(setup.aktueller_kurs)} ({formatPrice(setup.einstieg_von)} - {formatPrice(setup.einstieg_bis)})
+              {formatPrice(setup.einstiegskurs)}
             </span>
           </p>
         </div>
@@ -141,24 +141,44 @@ export function SetupCard({ setup }: SetupCardProps) {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-emerald-50 rounded-md p-2">
-              <p className="text-xs text-muted-foreground mb-0.5">TP1</p>
+              <div className="flex items-center justify-between mb-0.5">
+                <p className="text-xs text-muted-foreground">TP1</p>
+                {setup.tp1_gewichtung != null && (
+                  <span className="text-[10px] text-muted-foreground font-medium">{setup.tp1_gewichtung}%</span>
+                )}
+              </div>
               <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp1)}</p>
             </div>
             {setup.tp2 !== null && (
               <div className="bg-emerald-50 rounded-md p-2">
-                <p className="text-xs text-muted-foreground mb-0.5">TP2</p>
+                <div className="flex items-center justify-between mb-0.5">
+                  <p className="text-xs text-muted-foreground">TP2</p>
+                  {setup.tp2_gewichtung != null && (
+                    <span className="text-[10px] text-muted-foreground font-medium">{setup.tp2_gewichtung}%</span>
+                  )}
+                </div>
                 <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp2)}</p>
               </div>
             )}
             {setup.tp3 !== null && (
               <div className="bg-emerald-50 rounded-md p-2">
-                <p className="text-xs text-muted-foreground mb-0.5">TP3</p>
+                <div className="flex items-center justify-between mb-0.5">
+                  <p className="text-xs text-muted-foreground">TP3</p>
+                  {setup.tp3_gewichtung != null && (
+                    <span className="text-[10px] text-muted-foreground font-medium">{setup.tp3_gewichtung}%</span>
+                  )}
+                </div>
                 <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp3)}</p>
               </div>
             )}
             {setup.tp4 !== null && (
               <div className="bg-emerald-50 rounded-md p-2">
-                <p className="text-xs text-muted-foreground mb-0.5">TP4</p>
+                <div className="flex items-center justify-between mb-0.5">
+                  <p className="text-xs text-muted-foreground">TP4</p>
+                  {setup.tp4_gewichtung != null && (
+                    <span className="text-[10px] text-muted-foreground font-medium">{setup.tp4_gewichtung}%</span>
+                  )}
+                </div>
                 <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp4)}</p>
               </div>
             )}
@@ -166,12 +186,14 @@ export function SetupCard({ setup }: SetupCardProps) {
         </div>
 
         {/* Stop-Loss */}
-        <p className="text-sm">
-          <span className="font-medium">SL:</span>{' '}
-          <span className="font-mono font-semibold text-rose-600">
-            {formatPrice(setup.stop_loss)}
-          </span>
-        </p>
+        {setup.stop_loss != null && (
+          <p className="text-sm">
+            <span className="font-medium">SL:</span>{' '}
+            <span className="font-mono font-semibold text-rose-600">
+              {formatPrice(setup.stop_loss)}
+            </span>
+          </p>
+        )}
 
         {/* Risk/Reward & Timing */}
         <div className="grid grid-cols-3 gap-2 pt-2 border-t text-sm">

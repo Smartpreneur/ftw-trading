@@ -263,10 +263,7 @@ export function ActiveTradesTable({ trades, setups, activePrices }: ActiveTrades
             </TableCell>
             <TableCell className="text-right">
               <span className="font-mono text-sm">
-                {formatPrice(setup.einstieg_von)}
-                {setup.einstieg_von !== setup.einstieg_bis && (
-                  <span className="text-muted-foreground"> – {formatPrice(setup.einstieg_bis)}</span>
-                )}
+                {formatPrice(setup.einstiegskurs)}
               </span>
             </TableCell>
             <TableCell className="text-right">

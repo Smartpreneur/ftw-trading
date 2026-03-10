@@ -111,9 +111,8 @@ export interface TradeSetup {
   datum: string
   aktueller_kurs: number
   richtung: TradeDirection
-  einstieg_von: number
-  einstieg_bis: number
-  stop_loss: number
+  einstiegskurs: number
+  stop_loss: number | null
   tp1: number
   tp2: number | null
   tp3: number | null
@@ -140,9 +139,8 @@ export type SetupFormData = {
   datum: string
   aktueller_kurs: number
   richtung: TradeDirection
-  einstieg_von: number
-  einstieg_bis: number
-  stop_loss: number
+  einstiegskurs: number
+  stop_loss: number | null
   tp1: number
   tp2: number | null
   tp3: number | null
