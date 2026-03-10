@@ -27,6 +27,7 @@ export interface Trade {
   tp3_erreicht_am: string | null
   tp4_erreicht_am: string | null
   sl_erreicht_am: string | null
+  tp_sl_geaendert_am: string | null
   manuell_getrackt: boolean
   gewichtung: number
   created_at: string
@@ -63,6 +64,7 @@ export type TradeFormData = {
   tp3_erreicht_am?: string | null
   tp4_erreicht_am?: string | null
   sl_erreicht_am?: string | null
+  tp_sl_geaendert_am?: string | null
   gewichtung?: number
 }
 

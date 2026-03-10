@@ -1,7 +1,8 @@
 'use client'
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { User } from 'lucide-react'
+import { useTransition, useOptimistic } from 'react'
+import { User, Loader2 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import {
@@ -17,13 +18,15 @@ export function ProfileFilter() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [isPending, startTransition] = useTransition()
 
   // Get currently selected profiles from URL params
-  // Default to both if none specified
-  const selectedProfiles = searchParams.get('profiles')?.split(',') || TRADING_PROFILES
+  // Default to all if none specified
+  const urlProfiles = searchParams.get('profiles')?.split(',') || TRADING_PROFILES
+  const [optimisticProfiles, setOptimisticProfiles] = useOptimistic(urlProfiles)
 
   const handleToggle = (profile: TradingProfile) => {
-    const current = new Set(selectedProfiles)
+    const current = new Set(optimisticProfiles)
 
     if (current.has(profile)) {
       current.delete(profile)
@@ -34,25 +37,33 @@ export function ProfileFilter() {
     // Don't allow deselecting all profiles
     if (current.size === 0) return
 
+    const newProfiles = Array.from(current)
     const params = new URLSearchParams(searchParams.toString())
 
     if (current.size === TRADING_PROFILES.length) {
       // If all are selected, remove the param (default behavior)
       params.delete('profiles')
     } else {
-      params.set('profiles', Array.from(current).join(','))
+      params.set('profiles', newProfiles.join(','))
     }
 
-    router.push(`${pathname}?${params.toString()}`)
+    startTransition(() => {
+      setOptimisticProfiles(newProfiles)
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+    })
   }
 
-  const selectedCount = selectedProfiles.length
+  const selectedCount = optimisticProfiles.length
 
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5">
-          <User className="h-4 w-4" />
+          {isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <User className="h-4 w-4" />
+          )}
           <span className="hidden sm:inline">Trader</span>
           {selectedCount < TRADING_PROFILES.length && (
             <span className="ml-1 rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-semibold text-blue-700">
@@ -69,7 +80,7 @@ export function ProfileFilter() {
               <div key={profile} className="flex items-center space-x-2">
                 <Checkbox
                   id={`profile-${profile}`}
-                  checked={selectedProfiles.includes(profile)}
+                  checked={optimisticProfiles.includes(profile)}
                   onCheckedChange={() => handleToggle(profile)}
                 />
                 <Label

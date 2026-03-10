@@ -101,10 +101,25 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
   async function onSubmit(values: TradeSchemaValues) {
     setIsSubmitting(true)
     try {
+      // Detect if TP/SL levels changed (for reference-date-aware auto-detection)
+      let tp_sl_geaendert_am: string | undefined = undefined
+      if (trade) {
+        const tpSlChanged =
+          (values.tp1 ?? null) !== (trade.tp1 ?? null) ||
+          (values.tp2 ?? null) !== (trade.tp2 ?? null) ||
+          (values.tp3 ?? null) !== (trade.tp3 ?? null) ||
+          (values.tp4 ?? null) !== (trade.tp4 ?? null) ||
+          (values.stop_loss ?? null) !== (trade.stop_loss ?? null)
+        if (tpSlChanged) {
+          tp_sl_geaendert_am = new Date().toISOString()
+        }
+      }
+
       const payload = {
         ...values,
         gewichtung: gewichtungPct / 100,
         manuell_getrackt: manuell,
+        ...(tp_sl_geaendert_am ? { tp_sl_geaendert_am } : {}),
         ...(manuell ? {
           tp1_erreicht_am: tpSlTimestamps.tp1_erreicht_am || null,
           tp2_erreicht_am: tpSlTimestamps.tp2_erreicht_am || null,

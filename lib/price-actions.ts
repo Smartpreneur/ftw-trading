@@ -213,6 +213,15 @@ export async function updateAssetPrice(tradeId: string, asset: string): Promise<
 
 // Check TP/SL levels using daily High/Low data with historical lookback.
 // Finds the FIRST day a level was breached and records that date.
+//
+// Reference-date logic:
+// - If tp_sl_geaendert_am is set (TP/SL were modified after entry), only check
+//   OHLC data from AFTER that date (the modification day itself is skipped,
+//   because we don't know the exact time of the change vs. the daily high/low).
+// - If tp_sl_geaendert_am is null, fall back to datum_eroeffnung.
+// - The reference day itself is always skipped to avoid false positives
+//   (on entry day: we don't know if the extreme happened before or after entry;
+//   on modification day: same reasoning for TP/SL changes).
 async function checkAndUpdateTPSL(
   trade: {
     id: string
@@ -228,11 +237,15 @@ async function checkAndUpdateTPSL(
     tp3_erreicht_am: string | null
     tp4_erreicht_am: string | null
     sl_erreicht_am: string | null
+    tp_sl_geaendert_am: string | null
   },
   ohlcData: DailyOHLC[]
 ): Promise<void> {
   if (!trade.richtung || ohlcData.length === 0) return
 
+  // Determine the reference date: use TP/SL modification date if available,
+  // otherwise fall back to trade entry date
+  const referenceDate = (trade.tp_sl_geaendert_am ?? trade.datum_eroeffnung).split('T')[0]
   const openDate = trade.datum_eroeffnung.split('T')[0]
   const updates: Record<string, string> = {}
 
@@ -240,6 +253,10 @@ async function checkAndUpdateTPSL(
   for (const day of ohlcData) {
     // Skip days before the trade was opened
     if (day.date < openDate) continue
+
+    // Skip the reference day itself (entry day or TP/SL modification day)
+    // because we don't know the exact intraday timing
+    if (day.date <= referenceDate) continue
 
     // Use 16:00 UTC as approximate market close time for the timestamp
     const hitTimestamp = `${day.date}T16:00:00+00:00`
@@ -293,7 +310,7 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
   // Get all active trades with TP/SL levels and existing hit timestamps
   const { data: activeTrades, error: tradesError } = await supabase
     .from('trades')
-    .select('id, asset, datum_eroeffnung, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, manuell_getrackt')
+    .select('id, asset, datum_eroeffnung, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, manuell_getrackt')
     .eq('status', 'Aktiv')
 
   if (tradesError || !activeTrades) {
