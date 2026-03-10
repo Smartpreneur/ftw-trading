@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import type { TradeSetup, SetupFormData, TradingProfile, TradeFormData } from './types'
 
 export async function uploadChartImage(formData: FormData): Promise<string> {
@@ -54,10 +54,21 @@ export async function getSetups(profiles?: TradingProfile[]): Promise<TradeSetup
   return (data as TradeSetup[]) ?? []
 }
 
+/** Cached wrapper – varies by profile combination, invalidated via revalidateTag('setups', 'max') */
+export function getCachedSetups(profiles?: TradingProfile[]) {
+  const profileKey = profiles ? [...profiles].sort().join(',') : 'all'
+  return unstable_cache(
+    () => getSetups(profiles),
+    ['setups', profileKey],
+    { revalidate: 900, tags: ['setups'] }
+  )()
+}
+
 export async function createSetup(formData: SetupFormData): Promise<void> {
   const supabase = await createClient()
   const { error } = await supabase.from('trade_setups').insert([formData])
   if (error) throw new Error(error.message)
+  revalidateTag('setups', 'max')
   revalidatePath('/setups')
 }
 
@@ -65,6 +76,7 @@ export async function updateSetup(id: string, formData: SetupFormData): Promise<
   const supabase = await createClient()
   const { error } = await supabase.from('trade_setups').update(formData).eq('id', id)
   if (error) throw new Error(error.message)
+  revalidateTag('setups', 'max')
   revalidatePath('/setups')
 }
 
@@ -72,6 +84,7 @@ export async function deleteSetup(id: string): Promise<void> {
   const supabase = await createClient()
   const { error } = await supabase.from('trade_setups').delete().eq('id', id)
   if (error) throw new Error(error.message)
+  revalidateTag('setups', 'max')
   revalidatePath('/setups')
 }
 
@@ -133,6 +146,8 @@ export async function convertSetupToTrade(setupId: string, einstiegspreis: numbe
     .update({ status: 'Getriggert' })
     .eq('id', setupId)
 
+  revalidateTag('trades', 'max')
+  revalidateTag('setups', 'max')
   revalidatePath('/setups')
   revalidatePath('/trades')
   revalidatePath('/performance')

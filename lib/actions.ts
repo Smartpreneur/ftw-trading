@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { differenceInCalendarDays, parseISO } from 'date-fns'
 import type { Trade, TradeFormData, TradeWithPerformance, TradingProfile } from './types'
 
@@ -75,10 +75,21 @@ export async function getTrades(profiles?: TradingProfile[]): Promise<TradeWithP
   return ((data as Trade[]) ?? []).map(enrichTrade)
 }
 
+/** Cached wrapper – varies by profile combination, invalidated via revalidateTag('trades', 'max') */
+export function getCachedTrades(profiles?: TradingProfile[]) {
+  const profileKey = profiles ? [...profiles].sort().join(',') : 'all'
+  return unstable_cache(
+    () => getTrades(profiles),
+    ['trades', profileKey],
+    { revalidate: 900, tags: ['trades'] }
+  )()
+}
+
 export async function createTrade(formData: TradeFormData): Promise<void> {
   const supabase = await createClient()
   const { error } = await supabase.from('trades').insert([formData])
   if (error) throw new Error(error.message)
+  revalidateTag('trades', 'max')
   revalidatePath('/')
   revalidatePath('/trades')
 }
@@ -87,6 +98,7 @@ export async function updateTrade(id: string, formData: TradeFormData): Promise<
   const supabase = await createClient()
   const { error } = await supabase.from('trades').update(formData).eq('id', id)
   if (error) throw new Error(error.message)
+  revalidateTag('trades', 'max')
   revalidatePath('/')
   revalidatePath('/trades')
 }
@@ -95,6 +107,7 @@ export async function deleteTrade(id: string): Promise<void> {
   const supabase = await createClient()
   const { error } = await supabase.from('trades').delete().eq('id', id)
   if (error) throw new Error(error.message)
+  revalidateTag('trades', 'max')
   revalidatePath('/')
   revalidatePath('/trades')
 }

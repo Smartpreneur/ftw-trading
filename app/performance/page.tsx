@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { getTrades } from '@/lib/actions'
-import { getSetups } from '@/lib/setup-actions'
+import { getCachedTrades } from '@/lib/actions'
+import { getCachedSetups } from '@/lib/setup-actions'
 import { checkAuth } from '@/lib/auth'
 import { PasswordGate } from '@/components/password-gate'
 
@@ -53,25 +53,23 @@ export default async function DashboardPage({
     : ['MB3', 'SJ', 'SJ2']
   const tradesHref = `/trades?profiles=${selectedProfiles.join(',')}`
 
-  let trades: Awaited<ReturnType<typeof getTrades>> = []
+  let trades: Awaited<ReturnType<typeof getCachedTrades>> = []
+  let activePrices: Awaited<ReturnType<typeof getActiveTradePrices>> = []
+  let activeSetups: Awaited<ReturnType<typeof getCachedSetups>> = []
   let error: string | null = null
 
+  // Fetch trades, prices, and setups in parallel (trades + setups are cached)
   try {
-    trades = await getTrades(selectedProfiles)
+    const [tradesResult, pricesResult, setupsResult] = await Promise.all([
+      getCachedTrades(selectedProfiles),
+      getActiveTradePrices(),
+      getCachedSetups(selectedProfiles),
+    ])
+    trades = tradesResult
+    activePrices = pricesResult
+    activeSetups = setupsResult.filter(s => s.status === 'Aktiv')
   } catch (e: any) {
-    error = e?.message ?? 'Fehler beim Laden der Trades'
-  }
-
-  // Fetch live prices for active trades
-  const activePrices = await getActiveTradePrices()
-
-  // Fetch active setups
-  let activeSetups: Awaited<ReturnType<typeof getSetups>> = []
-  try {
-    const allSetups = await getSetups(selectedProfiles)
-    activeSetups = allSetups.filter(s => s.status === 'Aktiv')
-  } catch {
-    // silently ignore
+    error = e?.message ?? 'Fehler beim Laden der Daten'
   }
 
   // SL-hit or fully-TP-reached trades are effectively closed → don't show in active
@@ -448,7 +446,6 @@ export default async function DashboardPage({
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-base">
             Letzte Trades{' '}
-            <span className="text-xs font-normal text-muted-foreground">ab Jan 2026</span>
             {recentClosedTrades.length > 0 && (
               <span className="ml-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
                 {recentClosedTrades.length}

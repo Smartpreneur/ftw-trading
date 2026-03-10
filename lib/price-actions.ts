@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { revalidateTag } from 'next/cache'
 import { getApiSymbol } from './asset-mapping'
 import type { ActiveTradePrice, TradeDirection } from './types'
 
@@ -240,8 +241,8 @@ async function checkAndUpdateTPSL(
     tp_sl_geaendert_am: string | null
   },
   ohlcData: DailyOHLC[]
-): Promise<void> {
-  if (!trade.richtung || ohlcData.length === 0) return
+): Promise<boolean> {
+  if (!trade.richtung || ohlcData.length === 0) return false
 
   // Determine the reference date: use TP/SL modification date if available,
   // otherwise fall back to trade entry date
@@ -300,7 +301,9 @@ async function checkAndUpdateTPSL(
       .from('trades')
       .update(updates)
       .eq('id', trade.id)
+    return true
   }
+  return false
 }
 
 // Update all active trade prices + check TP/SL levels using daily High/Low
@@ -320,6 +323,7 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
 
   let updated = 0
   let errors = 0
+  let tpSlChanged = false
 
   // Group trades by asset to avoid duplicate API calls
   const byAsset = new Map<string, typeof activeTrades>()
@@ -367,12 +371,18 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
 
       // Check TP/SL with daily High/Low data (skip manually tracked)
       if (!trade.manuell_getrackt && ohlcData.length > 0) {
-        await checkAndUpdateTPSL(trade, ohlcData)
+        const changed = await checkAndUpdateTPSL(trade, ohlcData)
+        if (changed) tpSlChanged = true
       }
     }
 
     // Delay between different assets to avoid rate limiting
     await new Promise(resolve => setTimeout(resolve, 200))
+  }
+
+  // Invalidate trades cache if any TP/SL timestamps were updated
+  if (tpSlChanged) {
+    revalidateTag('trades', 'max')
   }
 
   return { updated, errors }
