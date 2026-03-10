@@ -30,6 +30,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatDate, formatPrice } from '@/lib/formatters'
+import { getCurrencySymbol } from '@/lib/asset-mapping'
 import { ArrowRight, TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
@@ -224,6 +225,48 @@ export default async function DashboardPage({
       datum_schliessung: hitDate.split('T')[0],
       haltedauer_tage: calcHoldingDays(trade.datum_eroeffnung, hitDate),
     })
+  }
+
+  // Add TP/SL labels for closed trades that weren't split into virtual entries
+  // (e.g. older trades without auto-detection timestamps, or closed partial-weight trades)
+  for (const trade of trades) {
+    if (replacedTradeIds.has(trade.id)) continue
+    if (partialCloseLabels.has(trade.id)) continue
+    if (!trade.einstiegspreis || !trade.richtung) continue
+
+    // Check TP hit timestamps first
+    const tps = [
+      { level: trade.tp1, hit: trade.tp1_erreicht_am, label: 'TP1' },
+      { level: trade.tp2, hit: trade.tp2_erreicht_am, label: 'TP2' },
+      { level: trade.tp3, hit: trade.tp3_erreicht_am, label: 'TP3' },
+      { level: trade.tp4, hit: trade.tp4_erreicht_am, label: 'TP4' },
+    ]
+    const highestHitTP = [...tps].filter(tp => tp.level != null && tp.hit).pop()
+    if (highestHitTP) {
+      partialCloseLabels.set(trade.id, `(${highestHitTP.label})`)
+      continue
+    }
+
+    // SL hit timestamp
+    if (trade.sl_erreicht_am) {
+      partialCloseLabels.set(trade.id, '(SL)')
+      continue
+    }
+
+    // For closed trades without timestamps, derive label from status + exit price
+    if (trade.status === 'Ausgestoppt') {
+      partialCloseLabels.set(trade.id, '(SL)')
+      continue
+    }
+    if (trade.status === 'Erfolgreich' && trade.ausstiegspreis) {
+      // Match exit price to closest TP level (within 0.5% tolerance)
+      for (const tp of [...tps].reverse()) {
+        if (tp.level != null && Math.abs(trade.ausstiegspreis - tp.level) / tp.level < 0.005) {
+          partialCloseLabels.set(trade.id, `(${tp.label})`)
+          break
+        }
+      }
+    }
   }
 
   // KPI calculations: replace original trades that have virtual entries to avoid double-counting
@@ -466,12 +509,16 @@ export default async function DashboardPage({
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="font-mono text-sm">
-                        {trade.einstiegspreis ? formatPrice(trade.einstiegspreis) : '—'}
+                        {trade.einstiegspreis
+                          ? `${getCurrencySymbol(trade.asset, trade.asset_klasse)}${formatPrice(trade.einstiegspreis)}`
+                          : '—'}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="font-mono text-sm">
-                        {trade.ausstiegspreis ? formatPrice(trade.ausstiegspreis) : '—'}
+                        {trade.ausstiegspreis
+                          ? `${getCurrencySymbol(trade.asset, trade.asset_klasse)}${formatPrice(trade.ausstiegspreis)}`
+                          : '—'}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">

@@ -118,6 +118,10 @@ export interface TradeSetup {
   tp2: number | null
   tp3: number | null
   tp4: number | null
+  tp1_gewichtung: number | null
+  tp2_gewichtung: number | null
+  tp3_gewichtung: number | null
+  tp4_gewichtung: number | null
   risiko_reward_min: number
   risiko_reward_max: number
   zeiteinheit: string
@@ -143,6 +147,10 @@ export type SetupFormData = {
   tp2: number | null
   tp3: number | null
   tp4: number | null
+  tp1_gewichtung?: number | null
+  tp2_gewichtung?: number | null
+  tp3_gewichtung?: number | null
+  tp4_gewichtung?: number | null
   risiko_reward_min: number
   risiko_reward_max: number
   zeiteinheit: string

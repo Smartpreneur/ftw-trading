@@ -115,6 +115,23 @@ export const ISIN_TO_TICKER: Record<string, string> = {
   // Add more as needed
 }
 
+/** Returns currency symbol for display: '€', '$', or '' */
+export function getCurrencySymbol(asset: string, assetKlasse: string): string {
+  if (assetKlasse === 'Index' || assetKlasse === 'FX') return ''
+  if (assetKlasse === 'Rohstoff' || assetKlasse === 'Krypto') return '$'
+
+  if (assetKlasse === 'Aktie') {
+    const mapping = getApiSymbol(asset)
+    if (mapping) {
+      if (mapping.api.endsWith('.DE') || mapping.api.endsWith('.PA')) return '€'
+      return '$'
+    }
+    return '$'
+  }
+
+  return ''
+}
+
 export function getApiSymbol(tradingSymbol: string): { api: string; type: 'twelve' | 'coingecko' | 'yahoo' } | null {
   const normalized = tradingSymbol.toUpperCase().replace(/\s+/g, '')
 

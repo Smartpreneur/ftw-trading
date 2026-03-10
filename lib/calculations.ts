@@ -77,6 +77,28 @@ export function calculateMonthlyPerformance(
     if ((trade.performance_pct ?? 0) > 0) byMonth[key].wins++
   }
 
+  // Fill in all months between first and last (including months with no trades)
+  const keys = Object.keys(byMonth).sort()
+  if (keys.length > 0) {
+    const [startY, startM] = keys[0].split('-').map(Number)
+    const [endY, endM] = keys[keys.length - 1].split('-').map(Number)
+    let y = startY, m = startM
+    while (y < endY || (y === endY && m <= endM)) {
+      const key = `${y}-${String(m).padStart(2, '0')}`
+      if (!byMonth[key]) {
+        byMonth[key] = {
+          month: getMonthLabel(`${key}-01`),
+          sum: 0,
+          totalWeight: 0,
+          count: 0,
+          wins: 0,
+        }
+      }
+      m++
+      if (m > 12) { m = 1; y++ }
+    }
+  }
+
   return Object.entries(byMonth)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, v]) => ({

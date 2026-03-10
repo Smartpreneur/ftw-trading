@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table'
 import { DirectionBadge } from './DirectionBadge'
 import { formatDate, formatPrice } from '@/lib/formatters'
+import { getCurrencySymbol } from '@/lib/asset-mapping'
 import { cn } from '@/lib/utils'
 import { Check, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import type { TradeWithPerformance, TradeSetup, ActiveTradePrice } from '@/lib/types'
@@ -138,12 +139,16 @@ export function ActiveTradesTable({ trades, setups, activePrices }: ActiveTrades
               </TableCell>
               <TableCell className="text-right">
                 <span className="font-mono text-sm">
-                  {entryPrice ? formatPrice(entryPrice) : '—'}
+                  {entryPrice
+                    ? `${getCurrencySymbol(trade.asset, trade.asset_klasse)}${formatPrice(entryPrice)}`
+                    : '—'}
                 </span>
               </TableCell>
               <TableCell className="text-right">
                 <span className="font-mono text-sm">
-                  {currentPrice ? formatPrice(currentPrice) : '—'}
+                  {currentPrice
+                    ? `${getCurrencySymbol(trade.asset, trade.asset_klasse)}${formatPrice(currentPrice)}`
+                    : '—'}
                 </span>
               </TableCell>
               <TableCell className="text-right">

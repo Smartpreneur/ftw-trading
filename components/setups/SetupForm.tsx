@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select'
 import type { TradeSetup } from '@/lib/types'
 import { toast } from 'sonner'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Upload, X, ImageIcon, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 
@@ -75,6 +75,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<SetupSchemaValues>({
     resolver: zodResolver(setupSchema),
@@ -92,6 +93,10 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           tp2: setup.tp2 ?? undefined,
           tp3: setup.tp3 ?? undefined,
           tp4: setup.tp4 ?? undefined,
+          tp1_gewichtung: setup.tp1_gewichtung ?? undefined,
+          tp2_gewichtung: setup.tp2_gewichtung ?? undefined,
+          tp3_gewichtung: setup.tp3_gewichtung ?? undefined,
+          tp4_gewichtung: setup.tp4_gewichtung ?? undefined,
           risiko_reward_min: setup.risiko_reward_min,
           risiko_reward_max: setup.risiko_reward_max,
           zeiteinheit: setup.zeiteinheit,
@@ -105,10 +110,55 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           richtung: 'LONG',
           asset_klasse: 'Index',
           profil: 'MB',
-          datum: new Date().toISOString().slice(0, 16),
+          datum: new Date().toLocaleString('sv-SE', { timeZone: 'Europe/Berlin' }).replace(' ', 'T').slice(0, 16),
           zeiteinheit: '4H',
+          tp1_gewichtung: 100,
         },
   })
+
+  // Watch TP values to manage weights
+  const watchTp1 = watch('tp1')
+  const watchTp2 = watch('tp2')
+  const watchTp3 = watch('tp3')
+  const watchTp4 = watch('tp4')
+  const watchW1 = watch('tp1_gewichtung')
+  const watchW2 = watch('tp2_gewichtung')
+  const watchW3 = watch('tp3_gewichtung')
+  const watchW4 = watch('tp4_gewichtung')
+
+  const activeCount = [watchTp1, watchTp2, watchTp3, watchTp4].filter(
+    (v) => v !== null && v !== undefined && !isNaN(Number(v)) && Number(v) > 0
+  ).length
+  const weightSum = (watchW1 ?? 0) + (watchW2 ?? 0) + (watchW3 ?? 0) + (watchW4 ?? 0)
+
+  const distributeEvenly = useCallback(() => {
+    const hasTp = (v: unknown) => v !== null && v !== undefined && !isNaN(Number(v)) && Number(v) > 0
+    const active = [hasTp(watchTp1), hasTp(watchTp2), hasTp(watchTp3), hasTp(watchTp4)]
+    const count = active.filter(Boolean).length
+    if (count === 0) return
+    const each = Math.floor(100 / count)
+    const remainder = 100 - each * count
+    const keys = ['tp1_gewichtung', 'tp2_gewichtung', 'tp3_gewichtung', 'tp4_gewichtung'] as const
+    let assigned = 0
+    keys.forEach((key, i) => {
+      if (active[i]) {
+        const w = each + (assigned === 0 ? remainder : 0)
+        setValue(key, w)
+        assigned++
+      } else {
+        setValue(key, null)
+      }
+    })
+  }, [watchTp1, watchTp2, watchTp3, watchTp4, setValue])
+
+  // Auto-distribute on first render for new setups (when only TP1 exists initially)
+  const prevActiveCountRef = useRef(activeCount)
+  useEffect(() => {
+    if (prevActiveCountRef.current !== activeCount) {
+      prevActiveCountRef.current = activeCount
+      distributeEvenly()
+    }
+  }, [activeCount, distributeEvenly])
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -327,26 +377,116 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         </Field>
       </div>
 
-      {/* Row 4: Take-Profit targets */}
-      <div className="grid grid-cols-4 gap-3">
-        <Field label="TP1 *" error={errors.tp1?.message}>
-          <Input
-            type="number"
-            step="any"
-            placeholder="0.00"
-            {...register('tp1', { valueAsNumber: true })}
-          />
-        </Field>
-        {(['tp2', 'tp3', 'tp4'] as const).map((tp, i) => (
-          <Field key={tp} label={`TP${i + 2}`} error={errors[tp]?.message}>
-            <Input
-              type="number"
-              step="any"
-              placeholder="0.00"
-              {...register(tp, { setValueAs: asNullableNum })}
-            />
-          </Field>
-        ))}
+      {/* Take-Profit Ziele & Gewichtung */}
+      <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-semibold">Take-Profit-Ziele & Gewichtung</Label>
+          <button
+            type="button"
+            onClick={distributeEvenly}
+            className="text-xs text-primary hover:underline"
+          >
+            Gleichmäßig verteilen
+          </button>
+        </div>
+        {/* TP rows */}
+        <div className="space-y-2">
+          {/* TP1 */}
+          <div className="grid grid-cols-[1fr_100px] gap-3 items-end">
+            <Field label="TP1 (Pflicht)" error={errors.tp1?.message}>
+              <Input
+                type="number"
+                step="any"
+                placeholder="Zielpreis"
+                {...register('tp1', { valueAsNumber: true })}
+              />
+            </Field>
+            <Field label="Anteil %" error={errors.tp1_gewichtung?.message}>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step={5}
+                placeholder="%"
+                {...register('tp1_gewichtung', { setValueAs: asNullableNum })}
+              />
+            </Field>
+          </div>
+          {/* TP2 */}
+          <div className="grid grid-cols-[1fr_100px] gap-3 items-end">
+            <Field label="TP2" error={errors.tp2?.message}>
+              <Input
+                type="number"
+                step="any"
+                placeholder="Zielpreis"
+                {...register('tp2', { setValueAs: asNullableNum })}
+              />
+            </Field>
+            <Field label="Anteil %" error={errors.tp2_gewichtung?.message}>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step={5}
+                placeholder="%"
+                {...register('tp2_gewichtung', { setValueAs: asNullableNum })}
+              />
+            </Field>
+          </div>
+          {/* TP3 */}
+          <div className="grid grid-cols-[1fr_100px] gap-3 items-end">
+            <Field label="TP3" error={errors.tp3?.message}>
+              <Input
+                type="number"
+                step="any"
+                placeholder="Zielpreis"
+                {...register('tp3', { setValueAs: asNullableNum })}
+              />
+            </Field>
+            <Field label="Anteil %" error={errors.tp3_gewichtung?.message}>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step={5}
+                placeholder="%"
+                {...register('tp3_gewichtung', { setValueAs: asNullableNum })}
+              />
+            </Field>
+          </div>
+          {/* TP4 */}
+          <div className="grid grid-cols-[1fr_100px] gap-3 items-end">
+            <Field label="TP4" error={errors.tp4?.message}>
+              <Input
+                type="number"
+                step="any"
+                placeholder="Zielpreis"
+                {...register('tp4', { setValueAs: asNullableNum })}
+              />
+            </Field>
+            <Field label="Anteil %" error={errors.tp4_gewichtung?.message}>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step={5}
+                placeholder="%"
+                {...register('tp4_gewichtung', { setValueAs: asNullableNum })}
+              />
+            </Field>
+          </div>
+        </div>
+        {/* Summe indicator */}
+        <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/50">
+          <span className="text-xs text-muted-foreground">Summe:</span>
+          <span className={`text-sm font-semibold tabular-nums ${weightSum === 100 ? 'text-emerald-600' : 'text-destructive'}`}>
+            {weightSum}%
+          </span>
+          {weightSum === 100 && <span className="text-emerald-600 text-xs">&#10003;</span>}
+          {weightSum !== 100 && activeCount > 0 && (
+            <span className="text-destructive text-xs">(muss 100% sein)</span>
+          )}
+        </div>
       </div>
 
       {/* Row 5: CRV, Zeiteinheit, Dauer */}

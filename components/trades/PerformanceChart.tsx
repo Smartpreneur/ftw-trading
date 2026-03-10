@@ -12,6 +12,7 @@ import {
   Cell,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Info } from 'lucide-react'
 import type { MonthlyPerformance } from '@/lib/types'
 
 interface PerformanceChartProps {
@@ -25,7 +26,7 @@ function CustomTooltip({ active, payload, label }: any) {
     <div className="rounded-lg border bg-background p-3 shadow-md text-sm">
       <p className="font-semibold mb-1">{label}</p>
       <p className={`font-medium ${d.avg_pct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-        {d.avg_pct >= 0 ? '+' : ''}{d.avg_pct.toFixed(2)} %
+        Ø {d.avg_pct >= 0 ? '+' : ''}{d.avg_pct.toFixed(2)} % (gewichtet)
       </p>
       <p className="text-muted-foreground">
         {d.win_count}/{d.trade_count} Trades gewonnen
@@ -39,7 +40,7 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Monatliche Performance</CardTitle>
+          <CardTitle className="text-base">Trade Performance / Monat</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-48 text-muted-foreground text-sm">
           Noch keine geschlossenen Trades
@@ -51,7 +52,15 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Durchschnitts-Performance pro Monat</CardTitle>
+        <div className="flex items-center gap-1.5">
+          <CardTitle className="text-base">Trade Performance / Monat</CardTitle>
+          <span
+            className="text-muted-foreground cursor-help"
+            title="Gewichteter Durchschnitt der Trade-Performance pro Monat. Teiltrades (z.B. 25% bei TP1) fließen anteilig ein – ein Trade mit 100% Gewichtung zählt stärker als einer mit 25%."
+          >
+            <Info className="h-3.5 w-3.5" />
+          </span>
+        </div>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={260}>
