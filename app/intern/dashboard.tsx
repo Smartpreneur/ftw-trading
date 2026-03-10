@@ -96,7 +96,7 @@ export function InternDashboard() {
   const [clicksOpen, setClicksOpen] = useState(false)
   const [ordersOpen, setOrdersOpen] = useState(false)
   const [arrOpen, setArrOpen] = useState(false)
-  const [chartMode, setChartMode] = useState<'funnel' | 'visitors' | 'revenue' | 'arr'>('funnel')
+  const [chartMode, setChartMode] = useState<'funnel' | 'orders' | 'revenue' | 'arr'>('funnel')
   const [customRangeOpen, setCustomRangeOpen] = useState(false)
 
   useEffect(() => {
@@ -154,6 +154,7 @@ export function InternDashboard() {
     ordersCountByDay[d] = dayOrders.length
     revenueByDay[d] = dayOrders.reduce((s, o) => s + (Number(o.amount) || 0), 0)
   }
+  const maxOrders = Math.max(...chartDays.map(d => ordersCountByDay[d] || 0), 1)
   const maxRevenue = Math.max(...chartDays.map(d => revenueByDay[d] || 0), 1)
 
   // Per-plan breakdown for stacked bars
@@ -460,7 +461,7 @@ export function InternDashboard() {
           <div className="chart-mode-toggle">
             {([
               { key: 'funnel' as const, label: 'Konvertierung', short: 'Konvert.' },
-              { key: 'visitors' as const, label: 'Besucher', short: 'Besucher' },
+              { key: 'orders' as const, label: 'Bestellungen', short: 'Bestell.' },
               { key: 'revenue' as const, label: 'Umsatz', short: 'Umsatz' },
               { key: 'arr' as const, label: 'ARR', short: 'ARR' },
             ]).map(m => (
@@ -535,11 +536,11 @@ export function InternDashboard() {
                     </div>
                   </>
                 )}
-                {chartMode === 'visitors' && (
+                {chartMode === 'orders' && (
                   <>
-                    <div className="bar-chart__count">{sessions}</div>
+                    <div className="bar-chart__count">{orders > 0 ? orders : ''}</div>
                     <div className="bar-chart__stack">
-                      <div className="bar-chart__layer bar-chart__layer--sessions" style={{ height: `${(sessions / maxSessions) * 100}%`, width: '70%' }} />
+                      <div className="bar-chart__layer bar-chart__layer--orders" style={{ height: `${(orders / maxOrders) * 100}%`, width: '70%' }} />
                     </div>
                   </>
                 )}
