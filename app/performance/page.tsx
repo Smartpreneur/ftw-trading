@@ -12,10 +12,9 @@ import { getActiveTradePrices } from '@/lib/price-actions'
 import {
   calculateKPIs,
   calculateMonthlyPerformance,
-  calculateAssetClassPerformance,
 } from '@/lib/calculations'
 import { PerformanceChart } from '@/components/trades/PerformanceChart'
-import { AssetClassChart } from '@/components/trades/AssetClassChart'
+import { WinLossChart } from '@/components/trades/WinLossChart'
 import { WinRateGauge } from '@/components/trades/WinRateGauge'
 import { DirectionBadge } from '@/components/trades/DirectionBadge'
 import { RefreshPricesButton } from '@/components/trades/RefreshPricesButton'
@@ -277,7 +276,6 @@ export default async function DashboardPage({
   ]
   const kpis = calculateKPIs(tradesWithPartials)
   const monthly = calculateMonthlyPerformance(tradesWithPartials)
-  const byAssetClass = calculateAssetClassPerformance(tradesWithPartials)
 
   const recentClosedTrades = [
     ...trades.filter((t) => t.status !== 'Aktiv' && !replacedTradeIds.has(t.id)),
@@ -397,7 +395,7 @@ export default async function DashboardPage({
       {/* Monthly Performance + Asset Class side by side */}
       <div className="grid gap-6 lg:grid-cols-2">
         <PerformanceChart data={monthly} />
-        <AssetClassChart data={byAssetClass} />
+        <WinLossChart data={monthly} />
       </div>
 
       {/* Active Trades (includes active setups) */}

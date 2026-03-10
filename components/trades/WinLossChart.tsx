@@ -8,8 +8,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine,
-  Cell,
+  Legend,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -20,7 +19,7 @@ import {
 import { Info } from 'lucide-react'
 import type { MonthlyPerformance } from '@/lib/types'
 
-interface PerformanceChartProps {
+interface WinLossChartProps {
   data: MonthlyPerformance[]
 }
 
@@ -67,39 +66,45 @@ function MonthTick({ x, y, payload, data }: any) {
 
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
-  const d = payload[0].payload as MonthlyPerformance
+  const wins = payload.find((p: any) => p.dataKey === 'win_count')?.value ?? 0
+  const losses = payload.find((p: any) => p.dataKey === 'loss_count')?.value ?? 0
+  const total = wins + losses
+  const winRate = total > 0 ? Math.round((wins / total) * 100) : 0
   return (
     <div className="rounded-lg border bg-background p-3 shadow-md text-sm">
       <p className="font-semibold mb-1">{label}</p>
-      <p className={`font-medium ${d.avg_pct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-        Ø {d.avg_pct >= 0 ? '+' : ''}{d.avg_pct.toFixed(2)} % (gewichtet)
-      </p>
-      <p className="text-muted-foreground">
-        {d.win_count}/{d.trade_count} Trades gewonnen
-      </p>
+      <p className="text-emerald-600">{wins} Gewinner</p>
+      <p className="text-rose-600">{losses} Verlierer</p>
+      <p className="text-muted-foreground mt-1">{winRate}% Win Rate</p>
     </div>
   )
 }
 
-export function PerformanceChart({ data }: PerformanceChartProps) {
+export function WinLossChart({ data }: WinLossChartProps) {
   if (data.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Trade Performance / Monat</CardTitle>
+          <CardTitle className="text-base">Win/Loss Verteilung</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-48 text-muted-foreground text-sm">
-          Noch keine geschlossenen Trades
+          Noch keine Daten
         </CardContent>
       </Card>
     )
   }
 
+  const chartData = data.map((d) => ({
+    month: d.month,
+    win_count: d.win_count,
+    loss_count: d.trade_count - d.win_count,
+  }))
+
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center gap-1.5">
-          <CardTitle className="text-base">Trade Performance / Monat</CardTitle>
+          <CardTitle className="text-base">Win/Loss Verteilung pro Monat</CardTitle>
           <Popover>
             <PopoverTrigger asChild>
               <button
@@ -112,9 +117,9 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
             </PopoverTrigger>
             <PopoverContent side="bottom" align="start" className="text-sm">
               <p>
-                Gewichteter Durchschnitt der Trade-Performance pro Monat.
-                Teiltrades (z.B. 25% bei TP1) fließen anteilig ein – ein Trade
-                mit 100% Gewichtung zählt stärker als einer mit 25%.
+                Anzahl gewonnener und verlorener Trades pro Monat.
+                Ein Trade gilt als Gewinner wenn die Performance positiv ist,
+                als Verlierer bei negativer Performance.
               </p>
             </PopoverContent>
           </Popover>
@@ -122,11 +127,11 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={data} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+          <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
               dataKey="month"
-              tick={<MonthTick data={data} />}
+              tick={<MonthTick data={chartData} />}
               axisLine={false}
               tickLine={false}
               interval={0}
@@ -135,19 +140,28 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
               tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v) => `${v}%`}
+              allowDecimals={false}
             />
             <Tooltip content={<CustomTooltip />} />
-            <ReferenceLine y={0} stroke="hsl(var(--border))" />
-            <Bar dataKey="avg_pct" radius={[4, 4, 0, 0]}>
-              {data.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={entry.avg_pct >= 0 ? '#10b981' : '#f43f5e'}
-                  fillOpacity={0.85}
-                />
-              ))}
-            </Bar>
+            <Legend
+              iconType="square"
+              iconSize={10}
+              wrapperStyle={{ fontSize: 12 }}
+            />
+            <Bar
+              dataKey="win_count"
+              name="Gewinner"
+              stackId="a"
+              fill="hsl(152, 69%, 31%)"
+              radius={[0, 0, 0, 0]}
+            />
+            <Bar
+              dataKey="loss_count"
+              name="Verlierer"
+              stackId="a"
+              fill="hsl(0, 72%, 51%)"
+              radius={[4, 4, 0, 0]}
+            />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
