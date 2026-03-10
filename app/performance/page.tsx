@@ -106,6 +106,12 @@ export default async function DashboardPage({
       { key: 'tp4', level: trade.tp4, hitAt: trade.tp4_erreicht_am, label: 'TP4' },
     ]
 
+    // Distribute gewichtung evenly across defined TPs (unless trade already has explicit partial weight)
+    const definedTPCount = tpLevels.filter((tp) => tp.level != null).length
+    const tpWeight = definedTPCount > 0 && trade.gewichtung >= 1
+      ? Math.round((trade.gewichtung / definedTPCount) * 100) / 100
+      : trade.gewichtung
+
     for (const tp of tpLevels) {
       if (!tp.level || !tp.hitAt) continue
 
@@ -120,6 +126,7 @@ export default async function DashboardPage({
       partialCloseEntries.push({
         ...trade,
         id: virtualId,
+        gewichtung: tpWeight,
         ausstiegspreis: tp.level,
         datum_schliessung: tp.hitAt.split('T')[0],
         performance_pct: Math.round(perfRaw * 100) / 100,
@@ -128,12 +135,18 @@ export default async function DashboardPage({
       })
     }
 
-    // SL close entry – entire remaining position closed
+    // SL close entry – remaining position after TP hits
     if (trade.sl_erreicht_am && trade.stop_loss) {
       const slPerfRaw =
         trade.richtung === 'LONG'
           ? ((trade.stop_loss - trade.einstiegspreis) / trade.einstiegspreis) * 100
           : ((trade.einstiegspreis - trade.stop_loss) / trade.einstiegspreis) * 100
+
+      // SL weight = total weight minus weight of TPs already hit
+      const hitsCount = tpLevels.filter((tp) => tp.level && tp.hitAt).length
+      const slWeight = definedTPCount > 0 && trade.gewichtung >= 1
+        ? Math.round(((definedTPCount - hitsCount) / definedTPCount) * trade.gewichtung * 100) / 100
+        : trade.gewichtung
 
       const virtualId = `${trade.id}-sl`
       partialCloseLabels.set(virtualId, '(SL)')
@@ -141,6 +154,7 @@ export default async function DashboardPage({
       partialCloseEntries.push({
         ...trade,
         id: virtualId,
+        gewichtung: slWeight,
         ausstiegspreis: trade.stop_loss,
         datum_schliessung: trade.sl_erreicht_am.split('T')[0],
         performance_pct: Math.round(slPerfRaw * 100) / 100,
