@@ -41,7 +41,7 @@ export const INSTRUMENTS: Instrument[] = [
 
   // Stocks
   { name: 'Amazon', symbol: 'Amazon', asset_klasse: 'Aktie', api: 'AMZN', type: 'yahoo' },
-  { name: 'SAP', symbol: 'SAP', asset_klasse: 'Aktie', api: 'SAP', type: 'yahoo' },
+  { name: 'SAP', symbol: 'SAP', asset_klasse: 'Aktie', api: 'SAP.DE', type: 'yahoo' },
   { name: 'DaVita', symbol: 'DaVita', asset_klasse: 'Aktie', api: 'DVA', type: 'yahoo' },
   { name: 'Fortinet', symbol: 'Fortinet', asset_klasse: 'Aktie', api: 'FTNT', type: 'yahoo' },
   { name: 'LVMH', symbol: 'LVMH', asset_klasse: 'Aktie', api: 'MC.PA', type: 'yahoo' },
@@ -90,7 +90,7 @@ export const ASSET_SYMBOL_MAP: Record<string, { api: string; type: 'twelve' | 'c
   // Stocks (Yahoo Finance - free)
   'AMAZON': { api: 'AMZN', type: 'yahoo' },
   'AMZN': { api: 'AMZN', type: 'yahoo' },
-  'SAP': { api: 'SAP', type: 'yahoo' },
+  'SAP': { api: 'SAP.DE', type: 'yahoo' },
   'DAVITA': { api: 'DVA', type: 'yahoo' },
   'DVA': { api: 'DVA', type: 'yahoo' },
   'FORTINET': { api: 'FTNT', type: 'yahoo' },

@@ -69,9 +69,20 @@ export default async function DashboardPage({
     // silently ignore
   }
 
-  // SL-hit trades are effectively closed → don't show in active
+  // SL-hit or fully-TP-reached trades are effectively closed → don't show in active
   const allAktiv = trades.filter((t) => t.status === 'Aktiv')
-  const activeTrades = allAktiv.filter((t) => !t.sl_erreicht_am)
+  const activeTrades = allAktiv.filter((t) => {
+    if (t.sl_erreicht_am) return false
+    // Check if all defined TPs are reached
+    const definedTPs = [
+      { level: t.tp1, hit: t.tp1_erreicht_am },
+      { level: t.tp2, hit: t.tp2_erreicht_am },
+      { level: t.tp3, hit: t.tp3_erreicht_am },
+      { level: t.tp4, hit: t.tp4_erreicht_am },
+    ].filter((tp) => tp.level != null)
+    if (definedTPs.length > 0 && definedTPs.every((tp) => tp.hit)) return false
+    return true
+  })
 
   // Generate virtual close entries from TP hits and SL hits
   const partialCloseEntries: typeof trades = []

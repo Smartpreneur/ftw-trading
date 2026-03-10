@@ -115,12 +115,13 @@ export function ActiveTradesTable({ trades, setups, activePrices }: ActiveTrades
             }
           }
 
-          const hits: string[] = []
-          if (trade.tp1_erreicht_am) hits.push('TP1')
-          if (trade.tp2_erreicht_am) hits.push('TP2')
-          if (trade.tp3_erreicht_am) hits.push('TP3')
-          if (trade.tp4_erreicht_am) hits.push('TP4')
-          if (trade.sl_erreicht_am) hits.push('SL')
+          // Determine highest reached level
+          let highestHit: string | null = null
+          if (trade.sl_erreicht_am) highestHit = 'SL'
+          if (trade.tp1_erreicht_am) highestHit = 'TP1'
+          if (trade.tp2_erreicht_am) highestHit = 'TP2'
+          if (trade.tp3_erreicht_am) highestHit = 'TP3'
+          if (trade.tp4_erreicht_am) highestHit = 'TP4'
 
           return (
             <TableRow key={`trade-${trade.id}`}>
@@ -219,15 +220,15 @@ export function ActiveTradesTable({ trades, setups, activePrices }: ActiveTrades
                   {trade.tp4_erreicht_am && <Check className="h-3 w-3" />}
                 </span>
               </TableCell>
-              <TableCell className="max-w-[120px]">
-                {hits.length === 0 ? (
+              <TableCell>
+                {!highestHit ? (
                   <span className="text-sm text-muted-foreground">Offen</span>
                 ) : (
                   <span className={cn(
-                    "text-xs font-semibold",
-                    trade.sl_erreicht_am ? "text-rose-600" : "text-emerald-600"
+                    "text-xs font-semibold whitespace-nowrap",
+                    highestHit === 'SL' ? "text-rose-600" : "text-emerald-600"
                   )}>
-                    {hits.join(', ')} erreicht
+                    {highestHit} erreicht
                   </span>
                 )}
               </TableCell>
