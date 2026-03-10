@@ -152,14 +152,14 @@ export function WinLossChart({ data }: WinLossChartProps) {
               dataKey="win_count"
               name="Gewinner"
               stackId="a"
-              fill="hsl(152, 69%, 31%)"
+              fill="#10b981"
               radius={[0, 0, 0, 0]}
             />
             <Bar
               dataKey="loss_count"
               name="Verlierer"
               stackId="a"
-              fill="hsl(0, 72%, 51%)"
+              fill="#f43f5e"
               radius={[4, 4, 0, 0]}
             />
           </BarChart>

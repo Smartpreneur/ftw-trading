@@ -33,6 +33,8 @@ import { getCurrencySymbol } from '@/lib/asset-mapping'
 import { ArrowRight, TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import { Suspense } from 'react'
+import { ProfileTabs } from '@/components/performance/ProfileTabs'
 import type { TradingProfile } from '@/lib/types'
 
 export default async function DashboardPage({
@@ -45,8 +47,11 @@ export default async function DashboardPage({
 
   const params = await searchParams
   const profilesParam = params.profiles
-  const selectedProfiles = profilesParam?.split(',') as TradingProfile[] | undefined
-  const tradesHref = profilesParam ? `/trades?profiles=${profilesParam}` : '/trades'
+  // Default to "Gesamt" profiles (MB3 + SJ + SJ2) if none specified
+  const selectedProfiles: TradingProfile[] = profilesParam
+    ? (profilesParam.split(',') as TradingProfile[])
+    : ['MB3', 'SJ', 'SJ2']
+  const tradesHref = `/trades?profiles=${selectedProfiles.join(',')}`
 
   let trades: Awaited<ReturnType<typeof getTrades>> = []
   let error: string | null = null
@@ -277,11 +282,17 @@ export default async function DashboardPage({
   const kpis = calculateKPIs(tradesWithPartials)
   const monthly = calculateMonthlyPerformance(tradesWithPartials)
 
+  const RECENT_TRADES_CUTOFF = '2026-01-01'
+
   const recentClosedTrades = [
     ...trades.filter((t) => t.status !== 'Aktiv' && !replacedTradeIds.has(t.id)),
     ...partialCloseEntries,
     ...effectivelyClosedPartials,
   ]
+    .filter((t) => {
+      const closeDate = t.datum_schliessung || t.datum_eroeffnung
+      return closeDate >= RECENT_TRADES_CUTOFF
+    })
     .sort((a, b) => {
       const dateA = a.datum_schliessung || a.datum_eroeffnung
       const dateB = b.datum_schliessung || b.datum_eroeffnung
@@ -299,13 +310,16 @@ export default async function DashboardPage({
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Performance-Übersicht</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Fugmanns Trading Woche
           </p>
         </div>
+        <Suspense fallback={<div className="h-9 w-64 bg-muted animate-pulse rounded-lg" />}>
+          <ProfileTabs />
+        </Suspense>
       </div>
 
       {/* Error banner */}
@@ -434,6 +448,7 @@ export default async function DashboardPage({
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-base">
             Letzte Trades{' '}
+            <span className="text-xs font-normal text-muted-foreground">ab Jan 2026</span>
             {recentClosedTrades.length > 0 && (
               <span className="ml-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
                 {recentClosedTrades.length}
