@@ -322,10 +322,29 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         </Field>
       </div>
 
-      {/* Row 3: Datum, Aktueller Kurs, Status */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Row 3: Datum, Uhrzeit, Aktueller Kurs, Status */}
+      <div className="grid grid-cols-4 gap-3">
         <Field label="Datum *" error={errors.datum?.message}>
-          <Input type="datetime-local" className="tabular-nums" {...register('datum')} />
+          <Input
+            type="date"
+            className="tabular-nums"
+            value={watch('datum')?.split('T')[0] || ''}
+            onChange={(e) => {
+              const time = watch('datum')?.split('T')[1] || '12:00'
+              setValue('datum', `${e.target.value}T${time}`, { shouldValidate: true })
+            }}
+          />
+        </Field>
+        <Field label="Uhrzeit">
+          <Input
+            type="time"
+            className="tabular-nums"
+            value={watch('datum')?.split('T')[1]?.slice(0, 5) || '12:00'}
+            onChange={(e) => {
+              const date = watch('datum')?.split('T')[0] || new Date().toISOString().split('T')[0]
+              setValue('datum', `${date}T${e.target.value}`, { shouldValidate: true })
+            }}
+          />
         </Field>
         <Field label="Aktueller Kurs *" error={errors.aktueller_kurs?.message}>
           <div className="relative">
