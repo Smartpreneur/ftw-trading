@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createCacheClient } from '@/lib/supabase/server'
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import type { TradeSetup, SetupFormData, TradingProfile, TradeFormData } from './types'
 
@@ -54,11 +54,23 @@ export async function getSetups(profiles?: TradingProfile[]): Promise<TradeSetup
   return (data as TradeSetup[]) ?? []
 }
 
-/** Cached wrapper – varies by profile combination, invalidated via revalidateTag('setups', 'max') */
+/** Cached wrapper – uses cookie-free client inside unstable_cache */
 export async function getCachedSetups(profiles?: TradingProfile[]) {
   const profileKey = profiles ? [...profiles].sort().join(',') : 'all'
   return unstable_cache(
-    () => getSetups(profiles),
+    async () => {
+      const supabase = createCacheClient()
+      let query = supabase
+        .from('trade_setups')
+        .select('*')
+        .order('datum', { ascending: false })
+      if (profiles && profiles.length > 0) {
+        query = query.in('profil', profiles)
+      }
+      const { data, error } = await query
+      if (error) throw new Error(error.message)
+      return (data as TradeSetup[]) ?? []
+    },
     ['setups', profileKey],
     { revalidate: 900, tags: ['setups'] }
   )()

@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createCacheClient } from '@/lib/supabase/server'
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { differenceInCalendarDays, parseISO } from 'date-fns'
 import type { Trade, TradeFormData, TradeWithPerformance, TradingProfile } from './types'
@@ -75,11 +75,23 @@ export async function getTrades(profiles?: TradingProfile[]): Promise<TradeWithP
   return ((data as Trade[]) ?? []).map(enrichTrade)
 }
 
-/** Cached wrapper – varies by profile combination, invalidated via revalidateTag('trades', 'max') */
+/** Cached wrapper – uses cookie-free client inside unstable_cache */
 export async function getCachedTrades(profiles?: TradingProfile[]) {
   const profileKey = profiles ? [...profiles].sort().join(',') : 'all'
   return unstable_cache(
-    () => getTrades(profiles),
+    async () => {
+      const supabase = createCacheClient()
+      let query = supabase
+        .from('trades')
+        .select('*')
+        .order('datum_eroeffnung', { ascending: false })
+      if (profiles && profiles.length > 0) {
+        query = query.in('profil', profiles)
+      }
+      const { data, error } = await query
+      if (error) throw new Error(error.message)
+      return ((data as Trade[]) ?? []).map(enrichTrade)
+    },
     ['trades', profileKey],
     { revalidate: 900, tags: ['trades'] }
   )()
