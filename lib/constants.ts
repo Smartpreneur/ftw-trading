@@ -4,7 +4,14 @@ export const ASSET_CLASSES: AssetClass[] = ['Index', 'Rohstoff', 'Krypto', 'Akti
 
 export const TRADE_DIRECTIONS: TradeDirection[] = ['LONG', 'SHORT']
 
-export const TRADING_PROFILES: TradingProfile[] = ['MB', 'MB2', 'MB3', 'SJ', 'SJ2']
+export const TRADING_PROFILES: TradingProfile[] = ['MB2', 'MB3', 'SJ', 'SJ2']
+
+export const TRADER_NAMES: Record<string, string> = {
+  SJ: 'Stefan Jäger',
+  SJ2: 'Stefan Jäger',
+  MB2: 'Michael Borgmann',
+  MB3: 'Michael Borgmann',
+}
 
 export const TRADE_STATUSES: TradeStatus[] = [
   'Aktiv',

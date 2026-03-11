@@ -15,7 +15,7 @@ export const PROFILE_TABS: TabConfig[] = [
   {
     label: 'Gesamt',
     key: 'gesamt',
-    kpiProfiles: ['MB', 'MB2', 'MB3', 'SJ', 'SJ2'],
+    kpiProfiles: ['MB2', 'MB3', 'SJ', 'SJ2'],
     listProfiles: ['MB3', 'SJ', 'SJ2'],
   },
   {
@@ -27,7 +27,7 @@ export const PROFILE_TABS: TabConfig[] = [
   {
     label: 'Michael Borgmann',
     key: 'borgmann',
-    kpiProfiles: ['MB', 'MB2', 'MB3'],
+    kpiProfiles: ['MB2', 'MB3'],
     listProfiles: ['MB3'],
   },
 ]

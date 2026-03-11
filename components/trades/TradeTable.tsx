@@ -17,7 +17,7 @@ import { TradeDialog } from './TradeDialog'
 import { StatusBadge } from './StatusBadge'
 import { DirectionBadge } from './DirectionBadge'
 import { deleteTrade } from '@/lib/actions'
-import { ASSET_CLASSES, TRADE_STATUSES, TRADING_PROFILES } from '@/lib/constants'
+import { ASSET_CLASSES, TRADE_STATUSES, TRADING_PROFILES, TRADER_NAMES } from '@/lib/constants'
 import { formatDate, formatPrice, formatPercent, formatRR } from '@/lib/formatters'
 import type { TradeWithPerformance, TradingProfile, TradeStatus, AssetClass } from '@/lib/types'
 import { Pencil, Trash2, Plus, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
@@ -296,6 +296,7 @@ export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTa
                   <SortIcon field="status" />
                 </button>
               </TableHead>
+              <TableHead>Trader</TableHead>
               <TableHead className="text-right">
                 <button
                   onClick={() => toggleSort('performance')}
@@ -311,7 +312,7 @@ export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTa
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 11 : 10} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={isAdmin ? 12 : 11} className="h-24 text-center text-muted-foreground">
                   {hasFilters ? 'Keine Trades für diese Filter' : 'Noch keine Trades vorhanden'}
                 </TableCell>
               </TableRow>
@@ -351,6 +352,9 @@ export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTa
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={trade.status} />
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    {TRADER_NAMES[trade.profil] ?? trade.profil}
                   </TableCell>
                   <TableCell className="text-right">
                     {trade.performance_pct !== null ? (

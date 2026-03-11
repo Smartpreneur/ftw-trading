@@ -72,7 +72,7 @@ function CustomTooltip({ active, payload, label }: any) {
     <div className="rounded-lg border bg-background p-3 shadow-md text-sm">
       <p className="font-semibold mb-1">{label}</p>
       <p className={`font-medium ${d.avg_pct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-        Ø {d.avg_pct >= 0 ? '+' : ''}{d.avg_pct.toFixed(2)} % (gewichtet)
+        Ø {d.avg_pct >= 0 ? '+' : ''}{d.avg_pct.toFixed(2)} %
       </p>
       <p className="text-muted-foreground">
         {d.win_count}/{d.trade_count} Trades gewonnen
@@ -110,11 +110,16 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
                 <Info className="h-3.5 w-3.5" />
               </button>
             </PopoverTrigger>
-            <PopoverContent side="bottom" align="start" className="text-sm">
+            <PopoverContent side="bottom" align="start" className="text-sm space-y-2">
               <p>
                 Gewichteter Durchschnitt der Trade-Performance pro Monat.
-                Teiltrades (z.B. 25% bei TP1) fließen anteilig ein – ein Trade
-                mit 100% Gewichtung zählt stärker als einer mit 25%.
+                Teilschließungen (z.B. 34% bei TP1) fließen anteilig ein –
+                eine Position mit höherer Gewichtung beeinflusst den
+                Durchschnitt stärker.
+              </p>
+              <p className="text-muted-foreground">
+                Hat ein Trade mehrere Take-Profit-Ziele, wird jede erreichte
+                Tranche mit ihrer jeweiligen Gewichtung einzeln verbucht.
               </p>
             </PopoverContent>
           </Popover>

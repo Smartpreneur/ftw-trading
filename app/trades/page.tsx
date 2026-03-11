@@ -22,7 +22,11 @@ export default async function TradesPage({
   let error: string | null = null
 
   try {
-    trades = await getTrades(selectedProfiles)
+    const allTrades = await getTrades(selectedProfiles)
+    // Only show trades opened or closed in 2026+
+    trades = allTrades.filter(
+      (t) => t.datum_eroeffnung >= '2026-01-01' || (t.datum_schliessung ?? '') >= '2026-01-01'
+    )
   } catch (e: any) {
     error = e?.message ?? 'Fehler beim Laden'
   }

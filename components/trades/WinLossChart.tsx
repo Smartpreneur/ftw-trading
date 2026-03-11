@@ -115,11 +115,17 @@ export function WinLossChart({ data }: WinLossChartProps) {
                 <Info className="h-3.5 w-3.5" />
               </button>
             </PopoverTrigger>
-            <PopoverContent side="bottom" align="start" className="text-sm">
+            <PopoverContent side="bottom" align="start" className="text-sm space-y-2">
               <p>
                 Anzahl gewonnener und verlorener Trades pro Monat.
                 Ein Trade gilt als Gewinner wenn die Performance positiv ist,
                 als Verlierer bei negativer Performance.
+              </p>
+              <p className="text-muted-foreground">
+                Zählung auf Basis von Teilschließungen: Hat ein Trade z.B.
+                3 Take-Profit-Ziele, wird jede erreichte Tranche einzeln
+                als Win gezählt. So können aus einer Trade-Idee bis zu
+                4 Einzelpositionen entstehen.
               </p>
             </PopoverContent>
           </Popover>
