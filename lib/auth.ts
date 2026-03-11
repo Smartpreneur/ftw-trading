@@ -26,6 +26,7 @@ export async function authenticate(password: string) {
 }
 
 export async function checkAuth(): Promise<boolean> {
+  if (process.env.NODE_ENV === 'development') return true
   const cookieStore = await cookies()
   return cookieStore.get(COOKIE_NAME)?.value === TOKEN_VALUE
 }

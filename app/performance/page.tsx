@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { getCachedTrades } from '@/lib/actions'
 import { getCachedSetups } from '@/lib/setup-actions'
-import { checkAuth } from '@/lib/auth'
+import { checkAuth, checkAdmin } from '@/lib/auth'
 import { PasswordGate } from '@/components/password-gate'
 
 export const metadata: Metadata = {
@@ -19,6 +19,8 @@ import { WinRateGauge } from '@/components/trades/WinRateGauge'
 import { DirectionBadge } from '@/components/trades/DirectionBadge'
 import { RefreshPricesButton } from '@/components/trades/RefreshPricesButton'
 import { ActiveTradesTable } from '@/components/trades/ActiveTradesTable'
+import { TradeDialog } from '@/components/trades/TradeDialog'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -30,7 +32,7 @@ import {
 } from '@/components/ui/table'
 import { formatDate, formatPrice } from '@/lib/formatters'
 import { getCurrencySymbol } from '@/lib/asset-mapping'
-import { ArrowRight, TrendingUp, TrendingDown } from 'lucide-react'
+import { ArrowRight, TrendingUp, TrendingDown, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { Suspense } from 'react'
@@ -45,6 +47,7 @@ export default async function DashboardPage({
   const isAuthed = await checkAuth()
   if (!isAuthed) return <PasswordGate />
 
+  const isAdmin = await checkAdmin()
   const params = await searchParams
   const tabConfig = resolveTab(params.tab)
   const tradesHref = `/trades`
@@ -106,12 +109,12 @@ export default async function DashboardPage({
     // Trades with explicit partial weight (< 1) already represent partial positions
     if (trade.gewichtung < 1) continue
 
-    // TP partial close entries
+    // TP partial close entries with per-TP weights
     const tpLevels = [
-      { key: 'tp1', level: trade.tp1, hitAt: trade.tp1_erreicht_am, label: 'TP1' },
-      { key: 'tp2', level: trade.tp2, hitAt: trade.tp2_erreicht_am, label: 'TP2' },
-      { key: 'tp3', level: trade.tp3, hitAt: trade.tp3_erreicht_am, label: 'TP3' },
-      { key: 'tp4', level: trade.tp4, hitAt: trade.tp4_erreicht_am, label: 'TP4' },
+      { key: 'tp1', level: trade.tp1, hitAt: trade.tp1_erreicht_am, label: 'TP1', weight: trade.tp1_gewichtung },
+      { key: 'tp2', level: trade.tp2, hitAt: trade.tp2_erreicht_am, label: 'TP2', weight: trade.tp2_gewichtung },
+      { key: 'tp3', level: trade.tp3, hitAt: trade.tp3_erreicht_am, label: 'TP3', weight: trade.tp3_gewichtung },
+      { key: 'tp4', level: trade.tp4, hitAt: trade.tp4_erreicht_am, label: 'TP4', weight: trade.tp4_gewichtung },
     ]
 
     const hasAnyHit = tpLevels.some((tp) => tp.level && tp.hitAt) || (trade.sl_erreicht_am && trade.stop_loss)
@@ -119,14 +122,19 @@ export default async function DashboardPage({
 
     replacedTradeIds.add(trade.id)
 
-    // Distribute gewichtung evenly across defined TPs
-    const definedTPCount = tpLevels.filter((tp) => tp.level != null).length
-    const tpWeight = definedTPCount > 0
-      ? Math.round((trade.gewichtung / definedTPCount) * 100) / 100
+    // Fallback: distribute evenly if no tp_gewichtung set
+    const definedTPs = tpLevels.filter((tp) => tp.level != null)
+    const evenWeight = definedTPs.length > 0
+      ? Math.round((trade.gewichtung / definedTPs.length) * 100) / 100
       : trade.gewichtung
 
     for (const tp of tpLevels) {
       if (!tp.level || !tp.hitAt) continue
+
+      // Use stored tp_gewichtung (as fraction of total), fallback to even split
+      const tpWeight = tp.weight != null
+        ? Math.round(tp.weight * trade.gewichtung * 100) / 100
+        : evenWeight
 
       const perfRaw =
         trade.richtung === 'LONG'
@@ -155,11 +163,11 @@ export default async function DashboardPage({
           ? ((trade.stop_loss - trade.einstiegspreis) / trade.einstiegspreis) * 100
           : ((trade.einstiegspreis - trade.stop_loss) / trade.einstiegspreis) * 100
 
-      // SL weight = total weight minus weight of TPs already hit
-      const hitsCount = tpLevels.filter((tp) => tp.level && tp.hitAt).length
-      const slWeight = definedTPCount > 0
-        ? Math.round(((definedTPCount - hitsCount) / definedTPCount) * trade.gewichtung * 100) / 100
-        : trade.gewichtung
+      // SL weight = total weight minus weight of all TPs that were hit
+      const hitTpWeight = tpLevels
+        .filter((tp) => tp.level && tp.hitAt)
+        .reduce((sum, tp) => sum + (tp.weight != null ? tp.weight * trade.gewichtung : evenWeight), 0)
+      const slWeight = Math.round(Math.max(0, trade.gewichtung - hitTpWeight) * 100) / 100
 
       const virtualId = `${trade.id}-sl`
       partialCloseLabels.set(virtualId, '(SL)')
@@ -408,14 +416,14 @@ export default async function DashboardPage({
         <WinLossChart data={monthly} />
       </div>
 
-      {/* Active Trades (includes active setups) */}
-      {(activeTrades.length > 0 || activeSetups.length > 0) && (
+      {/* Active Trades */}
+      {activeTrades.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-base">
               Aktive Trades{' '}
               <span className="ml-1.5 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                {activeTrades.length + activeSetups.length}
+                {activeTrades.length}
               </span>
             </CardTitle>
             <div className="flex items-center gap-2">
@@ -432,8 +440,9 @@ export default async function DashboardPage({
           <CardContent className="px-0">
             <ActiveTradesTable
               trades={activeTrades}
-              setups={activeSetups}
+              setups={[]}
               activePrices={activePrices}
+              isAdmin={isAdmin}
             />
           </CardContent>
         </Card>
@@ -477,7 +486,8 @@ export default async function DashboardPage({
                   <TableHead className="text-right">Einstieg</TableHead>
                   <TableHead className="text-right">Ausstieg</TableHead>
                   <TableHead className="text-right">G/V</TableHead>
-                  <TableHead className="text-right pr-6">Tage</TableHead>
+                  <TableHead className={cn("text-right", !isAdmin && "pr-6")}>Tage</TableHead>
+                  {isAdmin && <TableHead className="pr-6 w-10"></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -544,13 +554,27 @@ export default async function DashboardPage({
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right pr-6">
+                    <TableCell className={cn("text-right", !isAdmin && "pr-6")}>
                       <span className="text-sm text-muted-foreground">
                         {trade.haltedauer_tage === 0
                           ? '< 1'
                           : `${trade.haltedauer_tage}`}
                       </span>
                     </TableCell>
+                    {isAdmin && (
+                      <TableCell className="pr-6">
+                        {!trade.id.includes('-tp') && !trade.id.includes('-sl') && (
+                          <TradeDialog
+                            trade={trade}
+                            trigger={
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            }
+                          />
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

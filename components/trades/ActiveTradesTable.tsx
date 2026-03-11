@@ -13,7 +13,9 @@ import { DirectionBadge } from './DirectionBadge'
 import { formatDate, formatPrice } from '@/lib/formatters'
 import { getCurrencySymbol } from '@/lib/asset-mapping'
 import { cn } from '@/lib/utils'
-import { Check, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { Check, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Pencil } from 'lucide-react'
+import { TradeDialog } from './TradeDialog'
+import { Button } from '@/components/ui/button'
 import type { TradeWithPerformance, TradeSetup, ActiveTradePrice } from '@/lib/types'
 
 type SortKey = 'datum' | 'asset' | 'richtung' | null
@@ -23,9 +25,10 @@ interface ActiveTradesTableProps {
   trades: TradeWithPerformance[]
   setups: TradeSetup[]
   activePrices: ActiveTradePrice[]
+  isAdmin?: boolean
 }
 
-export function ActiveTradesTable({ trades, setups, activePrices }: ActiveTradesTableProps) {
+export function ActiveTradesTable({ trades, setups, activePrices, isAdmin = false }: ActiveTradesTableProps) {
   const priceMap = useMemo(() => new Map(activePrices.map(p => [p.trade_id, p])), [activePrices])
   const [sortKey, setSortKey] = useState<SortKey>('datum')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -98,7 +101,8 @@ export function ActiveTradesTable({ trades, setups, activePrices }: ActiveTrades
           <TableHead className="text-right">TP3</TableHead>
           <TableHead className="text-right">TP4</TableHead>
           <TableHead>Trade-Status</TableHead>
-          <TableHead className="pr-6">Bemerkung</TableHead>
+          <TableHead className={isAdmin ? '' : 'pr-6'}>Bemerkung</TableHead>
+          {isAdmin && <TableHead className="pr-6 w-10"></TableHead>}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -237,7 +241,7 @@ export function ActiveTradesTable({ trades, setups, activePrices }: ActiveTrades
                   </span>
                 )}
               </TableCell>
-              <TableCell className="pr-6 max-w-[150px]">
+              <TableCell className={cn("max-w-[150px]", !isAdmin && "pr-6")}>
                 <span
                   className="text-sm text-muted-foreground truncate block cursor-help"
                   title={trade.bemerkungen || undefined}
@@ -245,6 +249,18 @@ export function ActiveTradesTable({ trades, setups, activePrices }: ActiveTrades
                   {trade.bemerkungen || '—'}
                 </span>
               </TableCell>
+              {isAdmin && (
+                <TableCell className="pr-6">
+                  <TradeDialog
+                    trade={trade}
+                    trigger={
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    }
+                  />
+                </TableCell>
+              )}
             </TableRow>
           )
         })}
@@ -302,7 +318,7 @@ export function ActiveTradesTable({ trades, setups, activePrices }: ActiveTrades
             <TableCell>
               <span className="text-xs text-muted-foreground">Setup</span>
             </TableCell>
-            <TableCell className="pr-6 max-w-[150px]">
+            <TableCell className={cn("max-w-[150px]", !isAdmin && "pr-6")}>
               <span
                 className="text-sm text-muted-foreground truncate block cursor-help"
                 title={setup.bemerkungen || undefined}
@@ -310,6 +326,7 @@ export function ActiveTradesTable({ trades, setups, activePrices }: ActiveTrades
                 {setup.bemerkungen || '—'}
               </span>
             </TableCell>
+            {isAdmin && <TableCell className="pr-6" />}
           </TableRow>
         ))}
       </TableBody>

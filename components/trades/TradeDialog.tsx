@@ -22,7 +22,7 @@ export function TradeDialog({ trade, trigger }: TradeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{trade ? `Trade bearbeiten` : 'Neuer Trade'}</DialogTitle>
         </DialogHeader>

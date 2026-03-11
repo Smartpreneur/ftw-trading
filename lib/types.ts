@@ -30,6 +30,10 @@ export interface Trade {
   tp_sl_geaendert_am: string | null
   manuell_getrackt: boolean
   gewichtung: number
+  tp1_gewichtung: number | null
+  tp2_gewichtung: number | null
+  tp3_gewichtung: number | null
+  tp4_gewichtung: number | null
   created_at: string
   updated_at: string
 }
@@ -66,6 +70,10 @@ export type TradeFormData = {
   sl_erreicht_am?: string | null
   tp_sl_geaendert_am?: string | null
   gewichtung?: number
+  tp1_gewichtung?: number | null
+  tp2_gewichtung?: number | null
+  tp3_gewichtung?: number | null
+  tp4_gewichtung?: number | null
 }
 
 export interface PerformanceKPIs {

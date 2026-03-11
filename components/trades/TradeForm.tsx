@@ -52,6 +52,27 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
     Math.round((trade?.gewichtung ?? 1) * 100)
   )
   const [manuell, setManuell] = useState(trade?.manuell_getrackt ?? false)
+  const [tpGewichtung, setTpGewichtung] = useState(() => {
+    // If any tp_gewichtung is set, use stored values
+    const hasStored = trade && (trade.tp1_gewichtung != null || trade.tp2_gewichtung != null || trade.tp3_gewichtung != null || trade.tp4_gewichtung != null)
+    if (hasStored) {
+      return {
+        tp1: trade.tp1_gewichtung != null ? Math.round(trade.tp1_gewichtung * 100) : '',
+        tp2: trade.tp2_gewichtung != null ? Math.round(trade.tp2_gewichtung * 100) : '',
+        tp3: trade.tp3_gewichtung != null ? Math.round(trade.tp3_gewichtung * 100) : '',
+        tp4: trade.tp4_gewichtung != null ? Math.round(trade.tp4_gewichtung * 100) : '',
+      } as Record<string, number | string>
+    }
+    // Auto-distribute based on defined TPs (first TP gets remainder)
+    const tpKeys = ['tp1', 'tp2', 'tp3', 'tp4'] as const
+    const defined = tpKeys.filter(k => trade?.[k] != null)
+    const count = defined.length
+    const base = count > 0 ? Math.floor(100 / count) : 0
+    const remainder = count > 0 ? 100 - base * count : 0
+    const result: Record<string, number | string> = { tp1: '', tp2: '', tp3: '', tp4: '' }
+    defined.forEach((k, i) => { result[k] = i === 0 ? base + remainder : base })
+    return result
+  })
   const [tpSlTimestamps, setTpSlTimestamps] = useState({
     tp1_erreicht_am: trade?.tp1_erreicht_am?.split('T')[0] ?? '',
     tp2_erreicht_am: trade?.tp2_erreicht_am?.split('T')[0] ?? '',
@@ -119,6 +140,10 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
         ...values,
         gewichtung: gewichtungPct / 100,
         manuell_getrackt: manuell,
+        tp1_gewichtung: tpGewichtung.tp1 !== '' ? Number(tpGewichtung.tp1) / 100 : null,
+        tp2_gewichtung: tpGewichtung.tp2 !== '' ? Number(tpGewichtung.tp2) / 100 : null,
+        tp3_gewichtung: tpGewichtung.tp3 !== '' ? Number(tpGewichtung.tp3) / 100 : null,
+        tp4_gewichtung: tpGewichtung.tp4 !== '' ? Number(tpGewichtung.tp4) / 100 : null,
         ...(tp_sl_geaendert_am ? { tp_sl_geaendert_am } : {}),
         ...(manuell ? {
           tp1_erreicht_am: tpSlTimestamps.tp1_erreicht_am || null,
@@ -226,17 +251,34 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
         </Field>
       </div>
 
-      {/* TP targets */}
+      {/* TP targets with percentage */}
       <div className="grid grid-cols-4 gap-3">
         {(['tp1', 'tp2', 'tp3', 'tp4'] as const).map((tp, i) => (
-          <Field key={tp} label={`TP${i + 1}`} error={errors[tp]?.message}>
-            <Input
-              type="number"
-              step="any"
-              placeholder="0.00"
-              {...register(tp, { setValueAs: asNullableNum })}
-            />
-          </Field>
+          <div key={tp} className="space-y-1">
+            <Field label={`TP${i + 1}`} error={errors[tp]?.message}>
+              <Input
+                type="number"
+                step="any"
+                placeholder="0.00"
+                {...register(tp, { setValueAs: asNullableNum })}
+              />
+            </Field>
+            <div className="flex items-center gap-1">
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="5"
+                placeholder="%"
+                className="h-7 text-xs"
+                value={tpGewichtung[tp]}
+                onChange={(e) =>
+                  setTpGewichtung((prev) => ({ ...prev, [tp]: e.target.value === '' ? '' : Number(e.target.value) }))
+                }
+              />
+              <span className="text-xs text-muted-foreground">%</span>
+            </div>
+          </div>
         ))}
       </div>
 
