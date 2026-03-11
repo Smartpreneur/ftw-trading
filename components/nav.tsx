@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { BookOpen, LayoutDashboard, TrendingUp, Menu } from 'lucide-react'
 import Image from 'next/image'
-import { AdminLoginDialog } from '@/components/AdminLoginDialog'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -22,11 +21,7 @@ const links = [
   { href: '/setups', label: 'Trade-Setups', icon: TrendingUp },
 ]
 
-interface NavProps {
-  isAdmin: boolean
-}
-
-export function Nav({ isAdmin }: NavProps) {
+export function Nav() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
@@ -64,9 +59,6 @@ export function Nav({ isAdmin }: NavProps) {
               </Link>
             ))}
           </nav>
-
-          {/* Admin Login */}
-          <AdminLoginDialog isAdmin={isAdmin} />
 
           {/* Mobile Menu Button */}
           <Sheet open={open} onOpenChange={setOpen}>

@@ -3,23 +3,20 @@
 import { usePathname } from 'next/navigation'
 import { Nav } from './nav'
 
-interface ConditionalNavProps {
-  isAdmin: boolean
-}
-
-export function ConditionalNav({ isAdmin }: ConditionalNavProps) {
+export function ConditionalNav() {
   const pathname = usePathname()
 
-  // Don't show Nav on landing pages and intern area (has own nav)
+  // Don't show Nav on landing pages, intern area, and admin page
   if (
     pathname === '/' ||
     pathname === '/landing' ||
     pathname === '/landing-light' ||
     pathname.startsWith('/landing/') ||
-    pathname.startsWith('/intern')
+    pathname.startsWith('/intern') ||
+    pathname === '/admin'
   ) {
     return null
   }
 
-  return <Nav isAdmin={isAdmin} />
+  return <Nav />
 }
