@@ -1,7 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { revalidateTag } from 'next/cache'
+import { createClient, createCacheClient } from '@/lib/supabase/server'
+import { revalidateTag, unstable_cache } from 'next/cache'
 import { getApiSymbol } from './asset-mapping'
 import type { ActiveTradePrice, TradeDirection } from './types'
 
@@ -420,9 +420,35 @@ export async function getActiveTradePrices(): Promise<ActiveTradePrice[]> {
   return (data as ActiveTradePrice[]) ?? []
 }
 
-// Manual refresh - always updates
+// Manual refresh - always updates, then invalidates the read cache
 export async function refreshActiveTradePrices(): Promise<{ updated: number; errors: number }> {
-  return await updateAllActiveTradePrices()
+  const result = await updateAllActiveTradePrices()
+  revalidateTag('prices', 'max')
+  return result
+}
+
+/**
+ * Read-only cached fetch of active trade prices.
+ * Cached for 15 minutes — never triggers external API calls.
+ * Invalidated by refreshActiveTradePrices() or revalidateTag('prices').
+ */
+export async function getCachedActivePrices(): Promise<ActiveTradePrice[]> {
+  return unstable_cache(
+    async () => {
+      const supabase = createCacheClient()
+      const { data, error } = await supabase
+        .from('active_trade_prices')
+        .select('*')
+        .order('updated_at', { ascending: false })
+      if (error) {
+        console.error('Error fetching active trade prices:', error)
+        return []
+      }
+      return (data as ActiveTradePrice[]) ?? []
+    },
+    ['prices', 'all'],
+    { revalidate: 900, tags: ['prices'] }
+  )()
 }
 
 // Fetch current price for a specific instrument (used by setup form)

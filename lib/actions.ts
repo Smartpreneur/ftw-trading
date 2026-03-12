@@ -64,36 +64,33 @@ export async function getTrades(profiles?: TradingProfile[]): Promise<TradeWithP
     .select('*')
     .order('datum_eroeffnung', { ascending: false })
 
-  // Filter by profiles if specified
   if (profiles && profiles.length > 0) {
     query = query.in('profil', profiles)
   }
 
   const { data, error } = await query
-
   if (error) throw new Error(error.message)
   return ((data as Trade[]) ?? []).map(enrichTrade)
 }
 
-/** Cached wrapper – uses cookie-free client inside unstable_cache */
-export async function getCachedTrades(profiles?: TradingProfile[]) {
-  const profileKey = profiles ? [...profiles].sort().join(',') : 'all'
+/**
+ * Fetches ALL trades once and caches the result for 24 hours.
+ * Cache is invalidated on any admin write via revalidateTag('trades').
+ * Filter by profile in-memory after calling this function.
+ */
+export async function getCachedTrades() {
   return unstable_cache(
     async () => {
       const supabase = createCacheClient()
-      let query = supabase
+      const { data, error } = await supabase
         .from('trades')
         .select('*')
         .order('datum_eroeffnung', { ascending: false })
-      if (profiles && profiles.length > 0) {
-        query = query.in('profil', profiles)
-      }
-      const { data, error } = await query
       if (error) throw new Error(error.message)
       return ((data as Trade[]) ?? []).map(enrichTrade)
     },
-    ['trades', profileKey],
-    { revalidate: 900, tags: ['trades'] }
+    ['trades', 'all'],
+    { revalidate: 86400, tags: ['trades'] }
   )()
 }
 

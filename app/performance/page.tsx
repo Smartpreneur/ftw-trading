@@ -1,14 +1,12 @@
 import type { Metadata } from 'next'
 import { getCachedTrades } from '@/lib/actions'
-import { getCachedSetups } from '@/lib/setup-actions'
-import { checkAuth, checkAdmin } from '@/lib/auth'
-import { PasswordGate } from '@/components/password-gate'
+import { getCachedActivePrices } from '@/lib/price-actions'
+import { checkAdmin } from '@/lib/auth'
 
 export const metadata: Metadata = {
   title: 'Performance-Übersicht | FTW Trading',
   description: 'Persönliches Trading-Tagebuch mit Performance-Analyse',
 }
-import { getActiveTradePrices } from '@/lib/price-actions'
 import {
   calculateKPIs,
   calculateMonthlyPerformance,
@@ -30,36 +28,29 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ tab?: string }>
 }) {
-  const isAuthed = await checkAuth()
-  if (!isAuthed) return <PasswordGate />
-
   const isAdmin = await checkAdmin()
   const params = await searchParams
   const tabConfig = resolveTab(params.tab)
 
-  let kpiTrades: Awaited<ReturnType<typeof getCachedTrades>> = []
-  let activePrices: Awaited<ReturnType<typeof getActiveTradePrices>> = []
-  let allSetups: Awaited<ReturnType<typeof getCachedSetups>> = []
+  let allTrades: Awaited<ReturnType<typeof getCachedTrades>> = []
+  let activePrices: Awaited<ReturnType<typeof getCachedActivePrices>> = []
   let error: string | null = null
 
-  // Fetch KPI trades (all historical), prices, and setups in parallel
+  // Single cached fetch for all trades + cached prices — both served from memory when warm
   try {
-    const [kpiResult, pricesResult, setupsResult] = await Promise.all([
-      getCachedTrades(tabConfig.kpiProfiles),
-      getActiveTradePrices(),
-      getCachedSetups(tabConfig.listProfiles),
+    ;[allTrades, activePrices] = await Promise.all([
+      getCachedTrades(),
+      getCachedActivePrices(),
     ])
-    kpiTrades = kpiResult
-    activePrices = pricesResult
-    allSetups = setupsResult
   } catch (e: any) {
     error = e?.message ?? 'Fehler beim Laden der Daten'
   }
 
-  // Filter list-profile trades from kpiTrades for trade lists
+  // Filter in-memory by tab profiles (no DB round-trip)
+  const kpiProfileSet = new Set(tabConfig.kpiProfiles)
   const listProfileSet = new Set(tabConfig.listProfiles)
-  const listTrades = kpiTrades.filter((t) => listProfileSet.has(t.profil))
-  const activeSetups = allSetups.filter(s => s.status === 'Aktiv')
+  const kpiTrades = allTrades.filter((t) => kpiProfileSet.has(t.profil))
+  const listTrades = allTrades.filter((t) => listProfileSet.has(t.profil))
 
   // SL-hit or fully-TP-reached trades are effectively closed → don't show in active
   const allAktiv = listTrades.filter((t) => t.status === 'Aktiv')

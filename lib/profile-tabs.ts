@@ -15,20 +15,20 @@ export const PROFILE_TABS: TabConfig[] = [
   {
     label: 'Gesamt',
     key: 'gesamt',
-    kpiProfiles: ['MB2', 'MB3', 'SJ', 'SJ2'],
-    listProfiles: ['MB3', 'SJ', 'SJ2'],
+    kpiProfiles: ['MB', 'SJ'],
+    listProfiles: ['MB', 'SJ'],
   },
   {
     label: 'Stefan Jäger',
     key: 'jaeger',
-    kpiProfiles: ['SJ', 'SJ2'],
-    listProfiles: ['SJ', 'SJ2'],
+    kpiProfiles: ['SJ'],
+    listProfiles: ['SJ'],
   },
   {
     label: 'Michael Borgmann',
     key: 'borgmann',
-    kpiProfiles: ['MB2', 'MB3'],
-    listProfiles: ['MB3'],
+    kpiProfiles: ['MB'],
+    listProfiles: ['MB'],
   },
 ]
 

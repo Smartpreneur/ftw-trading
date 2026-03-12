@@ -43,7 +43,7 @@ export const setupSchema = z.object({
   dauer_erwartung: z.string().nullable().optional(),
   status: z.enum(['Aktiv', 'Getriggert', 'Abgelaufen']),
   bemerkungen: z.string().nullable().optional(),
-  profil: z.enum(['MB', 'MB2', 'MB3', 'SJ', 'SJ2']),
+  profil: z.enum(['MB', 'SJ']),
 })
 
 export type SetupSchemaValues = z.infer<typeof setupSchema>
