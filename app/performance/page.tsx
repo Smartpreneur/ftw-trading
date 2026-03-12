@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
+import { after } from 'next/server'
 import { getCachedTrades } from '@/lib/actions'
-import { getCachedActivePrices } from '@/lib/price-actions'
+import { getCachedActivePrices, triggerPriceRefreshIfStale } from '@/lib/price-actions'
 import { checkAdmin } from '@/lib/auth'
 
 export const metadata: Metadata = {
@@ -45,6 +46,10 @@ export default async function DashboardPage({
   } catch (e: any) {
     error = e?.message ?? 'Fehler beim Laden der Daten'
   }
+
+  // After response is sent: check if prices are stale and update in background (fire-and-forget)
+  // Runs at most once per 15 minutes per visitor — never blocks the page render
+  after(() => triggerPriceRefreshIfStale())
 
   // Filter in-memory by tab profiles (no DB round-trip)
   const kpiProfileSet = new Set(tabConfig.kpiProfiles)

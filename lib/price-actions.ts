@@ -6,7 +6,7 @@ import { getApiSymbol } from './asset-mapping'
 import type { ActiveTradePrice, TradeDirection } from './types'
 
 const TWELVE_DATA_API_KEY = process.env.TWELVE_DATA_API_KEY || ''
-const PRICE_CACHE_MINUTES = 5 // Only update if older than 5 minutes
+const PRICE_CACHE_MINUTES = 15 // Only update if older than 15 minutes
 const OHLC_LOOKBACK_DAYS = 14 // How many days back to check for TP/SL hits
 
 interface DailyOHLC {
@@ -296,7 +296,7 @@ async function checkAndUpdateTPSL(
 
   // Only write to DB if something changed
   if (Object.keys(updates).length > 0) {
-    const supabase = await createClient()
+    const supabase = createCacheClient()
     await supabase
       .from('trades')
       .update(updates)
@@ -308,7 +308,7 @@ async function checkAndUpdateTPSL(
 
 // Update all active trade prices + check TP/SL levels using daily High/Low
 export async function updateAllActiveTradePrices(): Promise<{ updated: number; errors: number }> {
-  const supabase = await createClient()
+  const supabase = createCacheClient()
 
   // Get all active trades with TP/SL levels and existing hit timestamps
   const { data: activeTrades, error: tradesError } = await supabase
@@ -380,9 +380,12 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
     await new Promise(resolve => setTimeout(resolve, 200))
   }
 
-  // Invalidate trades cache if any TP/SL timestamps were updated
+  // Invalidate caches after update
+  if (updated > 0) {
+    revalidateTag('prices', 'max') // always refresh price cache after updates
+  }
   if (tpSlChanged) {
-    revalidateTag('trades', 'max')
+    revalidateTag('trades', 'max') // refresh trades cache if TP/SL timestamps changed
   }
 
   return { updated, errors }
@@ -418,6 +421,25 @@ export async function getActiveTradePrices(): Promise<ActiveTradePrice[]> {
   }
 
   return (data as ActiveTradePrice[]) ?? []
+}
+
+/**
+ * Background trigger: checks if prices are stale (>15 min), updates only if needed.
+ * Designed to be called via after() in server components — non-blocking, fire-and-forget.
+ */
+export async function triggerPriceRefreshIfStale(): Promise<void> {
+  const supabase = createCacheClient()
+  const threshold = new Date(Date.now() - PRICE_CACHE_MINUTES * 60 * 1000).toISOString()
+
+  const { data: stale } = await supabase
+    .from('active_trade_prices')
+    .select('id')
+    .lt('updated_at', threshold)
+    .limit(1)
+
+  if (!stale || stale.length === 0) return
+
+  await updateAllActiveTradePrices()
 }
 
 // Manual refresh - always updates, then invalidates the read cache
