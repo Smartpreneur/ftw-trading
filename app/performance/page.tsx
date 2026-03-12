@@ -2,12 +2,8 @@ import type { Metadata } from 'next'
 import { after } from 'next/server'
 import { getCachedTrades } from '@/lib/actions'
 import { getCachedActivePrices, triggerPriceRefreshIfStale } from '@/lib/price-actions'
-import { checkAdmin } from '@/lib/auth'
-
-export const metadata: Metadata = {
-  title: 'Performance-Übersicht | FTW Trading',
-  description: 'Persönliches Trading-Tagebuch mit Performance-Analyse',
-}
+import { checkAdmin, checkAuth } from '@/lib/auth'
+import { PasswordGate } from '@/components/password-gate'
 import {
   calculateKPIs,
   calculateMonthlyPerformance,
@@ -24,11 +20,19 @@ import { Suspense } from 'react'
 import { ProfileTabs } from '@/components/performance/ProfileTabs'
 import { resolveTab } from '@/lib/profile-tabs'
 
+export const metadata: Metadata = {
+  title: 'Performance-Übersicht | FTW Trading',
+  description: 'Persönliches Trading-Tagebuch mit Performance-Analyse',
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
   searchParams: Promise<{ tab?: string }>
 }) {
+  const isAuthed = await checkAuth()
+  if (!isAuthed) return <PasswordGate />
+
   const isAdmin = await checkAdmin()
   const params = await searchParams
   const tabConfig = resolveTab(params.tab)
@@ -184,7 +188,7 @@ export default async function DashboardPage({
 
   const RECENT_TRADES_CUTOFF = '2026-01-01'
 
-  // Recent trades list: only list-profile trades from 2026+
+  // Recent trades list: only list-profile trades from 2026+ with known performance
   const recentClosedTrades = [
     ...listTrades.filter(
       (t) => t.status !== 'Aktiv' && !closesExpandedIds.has(t.id)

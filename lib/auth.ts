@@ -26,7 +26,10 @@ export async function authenticate(password: string) {
 }
 
 export async function checkAuth(): Promise<boolean> {
-  return true
+  // Dev mode: if no INTERN_PASSWORD is configured, allow through
+  if (!process.env.INTERN_PASSWORD) return true
+  const cookieStore = await cookies()
+  return cookieStore.get(COOKIE_NAME)?.value === TOKEN_VALUE
 }
 
 export async function logout() {

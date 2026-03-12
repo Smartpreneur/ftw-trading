@@ -3,8 +3,7 @@ import { SetupGrid } from '@/components/setups/SetupGrid'
 import { SetupDialog } from '@/components/setups/SetupDialog'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
-import { checkAuth, checkAdmin } from '@/lib/auth'
-import { PasswordGate } from '@/components/password-gate'
+import { checkAdmin } from '@/lib/auth'
 import type { Trade, TradingProfile } from '@/lib/types'
 
 const SETUP_STATUSES = ['Entwurf', 'Setup', 'Ausstehend'] as const
@@ -14,10 +13,8 @@ export default async function SetupsPage({
 }: {
   searchParams: Promise<{ profiles?: string }>
 }) {
-  const isAuthed = await checkAuth()
-  if (!isAuthed) return <PasswordGate />
-
   const isAdmin = await checkAdmin()
+  if (!isAdmin) return <div className="py-16 text-center text-sm text-muted-foreground">Kein Zugriff.</div>
 
   const params = await searchParams
   const profilesParam = params.profiles
