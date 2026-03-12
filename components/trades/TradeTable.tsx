@@ -59,16 +59,14 @@ export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTa
 
       switch (sortBy) {
         case 'id': {
-          const aId = a.trade_id || ''
-          const bId = b.trade_id || ''
-          comparison = aId.localeCompare(bId)
+          comparison = (a.trade_id || 0) - (b.trade_id || 0)
           break
         }
         case 'eroeffnung':
           comparison = (a.datum_eroeffnung || '').localeCompare(b.datum_eroeffnung || '')
           break
         case 'schliessung':
-          comparison = (a.datum_schliessung || '').localeCompare(b.datum_schliessung || '')
+          comparison = (a.effective_datum_schliessung || a.datum_schliessung || '').localeCompare(b.effective_datum_schliessung || b.datum_schliessung || '')
           break
         case 'asset':
           comparison = a.asset.localeCompare(b.asset)
@@ -320,13 +318,13 @@ export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTa
               filtered.map((trade) => (
                 <TableRow key={trade.id} className="group">
                   <TableCell className="font-mono text-xs text-muted-foreground">
-                    {trade.trade_id ? trade.trade_id.replace(/^T-0*/, '') : '—'}
+                    {trade.trade_id}
                   </TableCell>
                   <TableCell className="text-sm whitespace-nowrap">
                     {formatDate(trade.datum_eroeffnung)}
                   </TableCell>
                   <TableCell className="text-sm whitespace-nowrap">
-                    {formatDate(trade.datum_schliessung)}
+                    {formatDate(trade.effective_datum_schliessung ?? trade.datum_schliessung)}
                   </TableCell>
                   <TableCell className="font-medium">
                     {trade.asset}
@@ -348,7 +346,7 @@ export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTa
                     {formatPrice(trade.einstiegspreis)}
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm">
-                    {formatPrice(trade.ausstiegspreis)}
+                    {formatPrice(trade.effective_ausstiegspreis ?? trade.ausstiegspreis)}
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={trade.status} />

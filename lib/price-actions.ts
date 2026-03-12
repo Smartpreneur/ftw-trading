@@ -307,7 +307,7 @@ async function checkAndUpdateTPSL(
 }
 
 // Update all active trade prices + check TP/SL levels using daily High/Low
-export async function updateAllActiveTradePrices(): Promise<{ updated: number; errors: number }> {
+export async function updateAllActiveTradePrices(): Promise<{ updated: number; errors: number; failedAssets: string[] }> {
   const supabase = createCacheClient()
 
   // Get all active trades with TP/SL levels and existing hit timestamps
@@ -318,12 +318,13 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
 
   if (tradesError || !activeTrades) {
     console.error('Error fetching active trades:', tradesError)
-    return { updated: 0, errors: 0 }
+    return { updated: 0, errors: 0, failedAssets: [] }
   }
 
   let updated = 0
   let errors = 0
   let tpSlChanged = false
+  const failedAssets: string[] = []
 
   // Group trades by asset to avoid duplicate API calls
   const byAsset = new Map<string, typeof activeTrades>()
@@ -336,8 +337,9 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
   for (const [asset, assetTrades] of byAsset) {
     const mapping = getApiSymbol(asset)
     if (!mapping) {
-      console.warn(`No API mapping for: ${asset}`)
+      console.warn(`No API mapping for asset: "${asset}"`)
       errors += assetTrades.length
+      if (!failedAssets.includes(asset)) failedAssets.push(asset)
       continue
     }
 
@@ -351,22 +353,33 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
       price = await fetchYahooFinancePrice(mapping.api)
     }
 
+    if (price === null) {
+      console.warn(`Price fetch failed for asset: "${asset}" (api: ${mapping.api}, type: ${mapping.type})`)
+    }
+
     // Fetch daily OHLC history for TP/SL detection
     const ohlcData = await fetchOHLCData(mapping)
 
     for (const trade of assetTrades) {
       if (price !== null) {
         // Update current price in DB
-        await supabase
+        const { error: upsertError } = await supabase
           .from('active_trade_prices')
           .upsert({
             trade_id: trade.id,
             asset: trade.asset,
             current_price: price,
           }, { onConflict: 'trade_id' })
-        updated++
+        if (upsertError) {
+          console.error(`DB upsert failed for ${asset}:`, upsertError)
+          errors++
+          if (!failedAssets.includes(asset)) failedAssets.push(`${asset} (DB-Fehler)`)
+        } else {
+          updated++
+        }
       } else {
         errors++
+        if (!failedAssets.includes(asset)) failedAssets.push(asset)
       }
 
       // Check TP/SL with daily High/Low data (skip manually tracked)
@@ -382,13 +395,13 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
 
   // Invalidate caches after update
   if (updated > 0) {
-    revalidateTag('prices', 'max') // always refresh price cache after updates
+    revalidateTag('prices', 'max')
   }
   if (tpSlChanged) {
-    revalidateTag('trades', 'max') // refresh trades cache if TP/SL timestamps changed
+    revalidateTag('trades', 'max')
   }
 
-  return { updated, errors }
+  return { updated, errors, failedAssets }
 }
 
 // Get current prices for active trades (only fetch if cache is stale)
@@ -431,19 +444,24 @@ export async function triggerPriceRefreshIfStale(): Promise<void> {
   const supabase = createCacheClient()
   const threshold = new Date(Date.now() - PRICE_CACHE_MINUTES * 60 * 1000).toISOString()
 
+  // Check for stale entries OR empty table (both need a refresh)
   const { data: stale } = await supabase
     .from('active_trade_prices')
     .select('id')
     .lt('updated_at', threshold)
     .limit(1)
 
-  if (!stale || stale.length === 0) return
+  const { count } = await supabase
+    .from('active_trade_prices')
+    .select('id', { count: 'exact', head: true })
+
+  if ((!stale || stale.length === 0) && (count ?? 0) > 0) return
 
   await updateAllActiveTradePrices()
 }
 
 // Manual refresh - always updates, then invalidates the read cache
-export async function refreshActiveTradePrices(): Promise<{ updated: number; errors: number }> {
+export async function refreshActiveTradePrices(): Promise<{ updated: number; errors: number; failedAssets: string[] }> {
   const result = await updateAllActiveTradePrices()
   revalidateTag('prices', 'max')
   return result

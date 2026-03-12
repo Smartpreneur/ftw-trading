@@ -2,8 +2,8 @@
 
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { setupSchema, toNullableNumber, toNullableString, type SetupSchemaValues } from '@/lib/schemas'
-import { createSetup, updateSetup, uploadChartImage, deleteChartImage } from '@/lib/setup-actions'
+import { tradeSchema, toNullableNumber, toNullableString, type TradeSchemaValues } from '@/lib/schemas'
+import { createTrade, updateTrade, uploadChartImage, deleteChartImage } from '@/lib/actions'
 import { fetchInstrumentPrice } from '@/lib/price-actions'
 import { ASSET_CLASSES, TRADE_DIRECTIONS, TRADING_PROFILES } from '@/lib/constants'
 import { INSTRUMENTS } from '@/lib/asset-mapping'
@@ -18,18 +18,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { TradeSetup } from '@/lib/types'
+import type { Trade } from '@/lib/types'
 import { toast } from 'sonner'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Upload, X, ImageIcon, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 
 interface SetupFormProps {
-  setup?: TradeSetup
+  setup?: Trade
   onSuccess: () => void
 }
 
-const SETUP_STATUSES = ['Aktiv', 'Getriggert', 'Abgelaufen'] as const
+const SETUP_STATUSES = ['Setup', 'Ausstehend', 'Ungültig'] as const
 const ZEITEINHEITEN = ['5min', '15min', '1H', '4H', 'Daily', 'Weekly'] as const
 
 function Field({
@@ -53,13 +53,6 @@ function Field({
 const asNullableNum = (v: unknown) => toNullableNumber(v)
 const asNullableStr = (v: unknown) => toNullableString(v)
 
-function getBerlinNow(): string {
-  return new Date()
-    .toLocaleString('sv-SE', { timeZone: 'Europe/Berlin' })
-    .replace(' ', 'T')
-    .slice(0, 16)
-}
-
 export function SetupForm({ setup, onSuccess }: SetupFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(setup?.chart_bild_url ?? null)
@@ -75,6 +68,17 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     return match?.name ?? setup.asset
   })
   const [selectedAssetKlasse, setSelectedAssetKlasse] = useState(setup?.asset_klasse ?? 'Index')
+  const [tpGewichtung, setTpGewichtung] = useState<Record<string, number | string>>(() => {
+    if (setup) {
+      return {
+        tp1: setup.tp1_gewichtung != null ? Math.round(setup.tp1_gewichtung * 100) : '',
+        tp2: setup.tp2_gewichtung != null ? Math.round(setup.tp2_gewichtung * 100) : '',
+        tp3: setup.tp3_gewichtung != null ? Math.round(setup.tp3_gewichtung * 100) : '',
+        tp4: setup.tp4_gewichtung != null ? Math.round(setup.tp4_gewichtung * 100) : '',
+      }
+    }
+    return { tp1: 100, tp2: '', tp3: '', tp4: '' }
+  })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const {
@@ -83,57 +87,49 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<SetupSchemaValues>({
-    resolver: zodResolver(setupSchema),
+  } = useForm<TradeSchemaValues>({
+    resolver: zodResolver(tradeSchema),
     defaultValues: setup
       ? {
           asset: setup.asset,
           asset_klasse: setup.asset_klasse,
-          datum: setup.datum.slice(0, 16),
-          aktueller_kurs: setup.aktueller_kurs,
-          richtung: setup.richtung,
-          einstiegskurs: setup.einstiegskurs,
+          datum_eroeffnung: setup.datum_eroeffnung,
+          aktueller_kurs: setup.aktueller_kurs ?? undefined,
+          richtung: setup.richtung ?? 'LONG',
+          einstiegspreis: setup.einstiegspreis ?? undefined,
           stop_loss: setup.stop_loss ?? undefined,
-          tp1: setup.tp1,
+          tp1: setup.tp1 ?? undefined,
           tp2: setup.tp2 ?? undefined,
           tp3: setup.tp3 ?? undefined,
           tp4: setup.tp4 ?? undefined,
-          tp1_gewichtung: setup.tp1_gewichtung ?? undefined,
-          tp2_gewichtung: setup.tp2_gewichtung ?? undefined,
-          tp3_gewichtung: setup.tp3_gewichtung ?? undefined,
-          tp4_gewichtung: setup.tp4_gewichtung ?? undefined,
           risiko_reward_min: setup.risiko_reward_min ?? undefined,
           risiko_reward_max: setup.risiko_reward_max ?? undefined,
           zeiteinheit: setup.zeiteinheit ?? undefined,
           dauer_erwartung: setup.dauer_erwartung ?? undefined,
-          status: setup.status,
+          status: (SETUP_STATUSES as readonly string[]).includes(setup.status) ? setup.status as typeof SETUP_STATUSES[number] : 'Setup',
           bemerkungen: setup.bemerkungen ?? undefined,
           profil: setup.profil,
+          gewichtung: 1,
         }
       : {
-          status: 'Aktiv',
+          status: 'Setup',
           richtung: 'LONG',
           asset_klasse: 'Index',
           profil: 'MB',
-          datum: getBerlinNow(),
+          datum_eroeffnung: new Date().toISOString().split('T')[0],
           zeiteinheit: '4H',
-          tp1_gewichtung: 100,
+          gewichtung: 1,
         },
   })
 
-  // Watch TP values to manage weights
   const watchTp1 = watch('tp1')
   const watchTp2 = watch('tp2')
   const watchTp3 = watch('tp3')
   const watchTp4 = watch('tp4')
-  const watchW1 = watch('tp1_gewichtung')
-  const watchW2 = watch('tp2_gewichtung')
-  const watchW3 = watch('tp3_gewichtung')
-  const watchW4 = watch('tp4_gewichtung')
 
   const hasTp = (v: unknown) => v !== null && v !== undefined && !isNaN(Number(v)) && Number(v) > 0
   const activeCount = [watchTp1, watchTp2, watchTp3, watchTp4].filter(hasTp).length
-  const weightSum = (watchW1 ?? 0) + (watchW2 ?? 0) + (watchW3 ?? 0) + (watchW4 ?? 0)
+  const weightSum = (Number(tpGewichtung.tp1) || 0) + (Number(tpGewichtung.tp2) || 0) + (Number(tpGewichtung.tp3) || 0) + (Number(tpGewichtung.tp4) || 0)
 
   const distributeEvenly = useCallback(() => {
     const active = [hasTp(watchTp1), hasTp(watchTp2), hasTp(watchTp3), hasTp(watchTp4)]
@@ -141,20 +137,19 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     if (count === 0) return
     const each = Math.floor(100 / count)
     const remainder = 100 - each * count
-    const keys = ['tp1_gewichtung', 'tp2_gewichtung', 'tp3_gewichtung', 'tp4_gewichtung'] as const
     let firstAssigned = false
-    keys.forEach((key, i) => {
-      if (active[i]) {
-        const w = each + (!firstAssigned ? remainder : 0)
-        setValue(key, w)
-        firstAssigned = true
-      } else {
-        setValue(key, null)
-      }
+    setTpGewichtung(() => {
+      const next: Record<string, number | string> = { tp1: '', tp2: '', tp3: '', tp4: '' }
+      ;['tp1', 'tp2', 'tp3', 'tp4'].forEach((key, i) => {
+        if (active[i]) {
+          next[key] = each + (!firstAssigned ? remainder : 0)
+          firstAssigned = true
+        }
+      })
+      return next
     })
-  }, [watchTp1, watchTp2, watchTp3, watchTp4, setValue])
+  }, [watchTp1, watchTp2, watchTp3, watchTp4])
 
-  // Auto-distribute when TP count changes
   const prevActiveCountRef = useRef(activeCount)
   useEffect(() => {
     if (prevActiveCountRef.current !== activeCount) {
@@ -200,19 +195,21 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  async function onSubmit(values: SetupSchemaValues) {
+  async function onSubmit(values: TradeSchemaValues) {
     setIsSubmitting(true)
     try {
-      const formData = {
+      const payload = {
         ...values,
+        gewichtung: 1.0,
+        manuell_getrackt: false,
+        tp1_gewichtung: tpGewichtung.tp1 !== '' ? Number(tpGewichtung.tp1) / 100 : null,
+        tp2_gewichtung: tpGewichtung.tp2 !== '' ? Number(tpGewichtung.tp2) / 100 : null,
+        tp3_gewichtung: tpGewichtung.tp3 !== '' ? Number(tpGewichtung.tp3) / 100 : null,
+        tp4_gewichtung: tpGewichtung.tp4 !== '' ? Number(tpGewichtung.tp4) / 100 : null,
         stop_loss: values.stop_loss ?? null,
         tp2: values.tp2 ?? null,
         tp3: values.tp3 ?? null,
         tp4: values.tp4 ?? null,
-        tp1_gewichtung: values.tp1_gewichtung ?? null,
-        tp2_gewichtung: values.tp2_gewichtung ?? null,
-        tp3_gewichtung: values.tp3_gewichtung ?? null,
-        tp4_gewichtung: values.tp4_gewichtung ?? null,
         risiko_reward_min: values.risiko_reward_min ?? null,
         risiko_reward_max: values.risiko_reward_max ?? null,
         zeiteinheit: values.zeiteinheit ?? null,
@@ -224,10 +221,10 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         if (setup.chart_bild_url && setup.chart_bild_url !== imageUrl) {
           await deleteChartImage(setup.chart_bild_url)
         }
-        await updateSetup(setup.id, formData)
+        await updateTrade(setup.id, payload)
         toast.success('Setup aktualisiert')
       } else {
-        await createSetup(formData)
+        await createTrade(payload as any)
         toast.success('Setup erstellt')
       }
       onSuccess()
@@ -322,28 +319,13 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         </Field>
       </div>
 
-      {/* Row 3: Datum, Uhrzeit, Aktueller Kurs, Status */}
-      <div className="grid grid-cols-4 gap-3">
-        <Field label="Datum *" error={errors.datum?.message}>
+      {/* Row 3: Datum, Aktueller Kurs, Status */}
+      <div className="grid grid-cols-3 gap-3">
+        <Field label="Datum *" error={errors.datum_eroeffnung?.message}>
           <Input
             type="date"
             className="tabular-nums"
-            value={watch('datum')?.split('T')[0] || ''}
-            onChange={(e) => {
-              const time = watch('datum')?.split('T')[1] || '12:00'
-              setValue('datum', `${e.target.value}T${time}`, { shouldValidate: true })
-            }}
-          />
-        </Field>
-        <Field label="Uhrzeit">
-          <Input
-            type="time"
-            className="tabular-nums"
-            value={watch('datum')?.split('T')[1]?.slice(0, 5) || '12:00'}
-            onChange={(e) => {
-              const date = watch('datum')?.split('T')[0] || new Date().toISOString().split('T')[0]
-              setValue('datum', `${date}T${e.target.value}`, { shouldValidate: true })
-            }}
+            {...register('datum_eroeffnung')}
           />
         </Field>
         <Field label="Aktueller Kurs *" error={errors.aktueller_kurs?.message}>
@@ -361,7 +343,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         </Field>
         <Field label="Status *" error={errors.status?.message}>
           <Select
-            defaultValue={setup?.status ?? 'Aktiv'}
+            defaultValue={setup && (SETUP_STATUSES as readonly string[]).includes(setup.status) ? setup.status : 'Setup'}
             onValueChange={(v) => setValue('status', v as any)}
           >
             <SelectTrigger>
@@ -376,14 +358,14 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         </Field>
       </div>
 
-      {/* Row 4: Einstiegskurs, Stop Loss */}
+      {/* Row 4: Einstiegspreis, Stop Loss */}
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Einstiegskurs *" error={errors.einstiegskurs?.message}>
+        <Field label="Einstiegspreis *" error={errors.einstiegspreis?.message}>
           <Input
             type="number"
             step="any"
             placeholder="0.00"
-            {...register('einstiegskurs', { valueAsNumber: true })}
+            {...register('einstiegspreis', { valueAsNumber: true })}
           />
         </Field>
         <Field label="Stop Loss" error={errors.stop_loss?.message}>
@@ -410,10 +392,10 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         </div>
         <div className="grid grid-cols-4 gap-3">
           {([
-            { tp: 'tp1' as const, w: 'tp1_gewichtung' as const, label: 'TP1 *', reg: { valueAsNumber: true } },
-            { tp: 'tp2' as const, w: 'tp2_gewichtung' as const, label: 'TP2', reg: { setValueAs: asNullableNum } },
-            { tp: 'tp3' as const, w: 'tp3_gewichtung' as const, label: 'TP3', reg: { setValueAs: asNullableNum } },
-            { tp: 'tp4' as const, w: 'tp4_gewichtung' as const, label: 'TP4', reg: { setValueAs: asNullableNum } },
+            { tp: 'tp1' as const, w: 'tp1', label: 'TP1 *', reg: { valueAsNumber: true } },
+            { tp: 'tp2' as const, w: 'tp2', label: 'TP2', reg: { setValueAs: asNullableNum } },
+            { tp: 'tp3' as const, w: 'tp3', label: 'TP3', reg: { setValueAs: asNullableNum } },
+            { tp: 'tp4' as const, w: 'tp4', label: 'TP4', reg: { setValueAs: asNullableNum } },
           ]).map(({ tp, w, label, reg }) => (
             <div key={tp} className="space-y-2">
               <Field label={label} error={errors[tp]?.message}>
@@ -424,20 +406,25 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
                   {...register(tp, reg)}
                 />
               </Field>
-              <Field label="Anteil %" error={errors[w]?.message}>
+              <Field label="Anteil %">
                 <Input
                   type="number"
                   min={0}
                   max={100}
                   step={1}
                   placeholder="%"
-                  {...register(w, { setValueAs: asNullableNum })}
+                  value={tpGewichtung[w] as number}
+                  onChange={(e) =>
+                    setTpGewichtung((prev) => ({
+                      ...prev,
+                      [w]: e.target.value === '' ? '' : Number(e.target.value),
+                    }))
+                  }
                 />
               </Field>
             </div>
           ))}
         </div>
-        {/* Summe indicator */}
         {activeCount > 0 && (
           <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/50">
             <span className="text-xs text-muted-foreground">Summe:</span>

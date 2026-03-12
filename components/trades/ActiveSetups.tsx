@@ -3,10 +3,10 @@
 import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/formatters'
 import { TrendingUp, TrendingDown, Target } from 'lucide-react'
-import type { TradeSetup } from '@/lib/types'
+import type { Trade } from '@/lib/types'
 
 interface ActiveSetupsProps {
-  setups: TradeSetup[]
+  setups: Trade[]
 }
 
 export function ActiveSetups({ setups }: ActiveSetupsProps) {
@@ -53,7 +53,7 @@ export function ActiveSetups({ setups }: ActiveSetupsProps) {
                 <div>
                   <span className="text-muted-foreground">Einstieg</span>
                   <p className="font-mono font-medium">
-                    {formatPrice(setup.einstiegskurs)}
+                    {setup.einstiegspreis != null ? formatPrice(setup.einstiegspreis) : '–'}
                   </p>
                 </div>
                 <div>
@@ -62,7 +62,7 @@ export function ActiveSetups({ setups }: ActiveSetupsProps) {
                 </div>
                 <div>
                   <span className="text-muted-foreground">TP1</span>
-                  <p className="font-mono font-medium text-emerald-600">{formatPrice(setup.tp1)}</p>
+                  <p className="font-mono font-medium text-emerald-600">{setup.tp1 != null ? formatPrice(setup.tp1) : '–'}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">

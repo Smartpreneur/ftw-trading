@@ -1,11 +1,13 @@
-import { getSetups } from '@/lib/setup-actions'
+import { getCachedTrades } from '@/lib/actions'
 import { SetupGrid } from '@/components/setups/SetupGrid'
 import { SetupDialog } from '@/components/setups/SetupDialog'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import { checkAuth, checkAdmin } from '@/lib/auth'
 import { PasswordGate } from '@/components/password-gate'
-import type { TradingProfile } from '@/lib/types'
+import type { Trade, TradingProfile } from '@/lib/types'
+
+const SETUP_STATUSES = ['Entwurf', 'Setup', 'Ausstehend'] as const
 
 export default async function SetupsPage({
   searchParams,
@@ -21,11 +23,17 @@ export default async function SetupsPage({
   const profilesParam = params.profiles
   const selectedProfiles = profilesParam?.split(',') as TradingProfile[] | undefined
 
-  let setups: Awaited<ReturnType<typeof getSetups>> = []
+  let setups: Trade[] = []
   let error: string | null = null
 
   try {
-    setups = await getSetups(selectedProfiles)
+    const allTrades = await getCachedTrades()
+    setups = allTrades.filter((t) =>
+      (SETUP_STATUSES as readonly string[]).includes(t.status)
+    )
+    if (selectedProfiles && selectedProfiles.length > 0) {
+      setups = setups.filter((t) => selectedProfiles.includes(t.profil))
+    }
   } catch (e: any) {
     error = e?.message ?? 'Fehler beim Laden der Setups'
   }

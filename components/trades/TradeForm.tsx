@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { tradeSchema, toNullableNumber, toNullableString, type TradeSchemaValues } from '@/lib/schemas'
 import { createTrade, updateTrade } from '@/lib/actions'
-import { ASSET_CLASSES, TRADE_DIRECTIONS, TRADE_STATUSES } from '@/lib/constants'
+import { ASSET_CLASSES, TRADE_DIRECTIONS, TRADE_STATUSES, TRADING_PROFILES } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -91,7 +91,6 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
     resolver: zodResolver(tradeSchema),
     defaultValues: trade
       ? {
-          trade_id: trade.trade_id ?? undefined,
           datum_eroeffnung: trade.datum_eroeffnung,
           asset: trade.asset,
           asset_klasse: trade.asset_klasse,
@@ -102,11 +101,10 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
           tp2: trade.tp2 ?? undefined,
           tp3: trade.tp3 ?? undefined,
           tp4: trade.tp4 ?? undefined,
-          status: trade.status === 'Geschlossen' ? 'Erfolgreich' : trade.status,
-          datum_schliessung: trade.datum_schliessung ?? undefined,
-          ausstiegspreis: trade.ausstiegspreis ?? undefined,
+          status: trade.status,
           bemerkungen: trade.bemerkungen ?? undefined,
           gewichtung: trade.gewichtung ?? 1,
+          profil: trade.profil,
         }
       : {
           status: 'Aktiv',
@@ -114,10 +112,9 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
           asset_klasse: 'Index',
           datum_eroeffnung: new Date().toISOString().split('T')[0],
           gewichtung: 1,
+          profil: 'SJ' as const,
         },
   })
-
-  const status = watch('status')
 
   async function onSubmit(values: TradeSchemaValues) {
     setIsSubmitting(true)
@@ -168,16 +165,17 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
     }
   }
 
+  function onValidationError(errs: Record<string, any>) {
+    const messages = Object.entries(errs)
+      .map(([field, err]) => `${field}: ${err?.message ?? 'Ungültig'}`)
+      .join('\n')
+    toast.error(`Validierungsfehler:\n${messages}`)
+  }
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit, onValidationError)} className="space-y-4">
       {/* Row 1 */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Field label="Trade-ID" error={errors.trade_id?.message}>
-          <Input
-            placeholder="FTW001"
-            {...register('trade_id', { setValueAs: asNullableStr })}
-          />
-        </Field>
         <Field label="Eröffnung *" error={errors.datum_eroeffnung?.message}>
           <Input type="date" {...register('datum_eroeffnung')} />
         </Field>
@@ -195,6 +193,21 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
             <SelectContent>
               {ASSET_CLASSES.map((c) => (
                 <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Profil *" error={errors.profil?.message}>
+          <Select
+            defaultValue={trade?.profil ?? 'SJ'}
+            onValueChange={(v) => setValue('profil', v as any)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TRADING_PROFILES.map((p) => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -252,60 +265,57 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
       </div>
 
       {/* TP targets with percentage */}
-      <div className="grid grid-cols-4 gap-3">
-        {(['tp1', 'tp2', 'tp3', 'tp4'] as const).map((tp, i) => (
-          <div key={tp} className="space-y-1">
-            <Field label={`TP${i + 1}`} error={errors[tp]?.message}>
-              <Input
-                type="number"
-                step="any"
-                placeholder="0.00"
-                {...register(tp, { setValueAs: asNullableNum })}
-              />
-            </Field>
-            <div className="flex items-center gap-1">
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                step="5"
-                placeholder="%"
-                className="h-7 text-xs"
-                value={tpGewichtung[tp]}
-                onChange={(e) =>
-                  setTpGewichtung((prev) => ({ ...prev, [tp]: e.target.value === '' ? '' : Number(e.target.value) }))
-                }
-              />
-              <span className="text-xs text-muted-foreground">%</span>
+      <div className="space-y-1">
+        <div className="grid grid-cols-4 gap-3">
+          {(['tp1', 'tp2', 'tp3', 'tp4'] as const).map((tp, i) => (
+            <div key={tp} className="space-y-1">
+              <Field label={`TP${i + 1}`} error={errors[tp]?.message}>
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder="0.00"
+                  {...register(tp, { setValueAs: asNullableNum })}
+                />
+              </Field>
+              <div className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  placeholder="%"
+                  className="h-7 text-xs"
+                  value={tpGewichtung[tp]}
+                  onChange={(e) =>
+                    setTpGewichtung((prev) => ({ ...prev, [tp]: e.target.value === '' ? '' : Number(e.target.value) }))
+                  }
+                />
+                <span className="text-xs text-muted-foreground">%</span>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        {/* TP weight sum indicator */}
+        {(['tp1', 'tp2', 'tp3', 'tp4'] as const).some((tp) => tpGewichtung[tp] !== '') && (() => {
+          const sum = (['tp1', 'tp2', 'tp3', 'tp4'] as const).reduce(
+            (s, tp) => s + (tpGewichtung[tp] !== '' ? Number(tpGewichtung[tp]) : 0), 0
+          )
+          return (
+            <p className={`text-xs ${sum === 100 ? 'text-emerald-600' : 'text-rose-600'}`}>
+              Summe: {sum}% {sum !== 100 && '— muss 100% ergeben'}
+            </p>
+          )
+        })()}
       </div>
 
-      {/* Closing fields + Gewichtung */}
+      {/* Gewichtung */}
       <div className="grid grid-cols-3 gap-3">
-        <Field label="Schließungsdatum" error={errors.datum_schliessung?.message}>
-          <Input
-            type="date"
-            disabled={status === 'Aktiv'}
-            {...register('datum_schliessung', { setValueAs: asNullableStr })}
-          />
-        </Field>
-        <Field label="Ausstiegspreis" error={errors.ausstiegspreis?.message}>
-          <Input
-            type="number"
-            step="any"
-            placeholder="0.00"
-            disabled={status === 'Aktiv'}
-            {...register('ausstiegspreis', { setValueAs: asNullableNum })}
-          />
-        </Field>
         <Field label="Gewichtung (%)">
           <Input
             type="number"
             min="0"
             max="100"
-            step="5"
+            step="1"
             value={gewichtungPct}
             onChange={(e) => setGewichtungPct(Number(e.target.value) || 100)}
           />

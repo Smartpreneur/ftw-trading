@@ -5,11 +5,8 @@ import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
 import { refreshActiveTradePrices } from '@/lib/price-actions'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
-
 export function RefreshPricesButton() {
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const router = useRouter()
 
   async function handleRefresh() {
     setIsRefreshing(true)
@@ -17,9 +14,12 @@ export function RefreshPricesButton() {
       const result = await refreshActiveTradePrices()
       toast.success(`${result.updated} Kurse aktualisiert`)
       if (result.errors > 0) {
-        toast.warning(`${result.errors} Kurse konnten nicht aktualisiert werden`)
+        const details = result.failedAssets.length > 0
+          ? `\n${result.failedAssets.join(', ')}`
+          : ''
+        toast.warning(`${result.errors} Kurs(e) nicht verfügbar${details}`, { duration: 8000 })
       }
-      router.refresh()
+      window.location.reload()
     } catch (error: any) {
       toast.error('Fehler beim Aktualisieren der Kurse')
     } finally {

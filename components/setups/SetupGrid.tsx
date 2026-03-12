@@ -1,8 +1,8 @@
 import { SetupCard } from './SetupCard'
-import type { TradeSetup } from '@/lib/types'
+import type { Trade } from '@/lib/types'
 
 interface SetupGridProps {
-  setups: TradeSetup[]
+  setups: Trade[]
   isAdmin?: boolean
 }
 

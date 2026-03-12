@@ -54,8 +54,9 @@ export default async function DashboardPage({
   // Filter in-memory by tab profiles (no DB round-trip)
   const kpiProfileSet = new Set(tabConfig.kpiProfiles)
   const listProfileSet = new Set(tabConfig.listProfiles)
-  const kpiTrades = allTrades.filter((t) => kpiProfileSet.has(t.profil))
-  const listTrades = allTrades.filter((t) => listProfileSet.has(t.profil))
+  const SETUP_STATUSES = ['Entwurf', 'Setup', 'Ausstehend']
+  const kpiTrades = allTrades.filter((t) => kpiProfileSet.has(t.profil) && !SETUP_STATUSES.includes(t.status))
+  const listTrades = allTrades.filter((t) => listProfileSet.has(t.profil) && !SETUP_STATUSES.includes(t.status))
 
   // SL-hit or fully-TP-reached trades are effectively closed → don't show in active
   const allAktiv = listTrades.filter((t) => t.status === 'Aktiv')
@@ -72,10 +73,23 @@ export default async function DashboardPage({
     return true
   })
 
-  // Generate virtual close entries from TP hits and SL hits (all KPI trades)
-  const partialCloseEntries: typeof kpiTrades = []
+  // Aggregate unrealized P&L across active trades with known prices
+  const activePriceMap = new Map(activePrices.map((p) => [p.trade_id, p.current_price]))
+  let totalUnrealizedPct = 0
+  let pricedCount = 0
+  for (const trade of activeTrades) {
+    const currentPrice = activePriceMap.get(trade.id)
+    if (!currentPrice || !trade.einstiegspreis || !trade.richtung) continue
+    const pct = trade.richtung === 'LONG'
+      ? (currentPrice - trade.einstiegspreis) / trade.einstiegspreis * 100
+      : (trade.einstiegspreis - currentPrice) / trade.einstiegspreis * 100
+    totalUnrealizedPct += pct
+    pricedCount++
+  }
+  const avgUnrealizedPct = pricedCount > 0 ? totalUnrealizedPct / pricedCount : null
+
+  // Labels for display (e.g. "(TP1)", "(SL)") keyed by entry id
   const partialCloseLabels = new Map<string, string>()
-  const replacedTradeIds = new Set<string>()
 
   function calcHoldingDays(openDate: string, closeIso: string) {
     const close = closeIso.split('T')[0]
@@ -84,189 +98,85 @@ export default async function DashboardPage({
     ))
   }
 
-  for (const trade of kpiTrades) {
-    if (!trade.einstiegspreis || !trade.richtung) continue
-
-    // Trades with explicit partial weight (< 1) already represent partial positions
-    if (trade.gewichtung < 1) continue
-
-    // TP partial close entries with per-TP weights
-    const tpLevels = [
-      { key: 'tp1', level: trade.tp1, hitAt: trade.tp1_erreicht_am, label: 'TP1', weight: trade.tp1_gewichtung },
-      { key: 'tp2', level: trade.tp2, hitAt: trade.tp2_erreicht_am, label: 'TP2', weight: trade.tp2_gewichtung },
-      { key: 'tp3', level: trade.tp3, hitAt: trade.tp3_erreicht_am, label: 'TP3', weight: trade.tp3_gewichtung },
-      { key: 'tp4', level: trade.tp4, hitAt: trade.tp4_erreicht_am, label: 'TP4', weight: trade.tp4_gewichtung },
-    ]
-
-    const hasAnyHit = tpLevels.some((tp) => tp.level && tp.hitAt) || (trade.sl_erreicht_am && trade.stop_loss)
-    if (!hasAnyHit) continue
-
-    replacedTradeIds.add(trade.id)
-
-    // Fallback: distribute evenly if no tp_gewichtung set
-    const definedTPs = tpLevels.filter((tp) => tp.level != null)
-    const evenWeight = definedTPs.length > 0
-      ? Math.round((trade.gewichtung / definedTPs.length) * 100) / 100
-      : trade.gewichtung
-
-    for (const tp of tpLevels) {
-      if (!tp.level || !tp.hitAt) continue
-
-      // Use stored tp_gewichtung (as fraction of total), fallback to even split
-      const tpWeight = tp.weight != null
-        ? Math.round(tp.weight * trade.gewichtung * 100) / 100
-        : evenWeight
-
-      const perfRaw =
-        trade.richtung === 'LONG'
-          ? ((tp.level - trade.einstiegspreis) / trade.einstiegspreis) * 100
-          : ((trade.einstiegspreis - tp.level) / trade.einstiegspreis) * 100
-
-      const virtualId = `${trade.id}-${tp.key}`
-      partialCloseLabels.set(virtualId, `(${tp.label})`)
-
-      partialCloseEntries.push({
-        ...trade,
-        id: virtualId,
-        gewichtung: tpWeight,
-        ausstiegspreis: tp.level,
-        datum_schliessung: tp.hitAt.split('T')[0],
-        performance_pct: Math.round(perfRaw * 100) / 100,
-        status: 'Erfolgreich',
-        haltedauer_tage: calcHoldingDays(trade.datum_eroeffnung, tp.hitAt),
-      })
-    }
-
-    // SL close entry – remaining position after TP hits
-    if (trade.sl_erreicht_am && trade.stop_loss) {
-      const slPerfRaw =
-        trade.richtung === 'LONG'
-          ? ((trade.stop_loss - trade.einstiegspreis) / trade.einstiegspreis) * 100
-          : ((trade.einstiegspreis - trade.stop_loss) / trade.einstiegspreis) * 100
-
-      // SL weight = total weight minus weight of all TPs that were hit
-      const hitTpWeight = tpLevels
-        .filter((tp) => tp.level && tp.hitAt)
-        .reduce((sum, tp) => sum + (tp.weight != null ? tp.weight * trade.gewichtung : evenWeight), 0)
-      const slWeight = Math.round(Math.max(0, trade.gewichtung - hitTpWeight) * 100) / 100
-
-      const virtualId = `${trade.id}-sl`
-      partialCloseLabels.set(virtualId, '(SL)')
-
-      partialCloseEntries.push({
-        ...trade,
-        id: virtualId,
-        gewichtung: slWeight,
-        ausstiegspreis: trade.stop_loss,
-        datum_schliessung: trade.sl_erreicht_am.split('T')[0],
-        performance_pct: Math.round(slPerfRaw * 100) / 100,
-        status: 'Ausgestoppt',
-        haltedauer_tage: calcHoldingDays(trade.datum_eroeffnung, trade.sl_erreicht_am),
-      })
-    }
-  }
-
-  // Partial-weight active trades that are effectively closed (all TPs or SL hit)
-  const effectivelyClosedPartials: typeof kpiTrades = []
-  for (const trade of kpiTrades) {
-    if (trade.gewichtung >= 1 || trade.status !== 'Aktiv') continue
-    if (!trade.einstiegspreis || !trade.richtung) continue
-
-    const isSLHit = !!trade.sl_erreicht_am
-    const definedTPs = [
-      { level: trade.tp1, hit: trade.tp1_erreicht_am, label: 'TP1' },
-      { level: trade.tp2, hit: trade.tp2_erreicht_am, label: 'TP2' },
-      { level: trade.tp3, hit: trade.tp3_erreicht_am, label: 'TP3' },
-      { level: trade.tp4, hit: trade.tp4_erreicht_am, label: 'TP4' },
-    ].filter((tp) => tp.level != null)
-    const allTPsHit = definedTPs.length > 0 && definedTPs.every((tp) => tp.hit)
-
-    if (!isSLHit && !allTPsHit) continue
-
-    // Determine highest reached TP for label and exit price
-    const highestHitTP = [...definedTPs].reverse().find((tp) => tp.hit)
-    if (highestHitTP) {
-      partialCloseLabels.set(trade.id, `(${highestHitTP.label})`)
-    } else if (isSLHit) {
-      partialCloseLabels.set(trade.id, '(SL)')
-    }
-
-    // Compute performance from highest TP or SL
-    const exitPrice = isSLHit && !allTPsHit
-      ? trade.stop_loss
-      : highestHitTP?.level ?? trade.ausstiegspreis
-    let perfPct = trade.performance_pct
-    if (perfPct === null && exitPrice && trade.einstiegspreis) {
-      const raw = trade.richtung === 'LONG'
-        ? ((exitPrice - trade.einstiegspreis) / trade.einstiegspreis) * 100
-        : ((trade.einstiegspreis - exitPrice) / trade.einstiegspreis) * 100
-      perfPct = Math.round(raw * 100) / 100
-    }
-
-    const hitDate = isSLHit && !allTPsHit
-      ? trade.sl_erreicht_am!
-      : highestHitTP?.hit ?? trade.datum_eroeffnung
-
-    effectivelyClosedPartials.push({
+  // Helper: build a display/KPI entry from a single trade_close row
+  function makeCloseEntry(
+    trade: (typeof kpiTrades)[number],
+    close: { id: string; ausstiegspreis: number | null; anteil: number | null; datum: string; typ: string | null; nummer: number | null },
+    idPrefix: string
+  ) {
+    const perfRaw = trade.richtung === 'LONG'
+      ? ((close.ausstiegspreis! - trade.einstiegspreis!) / trade.einstiegspreis!) * 100
+      : ((trade.einstiegspreis! - close.ausstiegspreis!) / trade.einstiegspreis!) * 100
+    return {
       ...trade,
-      ausstiegspreis: exitPrice,
-      performance_pct: perfPct,
-      datum_schliessung: hitDate.split('T')[0],
-      haltedauer_tage: calcHoldingDays(trade.datum_eroeffnung, hitDate),
-    })
+      id: `${trade.id}-${idPrefix}-${close.id}`,
+      gewichtung: Math.round(close.anteil! * trade.gewichtung * 100) / 100,
+      ausstiegspreis: close.ausstiegspreis,
+      datum_schliessung: close.datum,
+      effective_datum_schliessung: close.datum,
+      effective_ausstiegspreis: close.ausstiegspreis,
+      performance_pct: Math.round(perfRaw * 100) / 100,
+      haltedauer_tage: calcHoldingDays(trade.datum_eroeffnung, close.datum),
+    }
   }
 
-  // Add TP/SL labels for closed trades that weren't split into virtual entries
+  // KPI: realized partial closes on ACTIVE trades count toward monthly performance
+  const kpiReplacedIds = new Set<string>()
+  const kpiCloseEntries: typeof kpiTrades = []
+
   for (const trade of kpiTrades) {
-    if (replacedTradeIds.has(trade.id)) continue
-    if (partialCloseLabels.has(trade.id)) continue
-    if (!trade.einstiegspreis || !trade.richtung) continue
-
-    // Check TP hit timestamps first
-    const tps = [
-      { level: trade.tp1, hit: trade.tp1_erreicht_am, label: 'TP1' },
-      { level: trade.tp2, hit: trade.tp2_erreicht_am, label: 'TP2' },
-      { level: trade.tp3, hit: trade.tp3_erreicht_am, label: 'TP3' },
-      { level: trade.tp4, hit: trade.tp4_erreicht_am, label: 'TP4' },
-    ]
-    const highestHitTP = [...tps].filter(tp => tp.level != null && tp.hit).pop()
-    if (highestHitTP) {
-      partialCloseLabels.set(trade.id, `(${highestHitTP.label})`)
-      continue
-    }
-
-    // SL hit timestamp
-    if (trade.sl_erreicht_am) {
-      partialCloseLabels.set(trade.id, '(SL)')
-      continue
-    }
-
-    // For closed trades without timestamps, derive label from status + exit price
-    if (trade.status === 'Ausgestoppt') {
-      partialCloseLabels.set(trade.id, '(SL)')
-      continue
-    }
-    if (trade.status === 'Erfolgreich' && trade.ausstiegspreis) {
-      // Match exit price to closest TP level (within 0.5% tolerance)
-      for (const tp of [...tps].reverse()) {
-        if (tp.level != null && Math.abs(trade.ausstiegspreis - tp.level) / tp.level < 0.005) {
-          partialCloseLabels.set(trade.id, `(${tp.label})`)
-          break
-        }
-      }
+    if (trade.status !== 'Aktiv' || !trade.einstiegspreis || !trade.richtung) continue
+    const closesWithData = (trade.closes ?? []).filter(
+      (c) => c.ausstiegspreis != null && c.anteil != null
+    )
+    if (closesWithData.length === 0) continue
+    kpiReplacedIds.add(trade.id)
+    const sorted = [...closesWithData].sort((a, b) => (a.nummer ?? 0) - (b.nummer ?? 0))
+    for (const close of sorted) {
+      const entry = makeCloseEntry(trade, close, 'kpi')
+      if (close.typ) partialCloseLabels.set(entry.id, `(${close.typ})`)
+      kpiCloseEntries.push({ ...entry, status: 'Geschlossen' })
     }
   }
 
-  // KPI calculations: use all KPI trades with virtual entries (exclude Ungültig)
-  const tradesWithPartials = [
-    ...kpiTrades.filter((t) => !replacedTradeIds.has(t.id) && t.status !== 'Ungültig'),
-    ...partialCloseEntries,
-    ...effectivelyClosedPartials,
-  ]
-  const kpis = calculateKPIs(tradesWithPartials)
-  const monthly = calculateMonthlyPerformance(tradesWithPartials)
+  // Display: expand trades with 2+ closes into individual rows in "Letzte Trades"
+  const closesExpandedIds = new Set<string>()
+  const closesExpandedEntries: typeof listTrades = []
 
-  // Trade-Ideen counts (original trades, excluding Ungültig)
+  for (const trade of listTrades) {
+    if (!trade.einstiegspreis || !trade.richtung) continue
+    const closesWithData = (trade.closes ?? []).filter(
+      (c) => c.ausstiegspreis != null && c.anteil != null
+    )
+    if (closesWithData.length < 2) continue
+    closesExpandedIds.add(trade.id)
+    const sorted = [...closesWithData].sort((a, b) => (a.nummer ?? 0) - (b.nummer ?? 0))
+    for (const close of sorted) {
+      const entry = makeCloseEntry(trade, close, 'close')
+      if (close.typ) partialCloseLabels.set(entry.id, `(${close.typ})`)
+      closesExpandedEntries.push(entry)
+    }
+  }
+
+  // Labels for single-close trades (show close type next to asset name)
+  for (const trade of listTrades) {
+    if (closesExpandedIds.has(trade.id) || partialCloseLabels.has(trade.id)) continue
+    const closes = (trade.closes ?? []).filter(c => c.ausstiegspreis != null && c.anteil != null)
+    if (closes.length === 1 && closes[0].typ) {
+      partialCloseLabels.set(trade.id, `(${closes[0].typ})`)
+    }
+  }
+
+  // KPI calculations: closed trades (enrichTrade gives correct weighted perf) +
+  // realized close entries from active trades
+  const tradesForKpi = [
+    ...kpiTrades.filter((t) => !kpiReplacedIds.has(t.id) && t.status !== 'Ungültig'),
+    ...kpiCloseEntries,
+  ]
+  const kpis = calculateKPIs(tradesForKpi)
+  const monthly = calculateMonthlyPerformance(tradesForKpi)
+
+  // Trade-Ideen counts (original trades only, excluding Ungültig)
   const tradeIdeen = kpiTrades.filter((t) => t.status !== 'Ungültig')
   const tradeIdeenGesamt = tradeIdeen.length
   const tradeIdeenGeschlossen = tradeIdeen.filter((t) => t.status !== 'Aktiv').length
@@ -276,17 +186,18 @@ export default async function DashboardPage({
 
   // Recent trades list: only list-profile trades from 2026+
   const recentClosedTrades = [
-    ...listTrades.filter((t) => t.status !== 'Aktiv' && !replacedTradeIds.has(t.id)),
-    ...partialCloseEntries.filter((t) => listProfileSet.has(t.profil)),
-    ...effectivelyClosedPartials.filter((t) => listProfileSet.has(t.profil)),
+    ...listTrades.filter(
+      (t) => t.status !== 'Aktiv' && !closesExpandedIds.has(t.id)
+    ),
+    ...closesExpandedEntries,
   ]
     .filter((t) => {
-      const closeDate = t.datum_schliessung || t.datum_eroeffnung
+      const closeDate = t.effective_datum_schliessung || t.datum_schliessung || t.datum_eroeffnung
       return closeDate >= RECENT_TRADES_CUTOFF
     })
     .sort((a, b) => {
-      const dateA = a.datum_schliessung || a.datum_eroeffnung
-      const dateB = b.datum_schliessung || b.datum_eroeffnung
+      const dateA = a.effective_datum_schliessung || a.datum_schliessung || a.datum_eroeffnung
+      const dateB = b.effective_datum_schliessung || b.datum_schliessung || b.datum_eroeffnung
       return dateB.localeCompare(dateA)
     })
 
@@ -402,18 +313,28 @@ export default async function DashboardPage({
       {activeTrades.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <CardTitle className="text-base">
-              Aktive Trades{' '}
-              <span className="ml-1.5 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                {activeTrades.length}
-              </span>
-            </CardTitle>
+            <div>
+              <CardTitle className="text-base">
+                Aktive Trades{' '}
+                <span className="ml-1.5 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                  {activeTrades.length}
+                </span>
+              </CardTitle>
+              {avgUnrealizedPct !== null && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Ø G/V aktuell:{' '}
+                  <span className={`font-semibold font-mono ${avgUnrealizedPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {avgUnrealizedPct >= 0 ? '+' : ''}{avgUnrealizedPct.toFixed(2)}%
+                  </span>
+                  <span className="ml-1.5 text-muted-foreground/60">({pricedCount} von {activeTrades.length} bewertet)</span>
+                </p>
+              )}
+            </div>
             <RefreshPricesButton />
           </CardHeader>
           <CardContent className="px-0">
             <ActiveTradesTable
               trades={activeTrades}
-              setups={[]}
               activePrices={activePrices}
               isAdmin={isAdmin}
             />

@@ -16,19 +16,18 @@ import { cn } from '@/lib/utils'
 import { Check, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Pencil } from 'lucide-react'
 import { TradeDialog } from './TradeDialog'
 import { Button } from '@/components/ui/button'
-import type { TradeWithPerformance, TradeSetup, ActiveTradePrice } from '@/lib/types'
+import type { TradeWithPerformance, ActiveTradePrice } from '@/lib/types'
 
 type SortKey = 'datum' | 'asset' | 'richtung' | null
 type SortDir = 'asc' | 'desc'
 
 interface ActiveTradesTableProps {
   trades: TradeWithPerformance[]
-  setups: TradeSetup[]
   activePrices: ActiveTradePrice[]
   isAdmin?: boolean
 }
 
-export function ActiveTradesTable({ trades, setups, activePrices, isAdmin = false }: ActiveTradesTableProps) {
+export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: ActiveTradesTableProps) {
   const priceMap = useMemo(() => new Map(activePrices.map(p => [p.trade_id, p])), [activePrices])
   const [sortKey, setSortKey] = useState<SortKey>('datum')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -264,71 +263,6 @@ export function ActiveTradesTable({ trades, setups, activePrices, isAdmin = fals
             </TableRow>
           )
         })}
-        {setups.map((setup) => (
-          <TableRow key={`setup-${setup.id}`} className="opacity-75">
-            <TableCell className="pl-6">
-              <span className="text-sm text-muted-foreground">
-                {formatDate(setup.datum)}
-              </span>
-            </TableCell>
-            <TableCell>
-              <span className="font-medium">{setup.asset}</span>
-            </TableCell>
-            <TableCell>
-              <DirectionBadge direction={setup.richtung} />
-            </TableCell>
-            <TableCell className="text-right">
-              <span className="font-mono text-sm">
-                {formatPrice(setup.einstiegskurs)}
-              </span>
-            </TableCell>
-            <TableCell className="text-right">
-              <span className="font-mono text-sm">
-                {formatPrice(setup.aktueller_kurs)}
-              </span>
-            </TableCell>
-            <TableCell className="text-right">
-              <span className="text-muted-foreground">—</span>
-            </TableCell>
-            <TableCell className="text-right">
-              <span className="font-mono text-sm">
-                {formatPrice(setup.stop_loss)}
-              </span>
-            </TableCell>
-            <TableCell className="text-right">
-              <span className="font-mono text-sm">
-                {formatPrice(setup.tp1)}
-              </span>
-            </TableCell>
-            <TableCell className="text-right">
-              <span className="font-mono text-sm">
-                {setup.tp2 ? formatPrice(setup.tp2) : '—'}
-              </span>
-            </TableCell>
-            <TableCell className="text-right">
-              <span className="font-mono text-sm">
-                {setup.tp3 ? formatPrice(setup.tp3) : '—'}
-              </span>
-            </TableCell>
-            <TableCell className="text-right">
-              <span className="font-mono text-sm">
-                {setup.tp4 ? formatPrice(setup.tp4) : '—'}
-              </span>
-            </TableCell>
-            <TableCell>
-              <span className="text-xs text-muted-foreground">Setup</span>
-            </TableCell>
-            <TableCell className={cn("max-w-[150px]", !isAdmin && "pr-6")}>
-              <span
-                className="text-sm text-muted-foreground truncate block cursor-help"
-                title={setup.bemerkungen || undefined}
-              >
-                {setup.bemerkungen || '—'}
-              </span>
-            </TableCell>
-            {isAdmin && <TableCell className="pr-6" />}
-          </TableRow>
-        ))}
       </TableBody>
     </Table>
   )

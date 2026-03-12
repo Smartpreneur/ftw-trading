@@ -9,10 +9,10 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { SetupForm } from './SetupForm'
-import type { TradeSetup } from '@/lib/types'
+import type { Trade } from '@/lib/types'
 
 interface SetupDialogProps {
-  setup?: TradeSetup
+  setup?: Trade
   trigger: React.ReactNode
 }
 

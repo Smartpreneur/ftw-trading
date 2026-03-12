@@ -1,12 +1,41 @@
 export type AssetClass = 'Index' | 'Rohstoff' | 'Krypto' | 'Aktie' | 'FX'
 export type TradeDirection = 'LONG' | 'SHORT'
-export type TradeStatus = 'Aktiv' | 'Erfolgreich' | 'Ausgestoppt' | 'Ungültig' | 'Einstand' | 'Geschlossen'
-export type SetupStatus = 'Aktiv' | 'Getriggert' | 'Abgelaufen'
+export type TradeStatus =
+  | 'Entwurf'
+  | 'Setup'
+  | 'Ausstehend'
+  | 'Aktiv'
+  | 'Geschlossen'
+  | 'Ausgestoppt'
+  | 'Ungültig'
+  | 'Einstand'
+export type TradeCloseTyp = 'TP1' | 'TP2' | 'TP3' | 'TP4' | 'SL' | 'Manuell' | 'Einstand'
 export type TradingProfile = 'MB' | 'SJ'
+
+export interface TradeNote {
+  id: string
+  trade_fk: string
+  datum: string
+  text: string
+  created_at: string
+}
+
+export interface TradeClose {
+  id: string
+  trade_fk: string
+  nummer: number | null
+  typ: TradeCloseTyp | null
+  datum: string
+  ausstiegspreis: number | null
+  anteil: number | null
+  bemerkungen: string | null
+  created_at: string
+}
 
 export interface Trade {
   id: string
-  trade_id: string | null
+  trade_id: number
+  trade_id_legacy: string | null
   datum_eroeffnung: string
   asset: string
   asset_klasse: AssetClass
@@ -34,8 +63,17 @@ export interface Trade {
   tp2_gewichtung: number | null
   tp3_gewichtung: number | null
   tp4_gewichtung: number | null
+  // Setup-specific fields (nullable for active trades)
+  aktueller_kurs: number | null
+  risiko_reward_min: number | null
+  risiko_reward_max: number | null
+  zeiteinheit: string | null
+  dauer_erwartung: string | null
+  chart_bild_url: string | null
   created_at: string
   updated_at: string
+  closes: TradeClose[]
+  notes: TradeNote[]
 }
 
 export interface TradeWithPerformance extends Trade {
@@ -43,10 +81,13 @@ export interface TradeWithPerformance extends Trade {
   risiko_pct: number | null
   risk_reward: number | null
   haltedauer_tage: number
+  /** Effective close date: max(close.datum) if closes exist, else datum_schliessung */
+  effective_datum_schliessung: string | null
+  /** Effective exit price: weighted avg of closes if closes exist, else ausstiegspreis */
+  effective_ausstiegspreis: number | null
 }
 
 export type TradeFormData = {
-  trade_id: string
   datum_eroeffnung: string
   asset: string
   asset_klasse: AssetClass
@@ -58,8 +99,6 @@ export type TradeFormData = {
   tp3: number | null
   tp4: number | null
   status: TradeStatus
-  datum_schliessung: string | null
-  ausstiegspreis: number | null
   bemerkungen: string | null
   profil: TradingProfile
   manuell_getrackt?: boolean
@@ -74,6 +113,22 @@ export type TradeFormData = {
   tp2_gewichtung?: number | null
   tp3_gewichtung?: number | null
   tp4_gewichtung?: number | null
+  aktueller_kurs?: number | null
+  risiko_reward_min?: number | null
+  risiko_reward_max?: number | null
+  zeiteinheit?: string | null
+  dauer_erwartung?: string | null
+  chart_bild_url?: string | null
+}
+
+export type TradeCloseFormData = {
+  trade_fk: string
+  nummer?: number | null
+  typ: TradeCloseTyp
+  datum: string
+  ausstiegspreis: number | null
+  anteil: number
+  bemerkungen?: string | null
 }
 
 export interface PerformanceKPIs {
@@ -110,61 +165,6 @@ export interface EquityCurvePoint {
   richtung: TradeDirection
   trade_pct: number
   gewichtung: number
-}
-
-export interface TradeSetup {
-  id: string
-  asset: string
-  asset_klasse: AssetClass
-  datum: string
-  aktueller_kurs: number
-  richtung: TradeDirection
-  einstiegskurs: number
-  stop_loss: number | null
-  tp1: number
-  tp2: number | null
-  tp3: number | null
-  tp4: number | null
-  tp1_gewichtung: number | null
-  tp2_gewichtung: number | null
-  tp3_gewichtung: number | null
-  tp4_gewichtung: number | null
-  risiko_reward_min: number | null
-  risiko_reward_max: number | null
-  zeiteinheit: string | null
-  dauer_erwartung: string | null
-  status: SetupStatus
-  bemerkungen: string | null
-  chart_bild_url: string | null
-  profil: TradingProfile
-  created_at: string
-  updated_at: string
-}
-
-export type SetupFormData = {
-  asset: string
-  asset_klasse: AssetClass
-  datum: string
-  aktueller_kurs: number
-  richtung: TradeDirection
-  einstiegskurs: number
-  stop_loss: number | null
-  tp1: number
-  tp2: number | null
-  tp3: number | null
-  tp4: number | null
-  tp1_gewichtung?: number | null
-  tp2_gewichtung?: number | null
-  tp3_gewichtung?: number | null
-  tp4_gewichtung?: number | null
-  risiko_reward_min: number | null
-  risiko_reward_max: number | null
-  zeiteinheit: string | null
-  dauer_erwartung: string | null
-  status: SetupStatus
-  bemerkungen: string | null
-  chart_bild_url: string | null
-  profil: TradingProfile
 }
 
 export interface ActiveTradePrice {

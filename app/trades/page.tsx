@@ -22,10 +22,12 @@ export default async function TradesPage({
   let error: string | null = null
 
   try {
+    const SETUP_STATUSES = ['Entwurf', 'Setup', 'Ausstehend']
     const allTrades = await getTrades(selectedProfiles)
-    // Only show trades opened or closed in 2026+
+    // Only show trades opened or closed in 2026+, exclude setup statuses
     trades = allTrades.filter(
-      (t) => t.datum_eroeffnung >= '2026-01-01' || (t.datum_schliessung ?? '') >= '2026-01-01'
+      (t) => !SETUP_STATUSES.includes(t.status) &&
+             (t.datum_eroeffnung >= '2026-01-01' || (t.datum_schliessung ?? '') >= '2026-01-01')
     )
   } catch (e: any) {
     error = e?.message ?? 'Fehler beim Laden'

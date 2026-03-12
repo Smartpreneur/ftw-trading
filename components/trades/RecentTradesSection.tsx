@@ -1,6 +1,4 @@
-'use client'
-
-import { useState } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -12,6 +10,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { TradeDialog } from './TradeDialog'
+import { TradeCloseDialog } from './TradeCloseDialog'
 import { DirectionBadge } from './DirectionBadge'
 import { formatDate, formatPrice } from '@/lib/formatters'
 import { getCurrencySymbol } from '@/lib/asset-mapping'
@@ -33,10 +32,7 @@ export function RecentTradesSection({
   partialCloseLabels,
   isAdmin,
 }: RecentTradesSectionProps) {
-  const [showAll, setShowAll] = useState(false)
-
-  const visible = showAll ? trades : trades.slice(0, PREVIEW_COUNT)
-  const hasMore = trades.length > PREVIEW_COUNT
+  const visible = trades.slice(0, PREVIEW_COUNT)
 
   return (
     <Card>
@@ -45,20 +41,17 @@ export function RecentTradesSection({
           Letzte Trades{' '}
           {trades.length > 0 && (
             <span className="ml-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-              {showAll ? trades.length : Math.min(PREVIEW_COUNT, trades.length)}
+              {Math.min(PREVIEW_COUNT, trades.length)}
             </span>
           )}
         </CardTitle>
-        {hasMore && (
-          <button
-            type="button"
-            onClick={() => setShowAll((v) => !v)}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {showAll ? 'Weniger anzeigen' : 'Alle Trades 2026'}
-            <ArrowRight className={cn('h-3.5 w-3.5 transition-transform', showAll && 'rotate-180')} />
-          </button>
-        )}
+        <Link
+          href="/trades"
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Alle Trades
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
       </CardHeader>
       <CardContent className="px-0">
         {trades.length === 0 ? (
@@ -87,7 +80,7 @@ export function RecentTradesSection({
                 {visible.map((trade) => (
                   <TableRow key={trade.id}>
                     <TableCell className="pl-6 font-mono text-xs text-muted-foreground whitespace-nowrap">
-                      {trade.trade_id ? trade.trade_id.replace(/^T-0*/, '') : '—'}
+                      {trade.trade_id}
                     </TableCell>
                     <TableCell>
                       <div>
@@ -115,7 +108,7 @@ export function RecentTradesSection({
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground whitespace-nowrap">
-                        {trade.datum_schliessung ? formatDate(trade.datum_schliessung) : '—'}
+                        {(trade.effective_datum_schliessung ?? trade.datum_schliessung) ? formatDate(trade.effective_datum_schliessung ?? trade.datum_schliessung) : '—'}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
@@ -127,8 +120,8 @@ export function RecentTradesSection({
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="font-mono text-sm">
-                        {trade.ausstiegspreis
-                          ? `${getCurrencySymbol(trade.asset, trade.asset_klasse)}${formatPrice(trade.ausstiegspreis)}`
+                        {(trade.effective_ausstiegspreis ?? trade.ausstiegspreis)
+                          ? `${getCurrencySymbol(trade.asset, trade.asset_klasse)}${formatPrice(trade.effective_ausstiegspreis ?? trade.ausstiegspreis)}`
                           : '—'}
                       </span>
                     </TableCell>
@@ -150,20 +143,38 @@ export function RecentTradesSection({
                         {trade.haltedauer_tage === 0 ? '< 1' : `${trade.haltedauer_tage}`}
                       </span>
                     </TableCell>
-                    {isAdmin && (
-                      <TableCell className="pr-6">
-                        {!trade.id.includes('-tp') && !trade.id.includes('-sl') && (
-                          <TradeDialog
-                            trade={trade}
-                            trigger={
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                            }
-                          />
-                        )}
-                      </TableCell>
-                    )}
+                    {isAdmin && (() => {
+                      const isCloseEntry = trade.id.includes('-close-')
+                      const closeId = isCloseEntry ? trade.id.split('-close-')[1] : null
+                      const parentUuid = isCloseEntry ? trade.id.split('-close-')[0] : null
+                      const tradeClose = closeId
+                        ? (trade.closes ?? []).find((c) => c.id === closeId) ?? null
+                        : null
+                      return (
+                        <TableCell className="pr-6">
+                          {trade.id.length === 36 ? (
+                            <TradeDialog
+                              trade={trade}
+                              trigger={
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              }
+                            />
+                          ) : isCloseEntry && tradeClose && parentUuid ? (
+                            <TradeCloseDialog
+                              tradeFk={parentUuid}
+                              close={tradeClose}
+                              trigger={
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              }
+                            />
+                          ) : null}
+                        </TableCell>
+                      )
+                    })()}
                   </TableRow>
                 ))}
               </TableBody>

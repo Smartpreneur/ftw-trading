@@ -4,17 +4,17 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/formatters'
-import { deleteSetup, deleteChartImage, convertSetupToTrade } from '@/lib/setup-actions'
+import { deleteTrade, updateTrade, deleteChartImage } from '@/lib/actions'
 import { SetupDialog } from './SetupDialog'
 import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2, Play } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import Image from 'next/image'
-import type { TradeSetup } from '@/lib/types'
+import type { Trade } from '@/lib/types'
 
 interface SetupCardProps {
-  setup: TradeSetup
+  setup: Trade
   isAdmin?: boolean
 }
 
@@ -24,11 +24,12 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
 
-  const date = new Date(setup.datum)
-  const formattedDate = `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+  const date = new Date(setup.datum_eroeffnung)
+  const formattedDate = `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`
 
   async function handleConvertToTrade() {
-    const priceStr = prompt('Einstiegspreis eingeben:', setup.aktueller_kurs.toString())
+    const defaultPrice = setup.aktueller_kurs ?? setup.einstiegspreis ?? 0
+    const priceStr = prompt('Einstiegspreis eingeben:', defaultPrice.toString())
     if (!priceStr) return
     const price = parseFloat(priceStr.replace(',', '.'))
     if (isNaN(price)) {
@@ -37,7 +38,7 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
     }
     setIsConverting(true)
     try {
-      await convertSetupToTrade(setup.id, price)
+      await updateTrade(setup.id, { status: 'Aktiv', einstiegspreis: price })
       toast.success('Trade eröffnet')
       router.refresh()
     } catch (err: any) {
@@ -54,7 +55,7 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
       if (setup.chart_bild_url) {
         await deleteChartImage(setup.chart_bild_url)
       }
-      await deleteSetup(setup.id)
+      await deleteTrade(setup.id)
       toast.success('Setup gelöscht')
       router.refresh()
     } catch (err: any) {
@@ -75,7 +76,7 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
                 {setup.asset_klasse}
               </Badge>
               <Badge
-                variant={setup.status === 'Aktiv' ? 'default' : 'outline'}
+                variant={setup.status === 'Setup' ? 'default' : 'outline'}
                 className="text-xs"
               >
                 {setup.status}
@@ -86,10 +87,12 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
             </div>
           </div>
           <div className="flex items-start gap-1">
-            <div className="text-right mr-2">
-              <p className="text-xs text-muted-foreground">Kurs bei Signal</p>
-              <p className="text-base font-bold tabular-nums">{formatPrice(setup.aktueller_kurs)}</p>
-            </div>
+            {setup.aktueller_kurs != null && (
+              <div className="text-right mr-2">
+                <p className="text-xs text-muted-foreground">Kurs bei Signal</p>
+                <p className="text-base font-bold tabular-nums">{formatPrice(setup.aktueller_kurs)}</p>
+              </div>
+            )}
             {isAdmin && (
               <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <SetupDialog
@@ -124,12 +127,14 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
               {setup.richtung}
             </span>
           </p>
-          <p className="text-sm">
-            <span className="font-medium">Einstieg:</span>{' '}
-            <span className="font-mono font-semibold">
-              {formatPrice(setup.einstiegskurs)}
-            </span>
-          </p>
+          {setup.einstiegspreis != null && (
+            <p className="text-sm">
+              <span className="font-medium">Einstieg:</span>{' '}
+              <span className="font-mono font-semibold">
+                {formatPrice(setup.einstiegspreis)}
+              </span>
+            </p>
+          )}
         </div>
 
         {/* Take-Profit Levels */}
@@ -143,21 +148,23 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
             <span>Take-Profit</span>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-emerald-50 rounded-md p-2">
-              <div className="flex items-center justify-between mb-0.5">
-                <p className="text-xs text-muted-foreground">TP1</p>
-                {setup.tp1_gewichtung != null && (
-                  <span className="text-[10px] text-muted-foreground font-medium">{setup.tp1_gewichtung}%</span>
-                )}
+            {setup.tp1 != null && (
+              <div className="bg-emerald-50 rounded-md p-2">
+                <div className="flex items-center justify-between mb-0.5">
+                  <p className="text-xs text-muted-foreground">TP1</p>
+                  {setup.tp1_gewichtung != null && (
+                    <span className="text-[10px] text-muted-foreground font-medium">{Math.round(setup.tp1_gewichtung * 100)}%</span>
+                  )}
+                </div>
+                <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp1)}</p>
               </div>
-              <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp1)}</p>
-            </div>
+            )}
             {setup.tp2 !== null && (
               <div className="bg-emerald-50 rounded-md p-2">
                 <div className="flex items-center justify-between mb-0.5">
                   <p className="text-xs text-muted-foreground">TP2</p>
                   {setup.tp2_gewichtung != null && (
-                    <span className="text-[10px] text-muted-foreground font-medium">{setup.tp2_gewichtung}%</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">{Math.round(setup.tp2_gewichtung * 100)}%</span>
                   )}
                 </div>
                 <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp2)}</p>
@@ -168,7 +175,7 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
                 <div className="flex items-center justify-between mb-0.5">
                   <p className="text-xs text-muted-foreground">TP3</p>
                   {setup.tp3_gewichtung != null && (
-                    <span className="text-[10px] text-muted-foreground font-medium">{setup.tp3_gewichtung}%</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">{Math.round(setup.tp3_gewichtung * 100)}%</span>
                   )}
                 </div>
                 <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp3)}</p>
@@ -179,7 +186,7 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
                 <div className="flex items-center justify-between mb-0.5">
                   <p className="text-xs text-muted-foreground">TP4</p>
                   {setup.tp4_gewichtung != null && (
-                    <span className="text-[10px] text-muted-foreground font-medium">{setup.tp4_gewichtung}%</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">{Math.round(setup.tp4_gewichtung * 100)}%</span>
                   )}
                 </div>
                 <p className="font-mono font-semibold text-sm">{formatPrice(setup.tp4)}</p>
@@ -250,8 +257,8 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
           {formattedDate}
         </p>
 
-        {/* Convert to Trade button - only for active setups, admin only */}
-        {isAdmin && setup.status === 'Aktiv' && (
+        {/* Convert to Trade button - only for setup/ausstehend statuses, admin only */}
+        {isAdmin && (setup.status === 'Setup' || setup.status === 'Ausstehend') && (
           <Button
             onClick={handleConvertToTrade}
             disabled={isConverting}

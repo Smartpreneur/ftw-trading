@@ -100,6 +100,37 @@ export const ASSET_SYMBOL_MAP: Record<string, { api: string; type: 'twelve' | 'c
   'MSFT': { api: 'MSFT', type: 'yahoo' },
   'COINBASE': { api: 'COIN', type: 'yahoo' },
   'COIN': { api: 'COIN', type: 'yahoo' },
+
+  // MB Portfolio stocks (full names → Yahoo tickers)
+  'DOCUSIGNINC': { api: 'DOCU', type: 'yahoo' },
+  'WOLTERSKLUWERN.V.': { api: 'WKL.AS', type: 'yahoo' },
+  'HARLEY-DAVIDSONINC.': { api: 'HOG', type: 'yahoo' },
+  'UNITEDHEALTHGROUPINC.': { api: 'UNH', type: 'yahoo' },
+  'GRENKEAG': { api: 'GLJ.DE', type: 'yahoo' },
+  'MAPLEBEARINC': { api: 'CART', type: 'yahoo' },
+  'STABILUSSE': { api: 'STM.DE', type: 'yahoo' },
+  'ASTERALABS': { api: 'ALAB', type: 'yahoo' },
+  'METAPLANETINC.': { api: 'DN3.MU', type: 'yahoo' },
+  'DOUGLASAG': { api: 'DOU.DE', type: 'yahoo' },
+  'PUMASE': { api: 'PUM.DE', type: 'yahoo' },
+  'KLOECKNER&COSE': { api: 'KCO.DE', type: 'yahoo' },
+  'UNDERARMOURINC.': { api: 'UAA', type: 'yahoo' },
+  'FIGMAINC.': { api: 'FIG', type: 'yahoo' },
+  'FIREFLYAEROSPACEINC.': { api: 'FLY', type: 'yahoo' },
+  '21SHARESFUTUREOFCRYPTOINDEXETP': { api: 'FUTR.AS', type: 'yahoo' },
+  'CIRCLEINTERNETGROUPINC.': { api: 'CRCL', type: 'yahoo' },
+  'GERRESHEIMERAG': { api: 'GXI.DE', type: 'yahoo' },
+  'SUPERMICROCOMPUTERINC.': { api: 'SMCI', type: 'yahoo' },
+  "WENDY'SCO.,THE": { api: 'WEN', type: 'yahoo' },
+  'UIPATH': { api: 'PATH', type: 'yahoo' },
+  'SCHOTTPHARMAINHO.N.': { api: '1SXP.DE', type: 'yahoo' },
+  // Closed MB trades (kept for UI display / currency symbol lookup)
+  'SPRINKLR': { api: 'CXM', type: 'yahoo' },
+  'FISERVINC.': { api: 'FISV', type: 'yahoo' },
+  'CERTARAINC.': { api: 'CERT', type: 'yahoo' },
+  'EVOTECSE': { api: 'EVT.DE', type: 'yahoo' },
+  'AMCORPLC': { api: 'AMCR', type: 'yahoo' },
+  'NIKEINC.': { api: 'NKE', type: 'yahoo' },
 }
 
 // ISIN to Ticker mapping (common stocks)
@@ -123,7 +154,7 @@ export function getCurrencySymbol(asset: string, assetKlasse: string): string {
   if (assetKlasse === 'Aktie') {
     const mapping = getApiSymbol(asset)
     if (mapping) {
-      if (mapping.api.endsWith('.DE') || mapping.api.endsWith('.PA')) return '€'
+      if (mapping.api.endsWith('.DE') || mapping.api.endsWith('.PA') || mapping.api.endsWith('.AS')) return '€'
       return '$'
     }
     return '$'
