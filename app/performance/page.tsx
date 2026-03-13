@@ -353,6 +353,18 @@ export default async function DashboardPage({
         showProfile={tabConfig.listProfiles.length > 1}
         token={params.token}
       />
+
+      <footer className="text-center text-xs text-muted-foreground pt-4 pb-2">
+        Dashboard provided by{' '}
+        <a
+          href="https://kuehn.it"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-foreground transition-colors"
+        >
+          Kuehn.IT
+        </a>
+      </footer>
     </div>
   )
 }
