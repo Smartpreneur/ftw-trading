@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Script from 'next/script'
 import { createClient } from '@/lib/supabase/client'
+import { WistiaVideo } from '@/components/WistiaVideo'
 import './landing/styles.css'
 
 // ─── Testimonials ─────────────────────────────────────────────
@@ -454,12 +454,7 @@ export default function LandingPage() {
             <p className="hero__sub">
               Fertige Analysen für jede Marktlage – direkt ins Postfach, sofort umsetzbar
             </p>
-            <div className="hero__video">
-              <Script src="https://fast.wistia.com/player.js" strategy="afterInteractive" />
-              <Script src="https://fast.wistia.com/embed/upvpmi7u5r.js" strategy="afterInteractive" />
-              {/* @ts-expect-error – wistia-player ist ein Web Component */}
-              <wistia-player media-id="upvpmi7u5r" aspect="1.7777777777777777" />
-            </div>
+            <WistiaVideo mediaId="upvpmi7u5r" />
             <a href="#pricing" className="cta-btn">
               4 Wochen testen – 100 % Geld-zurück-Garantie
             </a>
