@@ -274,10 +274,9 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
                   </span>
                 )}
               </TableCell>
-              <TableCell className={cn("max-w-[150px]", !isAdmin && "pr-6")}>
+              <TableCell className={cn("min-w-[250px] max-w-[400px]", !isAdmin && "pr-6")}>
                 <span
-                  className="text-sm text-muted-foreground truncate block cursor-help"
-                  title={trade.bemerkungen || undefined}
+                  className="text-sm text-muted-foreground whitespace-normal break-words block"
                 >
                   {trade.bemerkungen || '—'}
                 </span>
