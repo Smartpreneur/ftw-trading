@@ -28,13 +28,13 @@ export const metadata: Metadata = {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; token?: string }>
 }) {
-  const isAuthed = await checkAuth()
+  const params = await searchParams
+  const isAuthed = await checkAuth(params.token)
   if (!isAuthed) return <PasswordGate />
 
   const isAdmin = await checkAdmin()
-  const params = await searchParams
   const tabConfig = resolveTab(params.tab, isAdmin)
 
   let allTrades: Awaited<ReturnType<typeof getCachedTrades>> = []

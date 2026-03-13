@@ -25,9 +25,11 @@ export async function authenticate(password: string) {
   return { success: true }
 }
 
-export async function checkAuth(): Promise<boolean> {
+export async function checkAuth(embedToken?: string): Promise<boolean> {
   // Dev mode: if no INTERN_PASSWORD is configured, allow through
   if (!process.env.INTERN_PASSWORD) return true
+  // iFrame embed: accept static token from URL param
+  if (embedToken && process.env.EMBED_TOKEN && embedToken === process.env.EMBED_TOKEN) return true
   const cookieStore = await cookies()
   return cookieStore.get(COOKIE_NAME)?.value === TOKEN_VALUE
 }
