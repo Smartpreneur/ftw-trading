@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
-    const allowedOrigin = process.env.EMBED_ALLOWED_ORIGIN ?? '*'
+    const allowedOrigin = (process.env.EMBED_ALLOWED_ORIGIN ?? '*').trim()
     return [
       {
         // Allow /performance to be embedded as iFrame from the configured origin
