@@ -346,6 +346,20 @@ export default async function DashboardPage({
         </Card>
       )}
 
+      {/* Disclaimer */}
+      <details className="text-xs text-muted-foreground">
+        <summary className="cursor-pointer hover:text-foreground transition-colors">
+          Hinweis: Diese Übersicht dient ausschließlich zu Informationszwecken.
+        </summary>
+        <p className="mt-2 leading-relaxed">
+          Diese Übersicht erhebt keinen Anspruch auf Vollständigkeit oder Richtigkeit.
+          Trotz sorgfältiger Pflege können die angezeigten Kursdaten und Performancewerte
+          von den tatsächlichen Werten abweichen. Maßgeblich sind stets die Informationen
+          aus den offiziell versendeten Ausgaben und Eilmeldungen von &bdquo;Fugmann&apos;s
+          Trading Woche&ldquo;. Bei Abweichungen gelten ausschließlich diese als verbindlich.
+        </p>
+      </details>
+
       <RecentTradesSection
         trades={recentClosedTrades}
         partialCloseLabels={Object.fromEntries(partialCloseLabels)}
