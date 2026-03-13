@@ -23,15 +23,16 @@ interface WinLossChartProps {
   data: MonthlyPerformance[]
 }
 
-/** Parse "Okt 2024" → { monthNum: 10, year: "24" } */
+/** Parse "Okt. 2024" → { monthNum: 10, year: "24" } */
 const MONTH_MAP: Record<string, number> = {
-  Jan: 1, Feb: 2, Mär: 3, Apr: 4, Mai: 5, Jun: 6,
-  Jul: 7, Aug: 8, Sep: 9, Okt: 10, Nov: 11, Dez: 12,
+  'Jan.': 1, 'Feb.': 2, 'März': 3, 'Apr.': 4, 'Mai': 5, 'Juni': 6,
+  'Juli': 7, 'Aug.': 8, 'Sep.': 9, 'Okt.': 10, 'Nov.': 11, 'Dez.': 12,
 }
 
 function parseMonth(label: string) {
-  const parts = label.split(' ')
-  return { monthNum: MONTH_MAP[parts[0]] ?? 0, year: parts[1]?.slice(2) ?? '' }
+  const year = label.match(/\d{4}/)?.[0] ?? ''
+  const month = label.replace(year, '').trim()
+  return { monthNum: MONTH_MAP[month] ?? 0, year: year.slice(2) }
 }
 
 function MonthTick({ x, y, payload, data }: any) {
@@ -138,7 +139,7 @@ export function WinLossChart({ data }: WinLossChartProps) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={chartData} margin={{ top: 4, right: 4, bottom: 16, left: -16 }}>
+          <BarChart data={chartData} margin={{ top: 4, right: 0, bottom: 16, left: -24 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
               dataKey="month"
