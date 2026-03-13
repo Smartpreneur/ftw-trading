@@ -73,7 +73,7 @@ export function KPICards({ kpis }: KPICardsProps) {
         subtitle={`Ø Verlust ${formatPercent(-kpis.avg_loss_pct)}`}
         icon={kpis.profit_factor >= 1 ? TrendingUp : TrendingDown}
         colorClass={kpis.profit_factor >= 1 ? 'text-emerald-600' : 'text-rose-600'}
-        info="Ø Gewinn ÷ Ø Verlust. Ein Wert über 1 bedeutet, dass Gewinne die Verluste übersteigen."
+        info="Der Profit Faktor zeigt das Verhältnis von Gewinnen zu Verlusten. Ein Wert über 1 bedeutet, dass die Gewinne die Verluste übersteigen — je höher, desto besser."
       />
       <KPICard
         title="Bester Trade"
