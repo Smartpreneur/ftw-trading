@@ -1,7 +1,11 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from '@/components/ui/popover'
 import type { PerformanceKPIs } from '@/lib/types'
 import { formatPercent } from '@/lib/formatters'
 import { TrendingUp, TrendingDown, Target, BarChart2, Clock, Award, Info } from 'lucide-react'
@@ -16,42 +20,61 @@ function KPICard({
   subtitle,
   icon: Icon,
   colorClass,
-  info,
 }: {
   title: string
   value: string
   subtitle?: string
   icon: React.ElementType
   colorClass?: string
-  info?: string
 }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-        <div className="flex items-center gap-1.5">
-          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-          {info && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label="Info"
-                >
-                  <Info className="h-3.5 w-3.5" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent side="bottom" align="start" className="text-sm max-w-[250px]">
-                <p>{info}</p>
-              </PopoverContent>
-            </Popover>
-          )}
-        </div>
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
         <div className={`text-2xl font-bold ${colorClass ?? ''}`}>{value}</div>
         {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+      </CardContent>
+    </Card>
+  )
+}
+
+function ProfitFactorCard({ kpis }: KPICardsProps) {
+  const icon = kpis.profit_factor >= 1 ? TrendingUp : TrendingDown
+  const Icon = icon
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+        <div className="flex items-center gap-1.5">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Profit Factor</CardTitle>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Info zum Profit Factor"
+              >
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="bottom" align="start" className="text-sm max-w-[250px]">
+              <p>
+                Der Profit Faktor zeigt das Verhältnis von Gewinnen zu Verlusten.
+                Ein Wert über 1 bedeutet, dass die Gewinne die Verluste übersteigen
+                — je höher, desto besser.
+              </p>
+            </PopoverContent>
+          </Popover>
+        </div>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className={`text-2xl font-bold ${kpis.profit_factor >= 1 ? 'text-emerald-600' : 'text-rose-600'}`}>
+          {kpis.profit_factor > 0 ? String(kpis.profit_factor) : '–'}
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">Ø Verlust {formatPercent(-kpis.avg_loss_pct)}</p>
       </CardContent>
     </Card>
   )
@@ -73,14 +96,7 @@ export function KPICards({ kpis }: KPICardsProps) {
         icon={Target}
         colorClass={kpis.win_rate >= 50 ? 'text-emerald-600' : 'text-rose-600'}
       />
-      <KPICard
-        title="Profit Factor"
-        value={kpis.profit_factor > 0 ? String(kpis.profit_factor) : '–'}
-        subtitle={`Ø Verlust ${formatPercent(-kpis.avg_loss_pct)}`}
-        icon={kpis.profit_factor >= 1 ? TrendingUp : TrendingDown}
-        colorClass={kpis.profit_factor >= 1 ? 'text-emerald-600' : 'text-rose-600'}
-        info="Der Profit Faktor zeigt das Verhältnis von Gewinnen zu Verlusten. Ein Wert über 1 bedeutet, dass die Gewinne die Verluste übersteigen — je höher, desto besser."
-      />
+      <ProfitFactorCard kpis={kpis} />
       <KPICard
         title="Bester Trade"
         value={formatPercent(kpis.best_trade_pct)}
