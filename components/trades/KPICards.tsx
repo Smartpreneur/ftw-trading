@@ -28,14 +28,14 @@ function KPICard({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-          {title}
+        <div className="flex items-center gap-1.5">
+          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
           {info && (
             <Popover>
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="text-muted-foreground/60 hover:text-foreground transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                   aria-label="Info"
                 >
                   <Info className="h-3.5 w-3.5" />
@@ -46,7 +46,7 @@ function KPICard({
               </PopoverContent>
             </Popover>
           )}
-        </CardTitle>
+        </div>
         <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
