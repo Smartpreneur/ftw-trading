@@ -117,7 +117,7 @@ export const ASSET_SYMBOL_MAP: Record<string, { api: string; type: 'twelve' | 'c
   'UNDERARMOURINC.': { api: 'UAA', type: 'yahoo' },
   'FIGMAINC.': { api: 'FIG', type: 'yahoo' },
   'FIREFLYAEROSPACEINC.': { api: 'FLY', type: 'yahoo' },
-  '21SHARESFUTUREOFCRYPTOINDEXETP': { api: 'FUTR.AS', type: 'yahoo' },
+  '21SHARESFUTUREOFCRYPTOINDEXETP': { api: 'FUTR-EUR.PA', type: 'yahoo' },
   'CIRCLEINTERNETGROUPINC.': { api: 'CRCL', type: 'yahoo' },
   'GERRESHEIMERAG': { api: 'GXI.DE', type: 'yahoo' },
   'SUPERMICROCOMPUTERINC.': { api: 'SMCI', type: 'yahoo' },
@@ -149,16 +149,13 @@ export const ISIN_TO_TICKER: Record<string, string> = {
 /** Returns currency symbol for display: '€', '$', or '' */
 export function getCurrencySymbol(asset: string, assetKlasse: string): string {
   if (assetKlasse === 'Index' || assetKlasse === 'FX') return ''
-  if (assetKlasse === 'Rohstoff' || assetKlasse === 'Krypto') return '$'
 
-  if (assetKlasse === 'Aktie') {
-    const mapping = getApiSymbol(asset)
-    if (mapping) {
-      if (mapping.api.endsWith('.DE') || mapping.api.endsWith('.PA') || mapping.api.endsWith('.AS')) return '€'
-      return '$'
-    }
-    return '$'
-  }
+  // Check exchange suffix first — covers ETPs and non-standard asset classes
+  const mapping = getApiSymbol(asset)
+  if (mapping?.api.endsWith('.DE') || mapping?.api.endsWith('.PA') || mapping?.api.endsWith('.AS') || mapping?.api.endsWith('.MU')) return '€'
+
+  if (assetKlasse === 'Rohstoff' || assetKlasse === 'Krypto') return '$'
+  if (assetKlasse === 'Aktie') return mapping ? '$' : '$'
 
   return ''
 }
