@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import type { PerformanceKPIs } from '@/lib/types'
 import { formatPercent } from '@/lib/formatters'
 import { TrendingUp, TrendingDown, Target, BarChart2, Clock, Award, Info } from 'lucide-react'
@@ -31,18 +31,20 @@ function KPICard({
         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
           {title}
           {info && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex cursor-help">
-                    <Info className="h-3.5 w-3.5 text-muted-foreground/60" />
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[250px]">
-                  <p className="text-sm">{info}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="text-muted-foreground/60 hover:text-foreground transition-colors"
+                  aria-label="Info"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="bottom" align="start" className="text-sm max-w-[250px]">
+                <p>{info}</p>
+              </PopoverContent>
+            </Popover>
           )}
         </CardTitle>
         <Icon className="h-4 w-4 text-muted-foreground" />
