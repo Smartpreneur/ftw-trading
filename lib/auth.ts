@@ -28,8 +28,12 @@ export async function authenticate(password: string) {
 export async function checkAuth(embedToken?: string): Promise<boolean> {
   // Dev mode: if no INTERN_PASSWORD is configured, allow through
   if (!process.env.INTERN_PASSWORD) return true
-  // iFrame embed: accept static token from URL param (trim to avoid trailing newline from Vercel env)
-  if (embedToken && process.env.EMBED_TOKEN && embedToken.trim() === process.env.EMBED_TOKEN.trim()) return true
+  // iFrame embed: accept static token from URL param
+  // Vercel env vars may contain literal "\n" suffix — strip it along with whitespace
+  if (embedToken && process.env.EMBED_TOKEN) {
+    const clean = (s: string) => s.replace(/\\n$/, '').trim()
+    if (clean(embedToken) === clean(process.env.EMBED_TOKEN)) return true
+  }
   const cookieStore = await cookies()
   return cookieStore.get(COOKIE_NAME)?.value === TOKEN_VALUE
 }

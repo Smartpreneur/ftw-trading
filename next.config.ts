@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
-    const allowedOrigin = (process.env.EMBED_ALLOWED_ORIGIN ?? '*').trim()
+    const allowedOrigin = (process.env.EMBED_ALLOWED_ORIGIN ?? '*').replace(/\\n$/, '').trim()
     return [
       {
         // Allow /performance and /trades to be embedded as iFrame from the configured origin
