@@ -13,7 +13,7 @@ export function ConditionalNav({ isAdmin = false }: { isAdmin?: boolean }) {
     pathname === '/landing-light' ||
     pathname.startsWith('/landing/') ||
     pathname.startsWith('/intern') ||
-    pathname === '/admin'
+    pathname === '/trader'
   ) {
     return null
   }
