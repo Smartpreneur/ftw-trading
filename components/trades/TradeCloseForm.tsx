@@ -19,7 +19,7 @@ import { toast } from 'sonner'
 import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 
-const CLOSE_TYPES = ['TP1', 'TP2', 'TP3', 'TP4', 'SL', 'Manuell', 'Einstand'] as const
+const CLOSE_TYPES = ['TP1', 'TP2', 'TP3', 'TP4', 'SL', 'Manuell'] as const
 
 interface TradeCloseFormProps {
   tradeFk: string      // UUID of the parent trade

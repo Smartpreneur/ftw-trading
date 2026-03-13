@@ -19,7 +19,6 @@ export const tradeSchema = z.object({
     'Geschlossen',
     'Ausgestoppt',
     'Ungültig',
-    'Einstand',
   ]),
   bemerkungen: z.string().nullable().optional(),
   gewichtung: z.number().min(0, 'Min. 0%').max(1, 'Max. 100%'),
@@ -36,7 +35,7 @@ export const tradeSchema = z.object({
 export type TradeSchemaValues = z.infer<typeof tradeSchema>
 
 export const tradeCloseSchema = z.object({
-  typ: z.enum(['TP1', 'TP2', 'TP3', 'TP4', 'SL', 'Manuell', 'Einstand']),
+  typ: z.enum(['TP1', 'TP2', 'TP3', 'TP4', 'SL', 'Manuell']),
   datum: z.string().min(1, 'Pflichtfeld'),
   ausstiegspreis: z.number().positive('Muss positiv sein').nullable().optional(),
   anteil: z.number().min(1, 'Min. 1%').max(100, 'Max. 100%'),

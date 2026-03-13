@@ -17,7 +17,7 @@ import { TradeDialog } from './TradeDialog'
 import { StatusBadge } from './StatusBadge'
 import { DirectionBadge } from './DirectionBadge'
 import { deleteTrade } from '@/lib/actions'
-import { ASSET_CLASSES, TRADE_STATUSES, TRADING_PROFILES, TRADER_NAMES } from '@/lib/constants'
+import { ASSET_CLASSES, TRADE_LIST_STATUSES, TRADING_PROFILES, TRADER_NAMES } from '@/lib/constants'
 import { formatDate, formatPrice, formatPercent, formatRR } from '@/lib/formatters'
 import type { TradeWithPerformance, TradingProfile, TradeStatus, AssetClass } from '@/lib/types'
 import { Pencil, Trash2, Plus, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
@@ -35,7 +35,7 @@ interface TradeTableProps {
 
 export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTableProps) {
   const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState<string[]>(TRADE_STATUSES)
+  const [filterStatus, setFilterStatus] = useState<string[]>(TRADE_LIST_STATUSES)
   const [filterDirection, setFilterDirection] = useState<string[]>(['LONG', 'SHORT'])
   const [filterAssetClass, setFilterAssetClass] = useState<string[]>(ASSET_CLASSES)
   const [filterTrader, setFilterTrader] = useState<string[]>(initialProfiles ?? TRADING_PROFILES)
@@ -46,7 +46,7 @@ export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTa
     // Filter
     let result = trades.filter((t) => {
       if (search && !t.asset.toLowerCase().includes(search.toLowerCase())) return false
-      if (filterStatus.length > 0 && filterStatus.length < TRADE_STATUSES.length && !filterStatus.includes(t.status)) return false
+      if (filterStatus.length > 0 && filterStatus.length < TRADE_LIST_STATUSES.length && !filterStatus.includes(t.status)) return false
       if (filterDirection.length > 0 && filterDirection.length < 2 && t.richtung && !filterDirection.includes(t.richtung)) return false
       if (filterAssetClass.length > 0 && filterAssetClass.length < ASSET_CLASSES.length && !filterAssetClass.includes(t.asset_klasse)) return false
       if (filterTrader.length > 0 && filterTrader.length < TRADING_PROFILES.length && !filterTrader.includes(t.profil)) return false
@@ -99,14 +99,14 @@ export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTa
 
   const hasFilters =
     search ||
-    (filterStatus.length > 0 && filterStatus.length < TRADE_STATUSES.length) ||
+    (filterStatus.length > 0 && filterStatus.length < TRADE_LIST_STATUSES.length) ||
     (filterDirection.length > 0 && filterDirection.length < 2) ||
     (filterAssetClass.length > 0 && filterAssetClass.length < ASSET_CLASSES.length) ||
     (filterTrader.length > 0 && filterTrader.length < TRADING_PROFILES.length)
 
   function clearFilters() {
     setSearch('')
-    setFilterStatus(TRADE_STATUSES)
+    setFilterStatus(TRADE_LIST_STATUSES)
     setFilterDirection(['LONG', 'SHORT'])
     setFilterAssetClass(ASSET_CLASSES)
     setFilterTrader(TRADING_PROFILES)
@@ -159,7 +159,7 @@ export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTa
 
         {/* Status filter */}
         <MultiSelect
-          options={TRADE_STATUSES.map((s) => ({ value: s, label: s }))}
+          options={TRADE_LIST_STATUSES.map((s) => ({ value: s, label: s }))}
           selected={filterStatus}
           onChange={setFilterStatus}
           placeholder="Status"

@@ -8,8 +8,7 @@ export type TradeStatus =
   | 'Geschlossen'
   | 'Ausgestoppt'
   | 'Ungültig'
-  | 'Einstand'
-export type TradeCloseTyp = 'TP1' | 'TP2' | 'TP3' | 'TP4' | 'SL' | 'Manuell' | 'Einstand'
+export type TradeCloseTyp = 'TP1' | 'TP2' | 'TP3' | 'TP4' | 'SL' | 'Manuell'
 export type TradingProfile = 'MB' | 'SJ'
 
 export interface TradeNote {
