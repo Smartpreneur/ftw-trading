@@ -14,8 +14,11 @@ export function ProfileTabs({ isAdmin = false }: { isAdmin?: boolean }) {
   const tabs = isAdmin ? PROFILE_TABS : ACTIVE_TABS
   const currentTab = searchParams.get('tab') ?? DEFAULT_TAB
 
+  // Preserve embed token across tab switches
+  const token = searchParams.get('token')
+
   function handleTabClick(tabKey: string) {
-    const href = `/performance?tab=${tabKey}`
+    const href = `/performance?tab=${tabKey}${token ? `&token=${token}` : ''}`
     startTransition(() => {
       router.push(href)
     })

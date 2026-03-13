@@ -26,6 +26,7 @@ interface RecentTradesSectionProps {
   partialCloseLabels: Record<string, string>
   isAdmin: boolean
   showProfile?: boolean
+  token?: string
 }
 
 export function RecentTradesSection({
@@ -33,6 +34,7 @@ export function RecentTradesSection({
   partialCloseLabels,
   isAdmin,
   showProfile = false,
+  token,
 }: RecentTradesSectionProps) {
   const visible = trades.slice(0, PREVIEW_COUNT)
 
@@ -48,7 +50,7 @@ export function RecentTradesSection({
           )}
         </CardTitle>
         <Link
-          href="/trades"
+          href={token ? `/trades?token=${token}` : '/trades'}
           className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           Alle Trades

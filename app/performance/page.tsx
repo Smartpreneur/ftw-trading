@@ -351,6 +351,7 @@ export default async function DashboardPage({
         partialCloseLabels={Object.fromEntries(partialCloseLabels)}
         isAdmin={isAdmin}
         showProfile={tabConfig.listProfiles.length > 1}
+        token={params.token}
       />
     </div>
   )

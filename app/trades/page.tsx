@@ -9,14 +9,14 @@ import { TRADING_PROFILES } from '@/lib/constants'
 export default async function TradesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ profiles?: string }>
+  searchParams: Promise<{ profiles?: string; token?: string }>
 }) {
-  const isAuthed = await checkAuth()
+  const params = await searchParams
+  const isAuthed = await checkAuth(params.token)
   if (!isAuthed) return <PasswordGate />
 
   const isAdmin = await checkAdmin()
 
-  const params = await searchParams
   const profilesParam = params.profiles
   const selectedProfiles = profilesParam?.split(',') as TradingProfile[] | undefined
 

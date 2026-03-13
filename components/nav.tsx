@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { BookOpen, LayoutDashboard, TrendingUp, Menu } from 'lucide-react'
 import Image from 'next/image'
@@ -23,15 +23,22 @@ const allLinks = [
 
 export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [open, setOpen] = useState(false)
   const links = allLinks.filter((l) => !l.adminOnly || isAdmin)
+
+  // Preserve embed token across navigation
+  const token = searchParams.get('token')
+  function withToken(href: string) {
+    return token ? `${href}${href.includes('?') ? '&' : '?'}token=${token}` : href
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center gap-2 sm:gap-4">
           {/* Logo */}
-          <Link href="/performance" className="flex items-center shrink-0">
+          <Link href={withToken('/performance')} className="flex items-center shrink-0">
             <Image
               src="/fmw-logo.svg"
               alt="FMW Logo"
@@ -47,7 +54,7 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
             {links.map(({ href, icon: Icon }) => (
               <Link
                 key={href}
-                href={href}
+                href={withToken(href)}
                 className={cn(
                   'flex items-center justify-center rounded-md p-2 transition-colors',
                   pathname === href
@@ -79,7 +86,7 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
                   {links.map(({ href, label, icon: Icon }) => (
                     <Link
                       key={href}
-                      href={href}
+                      href={withToken(href)}
                       onClick={() => setOpen(false)}
                       className={cn(
                         'flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium transition-colors',
