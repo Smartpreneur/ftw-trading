@@ -24,14 +24,19 @@ interface PerformanceChartProps {
   data: MonthlyPerformance[]
 }
 
-/** Parse "Okt 2024" → { short: "Okt", year: "24" } */
+/** Parse "Okt 2024" → { monthNum: 10, year: "24" } */
+const MONTH_MAP: Record<string, number> = {
+  Jan: 1, Feb: 2, Mär: 3, Apr: 4, Mai: 5, Jun: 6,
+  Jul: 7, Aug: 8, Sep: 9, Okt: 10, Nov: 11, Dez: 12,
+}
+
 function parseMonth(label: string) {
   const parts = label.split(' ')
-  return { short: parts[0], year: parts[1]?.slice(2) ?? '' }
+  return { monthNum: MONTH_MAP[parts[0]] ?? 0, year: parts[1]?.slice(2) ?? '' }
 }
 
 function MonthTick({ x, y, payload, data }: any) {
-  const { short, year } = parseMonth(payload.value)
+  const { monthNum, year } = parseMonth(payload.value)
   const idx = data.findIndex((d: any) => d.month === payload.value)
   const prevYear = idx > 0 ? parseMonth(data[idx - 1].month).year : null
   const showYear = year !== prevYear
@@ -46,7 +51,7 @@ function MonthTick({ x, y, payload, data }: any) {
         fill="hsl(var(--muted-foreground))"
         fontSize={11}
       >
-        {short}
+        {monthNum}
       </text>
       {showYear && (
         <text
@@ -127,7 +132,7 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={data} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+          <BarChart data={data} margin={{ top: 4, right: 4, bottom: 16, left: -16 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
               dataKey="month"
