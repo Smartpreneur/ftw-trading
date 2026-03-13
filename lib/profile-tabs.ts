@@ -11,6 +11,7 @@ interface TabConfig {
   listProfiles: TradingProfile[]
 }
 
+/** All defined tabs */
 export const PROFILE_TABS: TabConfig[] = [
   {
     label: 'Gesamt',
@@ -32,9 +33,26 @@ export const PROFILE_TABS: TabConfig[] = [
   },
 ]
 
-export const DEFAULT_TAB: TabKey = 'gesamt'
+/**
+ * Active profiles from env var NEXT_PUBLIC_ENABLED_PROFILES.
+ * Set to "SJ" for only Stefan Jäger, "SJ,MB" for both.
+ * Defaults to all profiles if not set.
+ */
+export const ACTIVE_PROFILES: TradingProfile[] = (
+  process.env.NEXT_PUBLIC_ENABLED_PROFILES
+    ? process.env.NEXT_PUBLIC_ENABLED_PROFILES.split(',').map((p) => p.trim() as TradingProfile)
+    : ['SJ', 'MB']
+)
 
-export function resolveTab(tab?: string): TabConfig {
-  const found = PROFILE_TABS.find((t) => t.key === tab)
-  return found ?? PROFILE_TABS[0]
+/** Only tabs where every required profile is enabled */
+export const ACTIVE_TABS: TabConfig[] = PROFILE_TABS.filter((tab) =>
+  tab.kpiProfiles.every((p) => ACTIVE_PROFILES.includes(p))
+)
+
+export const DEFAULT_TAB: TabKey = ACTIVE_TABS[0]?.key ?? 'jaeger'
+
+export function resolveTab(tab?: string, isAdmin = false): TabConfig {
+  const tabs = isAdmin ? PROFILE_TABS : ACTIVE_TABS
+  const found = tabs.find((t) => t.key === tab)
+  return found ?? tabs[0]
 }

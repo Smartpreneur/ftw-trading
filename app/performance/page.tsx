@@ -35,7 +35,7 @@ export default async function DashboardPage({
 
   const isAdmin = await checkAdmin()
   const params = await searchParams
-  const tabConfig = resolveTab(params.tab)
+  const tabConfig = resolveTab(params.tab, isAdmin)
 
   let allTrades: Awaited<ReturnType<typeof getCachedTrades>> = []
   let activePrices: Awaited<ReturnType<typeof getCachedActivePrices>> = []
@@ -223,7 +223,7 @@ export default async function DashboardPage({
           </p>
         </div>
         <Suspense fallback={<div className="h-9 w-64 bg-muted animate-pulse rounded-lg" />}>
-          <ProfileTabs />
+          <ProfileTabs isAdmin={isAdmin} />
         </Suspense>
       </div>
 
@@ -350,6 +350,7 @@ export default async function DashboardPage({
         trades={recentClosedTrades}
         partialCloseLabels={Object.fromEntries(partialCloseLabels)}
         isAdmin={isAdmin}
+        showProfile={tabConfig.listProfiles.length > 1}
       />
     </div>
   )

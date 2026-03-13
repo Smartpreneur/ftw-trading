@@ -4,13 +4,14 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useTransition } from 'react'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
-import { PROFILE_TABS, DEFAULT_TAB } from '@/lib/profile-tabs'
+import { ACTIVE_TABS, PROFILE_TABS, DEFAULT_TAB } from '@/lib/profile-tabs'
 
-export function ProfileTabs() {
+export function ProfileTabs({ isAdmin = false }: { isAdmin?: boolean }) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
+  const tabs = isAdmin ? PROFILE_TABS : ACTIVE_TABS
   const currentTab = searchParams.get('tab') ?? DEFAULT_TAB
 
   function handleTabClick(tabKey: string) {
@@ -22,7 +23,7 @@ export function ProfileTabs() {
 
   return (
     <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
-      {PROFILE_TABS.map((tab) => (
+      {tabs.map((tab) => (
         <button
           key={tab.key}
           type="button"

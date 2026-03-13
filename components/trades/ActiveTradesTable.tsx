@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table'
 import { DirectionBadge } from './DirectionBadge'
 import { formatDate, formatPrice } from '@/lib/formatters'
-import { getCurrencySymbol } from '@/lib/asset-mapping'
+import { getCurrencySymbol, getApiSymbol, getExchangeLabel } from '@/lib/asset-mapping'
 import { cn } from '@/lib/utils'
 import { Check, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Pencil } from 'lucide-react'
 import { TradeDialog } from './TradeDialog'
@@ -135,7 +135,41 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
                 </span>
               </TableCell>
               <TableCell>
-                <span className="font-medium">{trade.asset}</span>
+                <div>
+                  <span className="font-medium">{trade.asset}</span>
+                  {isAdmin && (() => {
+                    if (trade.manuell_getrackt) {
+                      return <span className="block text-[10px] text-muted-foreground/50 mt-0.5">manuell</span>
+                    }
+                    const mapping = getApiSymbol(trade.asset)
+                    if (!mapping) return <span className="block text-[10px] text-amber-500 mt-0.5">kein Ticker</span>
+                    const url = mapping.type === 'yahoo'
+                      ? `https://finance.yahoo.com/quote/${encodeURIComponent(mapping.api)}`
+                      : mapping.type === 'coingecko'
+                      ? `https://www.coingecko.com/en/coins/${mapping.api}`
+                      : null
+                    const exchange = getExchangeLabel(mapping)
+                    return (
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {url ? (
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-mono text-blue-500 hover:text-blue-700 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {mapping.api}
+                          </a>
+                        ) : (
+                          <span className="text-[10px] font-mono text-muted-foreground/60">{mapping.api}</span>
+                        )}
+                        <span className="text-[10px] text-muted-foreground/50">·</span>
+                        <span className="text-[10px] text-muted-foreground/70">{exchange}</span>
+                      </div>
+                    )
+                  })()}
+                </div>
               </TableCell>
               <TableCell>
                 {trade.richtung && <DirectionBadge direction={trade.richtung} />}

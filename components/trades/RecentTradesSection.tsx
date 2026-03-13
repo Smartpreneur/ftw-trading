@@ -25,12 +25,14 @@ interface RecentTradesSectionProps {
   trades: TradeWithPerformance[]
   partialCloseLabels: Record<string, string>
   isAdmin: boolean
+  showProfile?: boolean
 }
 
 export function RecentTradesSection({
   trades,
   partialCloseLabels,
   isAdmin,
+  showProfile = false,
 }: RecentTradesSectionProps) {
   const visible = trades.slice(0, PREVIEW_COUNT)
 
@@ -72,7 +74,8 @@ export function RecentTradesSection({
                   <TableHead className="text-right">Einstieg</TableHead>
                   <TableHead className="text-right">Ausstieg</TableHead>
                   <TableHead className="text-right">G/V</TableHead>
-                  <TableHead className={cn('text-right', !isAdmin && 'pr-6')}>Tage</TableHead>
+                  <TableHead className="text-right">Tage</TableHead>
+                  {showProfile && <TableHead className={cn('text-center', !isAdmin && 'pr-6')}>Trader</TableHead>}
                   {isAdmin && <TableHead className="pr-6 w-10"></TableHead>}
                 </TableRow>
               </TableHeader>
@@ -138,11 +141,21 @@ export function RecentTradesSection({
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell className={cn('text-right', !isAdmin && 'pr-6')}>
+                    <TableCell className="text-right">
                       <span className="text-sm text-muted-foreground">
                         {trade.haltedauer_tage === 0 ? '< 1' : `${trade.haltedauer_tage}`}
                       </span>
                     </TableCell>
+                    {showProfile && (
+                      <TableCell className={cn('text-center', !isAdmin && 'pr-6')}>
+                        <span className={cn(
+                          'inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold',
+                          trade.profil === 'SJ' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'
+                        )}>
+                          {trade.profil}
+                        </span>
+                      </TableCell>
+                    )}
                     {isAdmin && (() => {
                       const isCloseEntry = trade.id.includes('-close-')
                       const closeId = isCloseEntry ? trade.id.split('-close-')[1] : null

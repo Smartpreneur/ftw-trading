@@ -16,12 +16,11 @@ import { MultiSelect } from '@/components/ui/multi-select'
 import { TradeDialog } from './TradeDialog'
 import { StatusBadge } from './StatusBadge'
 import { DirectionBadge } from './DirectionBadge'
-import { deleteTrade } from '@/lib/actions'
-import { ASSET_CLASSES, TRADE_LIST_STATUSES, TRADING_PROFILES, TRADER_NAMES } from '@/lib/constants'
+import { ASSET_CLASSES, TRADE_LIST_STATUSES, TRADER_NAMES } from '@/lib/constants'
+import { ACTIVE_PROFILES } from '@/lib/profile-tabs'
 import { formatDate, formatPrice, formatPercent, formatRR } from '@/lib/formatters'
 import type { TradeWithPerformance, TradingProfile, TradeStatus, AssetClass } from '@/lib/types'
-import { Pencil, Trash2, Plus, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
-import { toast } from 'sonner'
+import { Pencil, Plus, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type SortField = 'id' | 'eroeffnung' | 'schliessung' | 'asset' | 'klasse' | 'richtung' | 'status' | 'performance'
@@ -30,15 +29,17 @@ type SortOrder = 'asc' | 'desc'
 interface TradeTableProps {
   trades: TradeWithPerformance[]
   initialProfiles?: string[]
+  availableProfiles?: string[]
   isAdmin?: boolean
 }
 
-export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTableProps) {
+export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin = false }: TradeTableProps) {
+  const profileOptions = availableProfiles ?? ACTIVE_PROFILES
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string[]>(TRADE_LIST_STATUSES)
   const [filterDirection, setFilterDirection] = useState<string[]>(['LONG', 'SHORT'])
   const [filterAssetClass, setFilterAssetClass] = useState<string[]>(ASSET_CLASSES)
-  const [filterTrader, setFilterTrader] = useState<string[]>(initialProfiles ?? TRADING_PROFILES)
+  const [filterTrader, setFilterTrader] = useState<string[]>(initialProfiles ?? profileOptions)
   const [sortBy, setSortBy] = useState<SortField>('id')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
@@ -49,7 +50,7 @@ export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTa
       if (filterStatus.length > 0 && filterStatus.length < TRADE_LIST_STATUSES.length && !filterStatus.includes(t.status)) return false
       if (filterDirection.length > 0 && filterDirection.length < 2 && t.richtung && !filterDirection.includes(t.richtung)) return false
       if (filterAssetClass.length > 0 && filterAssetClass.length < ASSET_CLASSES.length && !filterAssetClass.includes(t.asset_klasse)) return false
-      if (filterTrader.length > 0 && filterTrader.length < TRADING_PROFILES.length && !filterTrader.includes(t.profil)) return false
+      if (filterTrader.length > 0 && filterTrader.length < profileOptions.length && !filterTrader.includes(t.profil)) return false
       return true
     })
 
@@ -102,14 +103,14 @@ export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTa
     (filterStatus.length > 0 && filterStatus.length < TRADE_LIST_STATUSES.length) ||
     (filterDirection.length > 0 && filterDirection.length < 2) ||
     (filterAssetClass.length > 0 && filterAssetClass.length < ASSET_CLASSES.length) ||
-    (filterTrader.length > 0 && filterTrader.length < TRADING_PROFILES.length)
+    (filterTrader.length > 0 && filterTrader.length < profileOptions.length)
 
   function clearFilters() {
     setSearch('')
     setFilterStatus(TRADE_LIST_STATUSES)
     setFilterDirection(['LONG', 'SHORT'])
     setFilterAssetClass(ASSET_CLASSES)
-    setFilterTrader(TRADING_PROFILES)
+    setFilterTrader(profileOptions)
   }
 
   function toggleSort(field: SortField) {
@@ -132,15 +133,6 @@ export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTa
     )
   }
 
-  async function handleDelete(id: string, asset: string) {
-    if (!confirm(`Trade "${asset}" wirklich löschen?`)) return
-    try {
-      await deleteTrade(id)
-      toast.success('Trade gelöscht')
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Fehler beim Löschen')
-    }
-  }
 
   return (
     <div className="space-y-4">
@@ -189,7 +181,7 @@ export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTa
 
         {/* Trader filter */}
         <MultiSelect
-          options={TRADING_PROFILES.map((p) => ({ value: p, label: p }))}
+          options={profileOptions.map((p) => ({ value: p, label: p }))}
           selected={filterTrader}
           onChange={setFilterTrader}
           placeholder="Trader"
@@ -383,14 +375,6 @@ export function TradeTable({ trades, initialProfiles, isAdmin = false }: TradeTa
                             </Button>
                           }
                         />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(trade.id, trade.asset)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
                       </div>
                     </TableCell>
                   )}

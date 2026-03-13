@@ -126,6 +126,33 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
   const watchTp2 = watch('tp2')
   const watchTp3 = watch('tp3')
   const watchTp4 = watch('tp4')
+  const watchEinstieg = watch('einstiegspreis')
+  const watchSL = watch('stop_loss')
+  const watchRichtung = watch('richtung')
+
+  // Auto-calculate CRV from entry, SL and TP targets
+  useEffect(() => {
+    const entry = Number(watchEinstieg)
+    const sl = Number(watchSL)
+    const richtung = watchRichtung ?? 'LONG'
+    if (!entry || !sl || entry <= 0 || sl <= 0) return
+
+    const risk = richtung === 'LONG' ? entry - sl : sl - entry
+    if (risk <= 0) return
+
+    const crvValues = [watchTp1, watchTp2, watchTp3, watchTp4]
+      .map(Number)
+      .filter((tp) => tp > 0)
+      .map((tp) => {
+        const reward = richtung === 'LONG' ? tp - entry : entry - tp
+        return reward > 0 ? Math.round((reward / risk) * 100) / 100 : null
+      })
+      .filter((v): v is number => v !== null)
+
+    if (crvValues.length === 0) return
+    setValue('risiko_reward_min', Math.min(...crvValues))
+    setValue('risiko_reward_max', Math.max(...crvValues))
+  }, [watchEinstieg, watchSL, watchRichtung, watchTp1, watchTp2, watchTp3, watchTp4, setValue])
 
   const hasTp = (v: unknown) => v !== null && v !== undefined && !isNaN(Number(v)) && Number(v) > 0
   const activeCount = [watchTp1, watchTp2, watchTp3, watchTp4].filter(hasTp).length
@@ -441,19 +468,19 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
 
       {/* Row 5: CRV, Zeiteinheit, Dauer */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Field label="CRV min" error={errors.risiko_reward_min?.message}>
+        <Field label="CRV min (auto)" error={errors.risiko_reward_min?.message}>
           <Input
             type="number"
             step="any"
-            placeholder="1.5"
+            placeholder="–"
             {...register('risiko_reward_min', { setValueAs: asNullableNum })}
           />
         </Field>
-        <Field label="CRV max" error={errors.risiko_reward_max?.message}>
+        <Field label="CRV max (auto)" error={errors.risiko_reward_max?.message}>
           <Input
             type="number"
             step="any"
-            placeholder="3.0"
+            placeholder="–"
             {...register('risiko_reward_max', { setValueAs: asNullableNum })}
           />
         </Field>

@@ -146,6 +146,23 @@ export const ISIN_TO_TICKER: Record<string, string> = {
   // Add more as needed
 }
 
+/** Returns a human-readable exchange/source label for a given API mapping */
+export function getExchangeLabel(mapping: { api: string; type: 'yahoo' | 'twelve' | 'coingecko' }): string {
+  if (mapping.type === 'coingecko') return 'CoinGecko'
+  if (mapping.type === 'twelve') return 'TwelveData'
+
+  const api = mapping.api
+  if (api.endsWith('.DE')) return 'XETRA'
+  if (api.endsWith('.PA')) return 'Euronext Paris'
+  if (api.endsWith('.AS')) return 'Euronext Amsterdam'
+  if (api.endsWith('.MU')) return 'München (GETTEX)'
+  if (api.endsWith('.F')) return 'Frankfurt'
+  if (api.endsWith('.L')) return 'London (LSE)'
+  if (api.endsWith('.MI')) return 'Mailand (BIT)'
+  if (api.startsWith('^')) return 'Index'
+  return 'NYSE / NASDAQ'
+}
+
 /** Returns currency symbol for display: '€', '$', or '' */
 export function getCurrencySymbol(asset: string, assetKlasse: string): string {
   if (assetKlasse === 'Index' || assetKlasse === 'FX') return ''
