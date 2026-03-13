@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import type { PerformanceKPIs } from '@/lib/types'
 import { formatPercent } from '@/lib/formatters'
-import { TrendingUp, TrendingDown, Target, BarChart2, Clock, Award } from 'lucide-react'
+import { TrendingUp, TrendingDown, Target, BarChart2, Clock, Award, Info } from 'lucide-react'
 
 interface KPICardsProps {
   kpis: PerformanceKPIs
@@ -13,17 +14,33 @@ function KPICard({
   subtitle,
   icon: Icon,
   colorClass,
+  info,
 }: {
   title: string
   value: string
   subtitle?: string
   icon: React.ElementType
   colorClass?: string
+  info?: string
 }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+          {title}
+          {info && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[250px]">
+                  <p className="text-sm">{info}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </CardTitle>
         <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
@@ -56,6 +73,7 @@ export function KPICards({ kpis }: KPICardsProps) {
         subtitle={`Ø Verlust ${formatPercent(-kpis.avg_loss_pct)}`}
         icon={kpis.profit_factor >= 1 ? TrendingUp : TrendingDown}
         colorClass={kpis.profit_factor >= 1 ? 'text-emerald-600' : 'text-rose-600'}
+        info="Ø Gewinn ÷ Ø Verlust. Ein Wert über 1 bedeutet, dass Gewinne die Verluste übersteigen."
       />
       <KPICard
         title="Bester Trade"

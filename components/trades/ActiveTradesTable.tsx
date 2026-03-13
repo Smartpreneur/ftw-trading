@@ -13,6 +13,7 @@ import { DirectionBadge } from './DirectionBadge'
 import { formatDate, formatPrice } from '@/lib/formatters'
 import { getCurrencySymbol, getApiSymbol, getExchangeLabel } from '@/lib/asset-mapping'
 import { cn } from '@/lib/utils'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Check, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Pencil } from 'lucide-react'
 import { TradeDialog } from './TradeDialog'
 import { Button } from '@/components/ui/button'
@@ -275,11 +276,24 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
                 )}
               </TableCell>
               <TableCell className={cn("min-w-[250px] max-w-[400px]", !isAdmin && "pr-6")}>
-                <span
-                  className="text-sm text-muted-foreground whitespace-normal break-words block"
-                >
-                  {trade.bemerkungen || '—'}
-                </span>
+                {trade.bemerkungen ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          className="text-sm text-muted-foreground whitespace-normal break-words block line-clamp-3 cursor-default"
+                        >
+                          {trade.bemerkungen}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[400px] whitespace-pre-wrap">
+                        <p className="text-sm">{trade.bemerkungen}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <span className="text-sm text-muted-foreground">—</span>
+                )}
               </TableCell>
               {isAdmin && (
                 <TableCell className="pr-6">
