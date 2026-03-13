@@ -34,7 +34,9 @@ function KPICard({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Info className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
+                  <span className="inline-flex cursor-help">
+                    <Info className="h-3.5 w-3.5 text-muted-foreground/60" />
+                  </span>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-[250px]">
                   <p className="text-sm">{info}</p>

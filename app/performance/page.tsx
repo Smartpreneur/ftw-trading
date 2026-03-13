@@ -171,20 +171,19 @@ export default async function DashboardPage({
     }
   }
 
-  // KPI calculations: closed trades (enrichTrade gives correct weighted perf) +
-  // realized close entries from active trades
-  const tradesForKpi = [
-    ...kpiTrades.filter((t) => !kpiReplacedIds.has(t.id) && t.status !== 'Ungültig'),
-    ...kpiCloseEntries,
-  ]
-  const kpis = calculateKPIs(tradesForKpi)
-  const monthly = calculateMonthlyPerformance(tradesForKpi)
-
   // Trade-Ideen counts (original trades only, excluding Ungültig)
   const tradeIdeen = kpiTrades.filter((t) => t.status !== 'Ungültig')
   const tradeIdeenGesamt = tradeIdeen.length
   const tradeIdeenGeschlossen = tradeIdeen.filter((t) => t.status !== 'Aktiv').length
   const tradeIdeenOffen = tradeIdeen.filter((t) => t.status === 'Aktiv').length
+
+  // KPI counts use original trades (matching Übersicht), monthly chart uses expanded close entries
+  const tradesForMonthly = [
+    ...kpiTrades.filter((t) => !kpiReplacedIds.has(t.id) && t.status !== 'Ungültig'),
+    ...kpiCloseEntries,
+  ]
+  const kpis = calculateKPIs(tradeIdeen)
+  const monthly = calculateMonthlyPerformance(tradesForMonthly)
 
   const RECENT_TRADES_CUTOFF = '2026-01-01'
 
@@ -346,22 +345,6 @@ export default async function DashboardPage({
         </Card>
       )}
 
-      {/* Disclaimer */}
-      <div className="text-xs text-muted-foreground">
-        <p>Hinweis: Diese Übersicht dient zu Informationszwecken. Maßgeblich sind die offiziell versendeten Ausgaben und Eilmeldungen.</p>
-        <details className="mt-1">
-          <summary className="cursor-pointer hover:text-foreground transition-colors">
-            Mehr erfahren
-          </summary>
-          <p className="mt-2 leading-relaxed">
-            Diese Übersicht erhebt keinen Anspruch auf Vollständigkeit oder Richtigkeit.
-            Trotz sorgfältiger Pflege können die angezeigten Kursdaten und Performancewerte
-            von den tatsächlichen Werten abweichen. Maßgeblich sind stets die Informationen
-            aus den offiziell versendeten Ausgaben und Eilmeldungen von &bdquo;Fugmann&apos;s
-            Trading Woche&ldquo;. Bei Abweichungen gelten ausschließlich diese als verbindlich.
-          </p>
-        </details>
-      </div>
 
       <RecentTradesSection
         trades={recentClosedTrades}
