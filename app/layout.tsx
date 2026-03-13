@@ -28,7 +28,7 @@ export default async function RootLayout({
     <html lang="de">
       <body className={`${geist.variable} font-sans antialiased`} suppressHydrationWarning>
         {isAdmin && <AdminBar />}
-        <ConditionalNav />
+        <ConditionalNav isAdmin={isAdmin} />
         <ConditionalMain>{children}</ConditionalMain>
         <Toaster richColors position="bottom-right" />
       </body>

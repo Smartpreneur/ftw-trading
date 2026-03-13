@@ -15,15 +15,16 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 
-const links = [
+const allLinks = [
   { href: '/performance', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/trades', label: 'Trades', icon: BookOpen },
-  { href: '/setups', label: 'Trade-Setups', icon: TrendingUp },
+  { href: '/setups', label: 'Trade-Setups', icon: TrendingUp, adminOnly: true },
 ]
 
-export function Nav() {
+export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const links = allLinks.filter((l) => !l.adminOnly || isAdmin)
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
