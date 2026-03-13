@@ -2,11 +2,33 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Check } from 'lucide-react'
 import { refreshActiveTradePrices } from '@/lib/price-actions'
 import { toast } from 'sonner'
-export function RefreshPricesButton() {
+
+const PRICE_CACHE_MINUTES = 15
+
+interface RefreshPricesButtonProps {
+  lastUpdatedAt?: string | null
+}
+
+export function RefreshPricesButton({ lastUpdatedAt }: RefreshPricesButtonProps) {
+  const isFresh = lastUpdatedAt
+    ? (Date.now() - new Date(lastUpdatedAt).getTime()) < PRICE_CACHE_MINUTES * 60 * 1000
+    : false
+
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [justRefreshed, setJustRefreshed] = useState(false)
+
+  // Hide button if prices are already fresh (from page load or after manual refresh)
+  if (isFresh || justRefreshed) {
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Check className="h-3.5 w-3.5 text-emerald-500" />
+        Kurse aktuell
+      </span>
+    )
+  }
 
   async function handleRefresh() {
     setIsRefreshing(true)
@@ -19,6 +41,7 @@ export function RefreshPricesButton() {
           : ''
         toast.warning(`${result.errors} Kurs(e) nicht verfügbar${details}`, { duration: 8000 })
       }
+      setJustRefreshed(true)
       window.location.reload()
     } catch (error: any) {
       toast.error('Fehler beim Aktualisieren der Kurse')

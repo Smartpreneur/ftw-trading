@@ -77,6 +77,11 @@ export default async function DashboardPage({
     return true
   })
 
+  // Find the most recent price update timestamp for the refresh button
+  const latestPriceUpdate = activePrices.length > 0
+    ? activePrices.reduce((latest, p) => p.updated_at > latest ? p.updated_at : latest, activePrices[0].updated_at)
+    : null
+
   // Aggregate unrealized P&L across active trades with known prices
   const activePriceMap = new Map(activePrices.map((p) => [p.trade_id, p.current_price]))
   let totalUnrealizedPct = 0
@@ -333,7 +338,7 @@ export default async function DashboardPage({
                 </p>
               )}
             </div>
-            <RefreshPricesButton />
+            <RefreshPricesButton lastUpdatedAt={latestPriceUpdate} />
           </CardHeader>
           <CardContent className="px-0">
             <ActiveTradesTable
