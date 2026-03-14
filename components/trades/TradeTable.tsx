@@ -275,18 +275,6 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
                   <SortIcon field="richtung" />
                 </button>
               </TableHead>
-              <TableHead className="text-right">Einstieg</TableHead>
-              <TableHead className="text-right">Ausstieg</TableHead>
-              <TableHead>
-                <button
-                  onClick={() => toggleSort('status')}
-                  className="flex items-center hover:text-foreground transition-colors"
-                >
-                  Status
-                  <SortIcon field="status" />
-                </button>
-              </TableHead>
-              <TableHead>Trader</TableHead>
               <TableHead className="text-right">
                 <button
                   onClick={() => toggleSort('performance')}
@@ -296,6 +284,18 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
                   <SortIcon field="performance" />
                 </button>
               </TableHead>
+              <TableHead>
+                <button
+                  onClick={() => toggleSort('status')}
+                  className="flex items-center hover:text-foreground transition-colors"
+                >
+                  Status
+                  <SortIcon field="status" />
+                </button>
+              </TableHead>
+              <TableHead className="text-right">Einstieg</TableHead>
+              <TableHead className="text-right">Ausstieg</TableHead>
+              <TableHead>Trader</TableHead>
               {isAdmin && <TableHead className="text-right">Aktionen</TableHead>}
             </TableRow>
           </TableHeader>
@@ -334,18 +334,6 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
                   <TableCell>
                     <DirectionBadge direction={trade.richtung ?? 'LONG'} />
                   </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {formatPrice(trade.einstiegspreis)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {formatPrice(trade.effective_ausstiegspreis ?? trade.ausstiegspreis)}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={trade.status} />
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                    {TRADER_NAMES[trade.profil] ?? trade.profil}
-                  </TableCell>
                   <TableCell className="text-right">
                     {trade.performance_pct !== null ? (
                       <span
@@ -363,6 +351,18 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
                     ) : (
                       <span className="text-muted-foreground text-sm">–</span>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={trade.status} />
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-sm">
+                    {formatPrice(trade.einstiegspreis)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-sm">
+                    {formatPrice(trade.effective_ausstiegspreis ?? trade.ausstiegspreis)}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    {TRADER_NAMES[trade.profil] ?? trade.profil}
                   </TableCell>
                   {isAdmin && (
                     <TableCell className="text-right">

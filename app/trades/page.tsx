@@ -44,7 +44,7 @@ export default async function TradesPage({
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Trades</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Alle Trades verwalten, filtern und analysieren
+          Alle Trades ab 2026
         </p>
       </div>
 
