@@ -13,7 +13,6 @@ import { DirectionBadge } from './DirectionBadge'
 import { formatDate, formatPrice } from '@/lib/formatters'
 import { getCurrencySymbol, getApiSymbol, getExchangeLabel } from '@/lib/asset-mapping'
 import { cn } from '@/lib/utils'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Check, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Pencil } from 'lucide-react'
 import { TradeDialog } from './TradeDialog'
 import { Button } from '@/components/ui/button'
@@ -277,20 +276,7 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
               </TableCell>
               <TableCell className={cn("min-w-[250px] max-w-[400px]", !isAdmin && "pr-6")}>
                 {trade.bemerkungen ? (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span
-                          className="text-sm text-muted-foreground whitespace-normal break-words block line-clamp-3 cursor-default"
-                        >
-                          {trade.bemerkungen}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[400px] whitespace-pre-wrap">
-                        <p className="text-sm">{trade.bemerkungen}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <BemerkungCell text={trade.bemerkungen} />
                 ) : (
                   <span className="text-sm text-muted-foreground">—</span>
                 )}
@@ -312,5 +298,38 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
         })}
       </TableBody>
     </Table>
+  )
+}
+
+function BemerkungCell({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const lineCount = text.split('\n').length
+  const needsClamp = lineCount > 3 || text.length > 200
+
+  if (!needsClamp) {
+    return (
+      <span className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
+        {text}
+      </span>
+    )
+  }
+
+  return (
+    <div>
+      <span
+        className={cn(
+          "text-sm text-muted-foreground whitespace-pre-wrap break-words",
+          !expanded && "line-clamp-3"
+        )}
+      >
+        {text}
+      </span>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="text-xs text-blue-600 hover:underline mt-0.5 block"
+      >
+        {expanded ? 'Weniger' : 'Mehr anzeigen'}
+      </button>
+    </div>
   )
 }
