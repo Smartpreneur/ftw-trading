@@ -264,7 +264,6 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* Row 1: Instrument-Suche */}
-      <div className="sm:max-w-[560px]">
       <Field label="Instrument *" error={errors.asset?.message}>
         <InstrumentSearch
           value={assetValue}
@@ -293,10 +292,9 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           }}
         />
       </Field>
-      </div>
 
       {/* Row 2: Klasse, Richtung, Profil */}
-      <div className="grid grid-cols-3 gap-3 max-w-[420px]">
+      <div className="grid grid-cols-3 gap-3">
         <Field label="Asset-Klasse *" error={errors.asset_klasse?.message}>
           <Select
             value={selectedAssetKlasse}
@@ -348,7 +346,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       </div>
 
       {/* Row 3: Datum, Aktueller Kurs, Einstiegspreis, Stop Loss */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:max-w-[560px]">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Field label="Datum *" error={errors.datum_eroeffnung?.message}>
           <Input
             type="date"
@@ -388,7 +386,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       </div>
 
       {/* Take-Profit Ziele & Gewichtung */}
-      <div className="rounded-lg border bg-muted/30 p-4 space-y-3 sm:max-w-[560px]">
+      <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
         <div className="flex items-center justify-between">
           <Label className="text-sm font-semibold">Take-Profit-Ziele & Gewichtung</Label>
           <button
@@ -449,7 +447,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       </div>
 
       {/* Row 5: CRV, Zeiteinheit, Dauer */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:max-w-[560px]">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Field label="CRV min (auto)" error={errors.risiko_reward_min?.message}>
           <Input
             type="number"
@@ -490,7 +488,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       </div>
 
       {/* Chart Image Upload */}
-      <div className="space-y-2 sm:max-w-[560px]">
+      <div className="space-y-2">
         <Label className="text-xs font-medium">Chart-Bild</Label>
         {imagePreview ? (
           <div className="relative rounded-md border overflow-hidden bg-muted">
@@ -556,7 +554,6 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       </div>
 
       {/* Bemerkungen */}
-      <div className="sm:max-w-[560px]">
       <Field label="Bemerkungen" error={errors.bemerkungen?.message}>
         <textarea
           rows={6}
@@ -565,7 +562,6 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           {...register('bemerkungen', { setValueAs: asNullableStr })}
         />
       </Field>
-      </div>
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onSuccess}>

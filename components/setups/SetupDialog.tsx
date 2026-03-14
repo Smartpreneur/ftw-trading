@@ -22,7 +22,7 @@ export function SetupDialog({ setup, trigger }: SetupDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-[90rem] w-[95vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{setup ? 'Setup bearbeiten' : 'Neues Setup'}</DialogTitle>
         </DialogHeader>
