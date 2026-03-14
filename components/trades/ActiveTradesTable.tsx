@@ -13,7 +13,8 @@ import { DirectionBadge } from './DirectionBadge'
 import { formatDate, formatPrice } from '@/lib/formatters'
 import { getCurrencySymbol, getApiSymbol, getExchangeLabel } from '@/lib/asset-mapping'
 import { cn } from '@/lib/utils'
-import { Check, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Pencil } from 'lucide-react'
+import { Check, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hand } from 'lucide-react'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { TradeDialog } from './TradeDialog'
 import { Button } from '@/components/ui/button'
 import type { TradeWithPerformance, ActiveTradePrice } from '@/lib/types'
@@ -137,10 +138,20 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
               <TableCell>
                 <div>
                   <span className="font-medium">{trade.asset}</span>
-                  {isAdmin && (() => {
-                    if (trade.manuell_getrackt) {
-                      return <span className="block text-[10px] text-muted-foreground/50 mt-0.5">manuell</span>
-                    }
+                  {trade.manuell_getrackt && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button type="button" className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 mt-0.5 hover:text-amber-800 transition-colors">
+                          <Hand className="h-3 w-3" />
+                          manuell
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent side="bottom" align="start" className="text-sm max-w-[220px]">
+                        <p>Manuell getrackt — Kurse werden nicht automatisch aktualisiert.</p>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                  {isAdmin && !trade.manuell_getrackt && (() => {
                     const mapping = getApiSymbol(trade.asset)
                     if (!mapping) return <span className="block text-[10px] text-amber-500 mt-0.5">kein Ticker</span>
                     const url = mapping.type === 'yahoo'
