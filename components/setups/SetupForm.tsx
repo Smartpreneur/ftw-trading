@@ -132,19 +132,18 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
 
   // Auto-calculate CRV from entry, SL and TP targets
   useEffect(() => {
-    const entry = Number(watchEinstieg)
-    const sl = Number(watchSL)
-    const richtung = watchRichtung ?? 'LONG'
-    if (!entry || !sl || entry <= 0 || sl <= 0) return
+    const entry = parseFloat(String(watchEinstieg ?? ''))
+    const sl = parseFloat(String(watchSL ?? ''))
+    if (!entry || !sl || isNaN(entry) || isNaN(sl)) return
 
-    const risk = richtung === 'LONG' ? entry - sl : sl - entry
+    const risk = Math.abs(entry - sl)
     if (risk <= 0) return
 
     const crvValues = [watchTp1, watchTp2, watchTp3, watchTp4]
-      .map(Number)
-      .filter((tp) => tp > 0)
+      .map((v) => parseFloat(String(v ?? '')))
+      .filter((tp) => !isNaN(tp) && tp > 0)
       .map((tp) => {
-        const reward = richtung === 'LONG' ? tp - entry : entry - tp
+        const reward = Math.abs(tp - entry)
         return reward > 0 ? Math.round((reward / risk) * 100) / 100 : null
       })
       .filter((v): v is number => v !== null)
