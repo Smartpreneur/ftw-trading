@@ -263,7 +263,8 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {/* Row 1: Instrument-Suche (volle Breite) */}
+      {/* Row 1: Instrument-Suche */}
+      <div className="sm:max-w-[560px]">
       <Field label="Instrument *" error={errors.asset?.message}>
         <InstrumentSearch
           value={assetValue}
@@ -292,6 +293,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           }}
         />
       </Field>
+      </div>
 
       {/* Row 2: Klasse, Richtung, Profil */}
       <div className="grid grid-cols-3 gap-3 max-w-[420px]">
