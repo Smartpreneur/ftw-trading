@@ -294,7 +294,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       </Field>
 
       {/* Row 2: Klasse, Richtung, Profil */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3 max-w-[420px]">
         <Field label="Asset-Klasse *" error={errors.asset_klasse?.message}>
           <Select
             value={selectedAssetKlasse}
@@ -386,7 +386,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       </div>
 
       {/* Take-Profit Ziele & Gewichtung */}
-      <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+      <div className="rounded-lg border bg-muted/30 p-4 space-y-3 sm:max-w-[560px]">
         <div className="flex items-center justify-between">
           <Label className="text-sm font-semibold">Take-Profit-Ziele & Gewichtung</Label>
           <button
@@ -447,7 +447,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       </div>
 
       {/* Row 5: CRV, Zeiteinheit, Dauer */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:max-w-[560px]">
         <Field label="CRV min (auto)" error={errors.risiko_reward_min?.message}>
           <Input
             type="number"
