@@ -266,7 +266,7 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
             size="sm"
           >
             <Play className="h-3.5 w-3.5 mr-1.5" />
-            {isConverting ? 'Wird eröffnet...' : 'Trade eröffnen'}
+            {isConverting ? 'Wird veröffentlicht...' : 'Trade veröffentlichen'}
           </Button>
         )}
       </CardContent>
