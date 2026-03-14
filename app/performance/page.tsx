@@ -15,7 +15,7 @@ import { RefreshPricesButton } from '@/components/trades/RefreshPricesButton'
 import { ActiveTradesTable } from '@/components/trades/ActiveTradesTable'
 import { RecentTradesSection } from '@/components/trades/RecentTradesSection'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TrendingUp, TrendingDown } from 'lucide-react'
+import { TrendingUp, TrendingDown, Info } from 'lucide-react'
 import { Suspense } from 'react'
 import { ProfileTabs } from '@/components/performance/ProfileTabs'
 import { resolveTab } from '@/lib/profile-tabs'
@@ -221,7 +221,10 @@ export default async function DashboardPage({
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Performance-Übersicht</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Performance-Übersicht</h1>
+            <Info className="h-4 w-4 text-muted-foreground" />
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             Fugmanns Trading Woche
           </p>
