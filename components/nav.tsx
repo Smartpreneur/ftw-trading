@@ -27,10 +27,18 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
   const [open, setOpen] = useState(false)
   const links = allLinks.filter((l) => !l.adminOnly || isAdmin)
 
-  // Preserve embed token across navigation
+  // Preserve embed token and performance tab across navigation
   const token = searchParams.get('token')
-  function withToken(href: string) {
-    return token ? `${href}${href.includes('?') ? '&' : '?'}token=${token}` : href
+  function buildHref(href: string) {
+    let url = href
+    // Restore saved performance tab from localStorage
+    if (href === '/performance' && typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('ftw-perf-tab')
+      if (savedTab) {
+        url = `/performance?tab=${savedTab}`
+      }
+    }
+    return token ? `${url}${url.includes('?') ? '&' : '?'}token=${token}` : url
   }
 
   return (
@@ -38,7 +46,7 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center gap-2 sm:gap-4">
           {/* Logo */}
-          <Link href={withToken('/performance')} className="flex items-center shrink-0">
+          <Link href={buildHref('/performance')} className="flex items-center shrink-0">
             <Image
               src="/fmw-logo.svg"
               alt="FMW Logo"
@@ -54,7 +62,7 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
             {links.map(({ href, icon: Icon }) => (
               <Link
                 key={href}
-                href={withToken(href)}
+                href={buildHref(href)}
                 className={cn(
                   'flex items-center justify-center rounded-md p-2 transition-colors',
                   pathname === href
@@ -86,7 +94,7 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
                   {links.map(({ href, label, icon: Icon }) => (
                     <Link
                       key={href}
-                      href={withToken(href)}
+                      href={buildHref(href)}
                       onClick={() => setOpen(false)}
                       className={cn(
                         'flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium transition-colors',
