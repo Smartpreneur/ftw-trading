@@ -59,7 +59,7 @@ export default async function DashboardPage({
   // Filter in-memory by tab profiles (no DB round-trip)
   const kpiProfileSet = new Set(tabConfig.kpiProfiles)
   const listProfileSet = new Set(tabConfig.listProfiles)
-  const SETUP_STATUSES = ['Entwurf', 'Setup', 'Ausstehend']
+  const SETUP_STATUSES = ['Entwurf']
   const kpiTrades = allTrades.filter((t) => kpiProfileSet.has(t.profil) && !SETUP_STATUSES.includes(t.status))
   const listTrades = allTrades.filter((t) => listProfileSet.has(t.profil) && !SETUP_STATUSES.includes(t.status))
 

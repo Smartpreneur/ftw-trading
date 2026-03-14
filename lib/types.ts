@@ -2,8 +2,6 @@ export type AssetClass = 'Index' | 'Rohstoff' | 'Krypto' | 'Aktie' | 'FX'
 export type TradeDirection = 'LONG' | 'SHORT'
 export type TradeStatus =
   | 'Entwurf'
-  | 'Setup'
-  | 'Ausstehend'
   | 'Aktiv'
   | 'Geschlossen'
   | 'Ausgestoppt'

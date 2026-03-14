@@ -28,7 +28,7 @@ export default async function TradesPage({
   let error: string | null = null
 
   try {
-    const SETUP_STATUSES = ['Entwurf', 'Setup', 'Ausstehend']
+    const SETUP_STATUSES = ['Entwurf']
     const allTrades = await getTrades(profilesToLoad)
     // Only show trades opened or closed in 2026+, exclude setup statuses
     trades = allTrades.filter(

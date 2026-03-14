@@ -13,8 +13,6 @@ export const tradeSchema = z.object({
   tp4: z.number().nullable().optional(),
   status: z.enum([
     'Entwurf',
-    'Setup',
-    'Ausstehend',
     'Aktiv',
     'Geschlossen',
     'Ausgestoppt',

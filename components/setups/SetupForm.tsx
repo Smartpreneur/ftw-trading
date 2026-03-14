@@ -29,7 +29,7 @@ interface SetupFormProps {
   onSuccess: () => void
 }
 
-const SETUP_STATUSES = ['Setup', 'Ausstehend', 'Ungültig'] as const
+const SETUP_STATUS = 'Entwurf' as const
 const ZEITEINHEITEN = ['5min', '15min', '1H', '4H', 'Daily', 'Weekly'] as const
 
 function Field({
@@ -106,13 +106,13 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           risiko_reward_max: setup.risiko_reward_max ?? undefined,
           zeiteinheit: setup.zeiteinheit ?? undefined,
           dauer_erwartung: setup.dauer_erwartung ?? undefined,
-          status: (SETUP_STATUSES as readonly string[]).includes(setup.status) ? setup.status as typeof SETUP_STATUSES[number] : 'Setup',
+          status: SETUP_STATUS,
           bemerkungen: setup.bemerkungen ?? undefined,
           profil: setup.profil,
           gewichtung: 1,
         }
       : {
-          status: 'Setup',
+          status: SETUP_STATUS,
           richtung: 'LONG',
           asset_klasse: 'Index',
           profil: 'MB',
@@ -368,21 +368,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
             )}
           </div>
         </Field>
-        <Field label="Status *" error={errors.status?.message}>
-          <Select
-            defaultValue={setup && (SETUP_STATUSES as readonly string[]).includes(setup.status) ? setup.status : 'Setup'}
-            onValueChange={(v) => setValue('status', v as any)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {SETUP_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
+        {/* Status is always 'Entwurf' for setups */}
       </div>
 
       {/* Row 4: Einstiegspreis, Stop Loss */}
@@ -576,7 +562,8 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       {/* Bemerkungen */}
       <Field label="Bemerkungen" error={errors.bemerkungen?.message}>
         <textarea
-          className="flex min-h-[72px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+          rows={6}
+          className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
           placeholder="Setup-Analyse, Positionsmanagement, besondere Hinweise..."
           {...register('bemerkungen', { setValueAs: asNullableStr })}
         />

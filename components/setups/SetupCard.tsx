@@ -28,21 +28,13 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
   const formattedDate = `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`
 
   async function handleConvertToTrade() {
-    const defaultPrice = setup.aktueller_kurs ?? setup.einstiegspreis ?? 0
-    const priceStr = prompt('Einstiegspreis eingeben:', defaultPrice.toString())
-    if (!priceStr) return
-    const price = parseFloat(priceStr.replace(',', '.'))
-    if (isNaN(price)) {
-      toast.error('Ungültiger Preis')
-      return
-    }
     setIsConverting(true)
     try {
-      await updateTrade(setup.id, { status: 'Aktiv', einstiegspreis: price })
-      toast.success('Trade eröffnet')
+      await updateTrade(setup.id, { status: 'Aktiv' })
+      toast.success('Trade veröffentlicht')
       router.refresh()
     } catch (err: any) {
-      toast.error(err?.message ?? 'Fehler beim Eröffnen')
+      toast.error(err?.message ?? 'Fehler beim Veröffentlichen')
     } finally {
       setIsConverting(false)
     }
@@ -76,7 +68,7 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
                 {setup.asset_klasse}
               </Badge>
               <Badge
-                variant={setup.status === 'Setup' ? 'default' : 'outline'}
+                variant="outline"
                 className="text-xs"
               >
                 {setup.status}
@@ -257,8 +249,8 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
           {formattedDate}
         </p>
 
-        {/* Convert to Trade button - only for setup/ausstehend statuses, admin only */}
-        {isAdmin && (setup.status === 'Setup' || setup.status === 'Ausstehend') && (
+        {/* Convert to Trade button - only for drafts, admin only */}
+        {isAdmin && setup.status === 'Entwurf' && (
           <Button
             onClick={handleConvertToTrade}
             disabled={isConverting}

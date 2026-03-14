@@ -6,7 +6,7 @@ import { Plus } from 'lucide-react'
 import { checkAdmin } from '@/lib/auth'
 import type { Trade, TradingProfile } from '@/lib/types'
 
-const SETUP_STATUSES = ['Entwurf', 'Setup', 'Ausstehend'] as const
+const SETUP_STATUSES = ['Entwurf'] as const
 
 export default async function SetupsPage({
   searchParams,
