@@ -346,7 +346,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       </div>
 
       {/* Row 3: Datum, Aktueller Kurs, Einstiegspreis, Stop Loss */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:max-w-[560px]">
         <Field label="Datum *" error={errors.datum_eroeffnung?.message}>
           <Input
             type="date"
