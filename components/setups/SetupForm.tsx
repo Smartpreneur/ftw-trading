@@ -488,7 +488,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       </div>
 
       {/* Chart Image Upload */}
-      <div className="space-y-2">
+      <div className="space-y-2 sm:max-w-[560px]">
         <Label className="text-xs font-medium">Chart-Bild</Label>
         {imagePreview ? (
           <div className="relative rounded-md border overflow-hidden bg-muted">
@@ -554,6 +554,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       </div>
 
       {/* Bemerkungen */}
+      <div className="sm:max-w-[560px]">
       <Field label="Bemerkungen" error={errors.bemerkungen?.message}>
         <textarea
           rows={6}
@@ -562,6 +563,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           {...register('bemerkungen', { setValueAs: asNullableStr })}
         />
       </Field>
+      </div>
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onSuccess}>
