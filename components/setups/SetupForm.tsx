@@ -345,8 +345,8 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         </Field>
       </div>
 
-      {/* Row 3: Datum, Aktueller Kurs, Status */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Row 3: Datum, Aktueller Kurs, Einstiegspreis, Stop Loss */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Field label="Datum *" error={errors.datum_eroeffnung?.message}>
           <Input
             type="date"
@@ -367,11 +367,6 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
             )}
           </div>
         </Field>
-        {/* Status is always 'Entwurf' for setups */}
-      </div>
-
-      {/* Row 4: Einstiegspreis, Stop Loss */}
-      <div className="grid grid-cols-2 gap-3">
         <Field label="Einstiegspreis *" error={errors.einstiegspreis?.message}>
           <Input
             type="number"
