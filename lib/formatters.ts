@@ -9,9 +9,15 @@ export function formatPercent(value: number | null | undefined, showSign = true)
 
 export function formatPrice(value: number | null | undefined): string {
   if (value === null || value === undefined) return '–'
+  // Smart decimals based on magnitude:
+  // < 10 (FX, e.g. EUR/USD 1.1850) → 4 decimal places
+  // 10–999 (Silver 23.45, LVMH 531.50) → 2 decimal places
+  // 1000+ (Gold 2345.50, BTC 67234) → 2 decimal places
+  const abs = Math.abs(value)
+  const decimals = abs < 10 ? 4 : 2
   return new Intl.NumberFormat('de-DE', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 6,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(value)
 }
 

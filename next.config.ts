@@ -14,10 +14,24 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
-    const allowedOrigin = (process.env.EMBED_ALLOWED_ORIGIN ?? '*').replace(/\\n$/, '').trim()
+    const allowedOrigin = (process.env.EMBED_ALLOWED_ORIGIN ?? '*').replace(/\n/g, '').trim()
+    // When '*' is set, allow embedding from anywhere (no restrictive CSP)
+    if (allowedOrigin === '*') {
+      return [
+        {
+          source: '/(performance|trades)',
+          headers: [
+            {
+              key: 'Content-Security-Policy',
+              value: "frame-ancestors *",
+            },
+          ],
+        },
+      ]
+    }
     return [
       {
-        // Allow /performance and /trades to be embedded as iFrame from the configured origin
+        // Allow /performance and /trades to be embedded as iFrame from the configured origin(s)
         source: '/(performance|trades)',
         headers: [
           {

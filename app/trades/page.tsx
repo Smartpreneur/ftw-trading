@@ -1,10 +1,12 @@
-import { getTrades } from '@/lib/actions'
+import { getTrades, trackPageView } from '@/lib/actions'
 import { TradeTable } from '@/components/trades/TradeTable'
 import { checkAuth, checkAdmin } from '@/lib/auth'
 import { PasswordGate } from '@/components/password-gate'
 import type { TradingProfile } from '@/lib/types'
 import { ACTIVE_PROFILES } from '@/lib/profile-tabs'
 import { TRADING_PROFILES } from '@/lib/constants'
+import { after } from 'next/server'
+import { headers } from 'next/headers'
 
 export default async function TradesPage({
   searchParams,
@@ -16,6 +18,10 @@ export default async function TradesPage({
   if (!isAuthed) return <PasswordGate />
 
   const isAdmin = await checkAdmin()
+
+  const headersList = await headers()
+  const referrer = headersList.get('referer')
+  after(() => trackPageView('/trades', referrer))
 
   const profilesParam = params.profiles
   const selectedProfiles = profilesParam?.split(',') as TradingProfile[] | undefined

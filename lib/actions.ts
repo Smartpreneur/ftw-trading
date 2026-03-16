@@ -240,6 +240,20 @@ export async function uploadChartImage(formData: FormData): Promise<string> {
   return urlData.publicUrl
 }
 
+// ── Page view tracking (referrer monitoring for iframe embeds) ──
+
+export async function trackPageView(path: string, referrer: string | null): Promise<void> {
+  try {
+    const supabase = createCacheClient()
+    await supabase.from('page_views').insert({
+      path,
+      referrer: referrer || null,
+    })
+  } catch {
+    // Non-critical — never block page rendering
+  }
+}
+
 export async function deleteChartImage(url: string): Promise<void> {
   const supabase = await createClient()
   const match = url.match(/chart-images\/(.+)$/)

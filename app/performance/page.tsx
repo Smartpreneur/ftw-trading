@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { after } from 'next/server'
-import { getCachedTrades } from '@/lib/actions'
+import { headers } from 'next/headers'
+import { getCachedTrades, trackPageView } from '@/lib/actions'
 import { getCachedActivePrices, triggerPriceRefreshIfStale } from '@/lib/price-actions'
 import { checkAdmin, checkAuth } from '@/lib/auth'
 import { PasswordGate } from '@/components/password-gate'
@@ -52,9 +53,13 @@ export default async function DashboardPage({
     error = e?.message ?? 'Fehler beim Laden der Daten'
   }
 
-  // After response is sent: check if prices are stale and update in background (fire-and-forget)
-  // Runs at most once per 15 minutes per visitor — never blocks the page render
-  after(() => triggerPriceRefreshIfStale())
+  // After response is sent: background tasks (non-blocking, fire-and-forget)
+  const headersList = await headers()
+  const referrer = headersList.get('referer')
+  after(() => {
+    triggerPriceRefreshIfStale()
+    trackPageView('/performance', referrer)
+  })
 
   // Filter in-memory by tab profiles (no DB round-trip)
   const kpiProfileSet = new Set(tabConfig.kpiProfiles)
@@ -130,12 +135,13 @@ export default async function DashboardPage({
     }
   }
 
-  // KPI: realized partial closes on ACTIVE trades count toward monthly performance
+  // KPI: expand ALL trades with closes into individual close entries for monthly performance
+  // This ensures each partial close (TP1, TP2, SL) is counted separately in charts.
   const kpiReplacedIds = new Set<string>()
   const kpiCloseEntries: typeof kpiTrades = []
 
   for (const trade of kpiTrades) {
-    if (trade.status !== 'Aktiv' || !trade.einstiegspreis || !trade.richtung) continue
+    if (!trade.einstiegspreis || !trade.richtung) continue
     const closesWithData = (trade.closes ?? []).filter(
       (c) => c.ausstiegspreis != null && c.anteil != null
     )
@@ -149,7 +155,9 @@ export default async function DashboardPage({
     }
   }
 
-  // Display: expand trades with 2+ closes into individual rows in "Letzte Trades"
+  // Display: expand ALL trades with closes into individual rows in "Letzte Trades"
+  // Each trade_close (TP1, TP2, SL, etc.) becomes its own row — even if there's only one close.
+  // Active trades with partial closes also appear here (realized partial profit).
   const closesExpandedIds = new Set<string>()
   const closesExpandedEntries: typeof listTrades = []
 
@@ -158,22 +166,13 @@ export default async function DashboardPage({
     const closesWithData = (trade.closes ?? []).filter(
       (c) => c.ausstiegspreis != null && c.anteil != null
     )
-    if (closesWithData.length < 2) continue
+    if (closesWithData.length === 0) continue
     closesExpandedIds.add(trade.id)
     const sorted = [...closesWithData].sort((a, b) => (a.nummer ?? 0) - (b.nummer ?? 0))
     for (const close of sorted) {
       const entry = makeCloseEntry(trade, close, 'close')
       if (close.typ) partialCloseLabels.set(entry.id, `(${close.typ})`)
       closesExpandedEntries.push(entry)
-    }
-  }
-
-  // Labels for single-close trades (show close type next to asset name)
-  for (const trade of listTrades) {
-    if (closesExpandedIds.has(trade.id) || partialCloseLabels.has(trade.id)) continue
-    const closes = (trade.closes ?? []).filter(c => c.ausstiegspreis != null && c.anteil != null)
-    if (closes.length === 1 && closes[0].typ) {
-      partialCloseLabels.set(trade.id, `(${closes[0].typ})`)
     }
   }
 
@@ -193,10 +192,12 @@ export default async function DashboardPage({
 
   const RECENT_TRADES_CUTOFF = '2026-01-01'
 
-  // Recent trades list: only list-profile trades from 2026+ with known performance
+  // Recent trades list: closed trades + all expanded close entries (incl. from active trades)
+  // Trades with closes are replaced by their individual close rows.
+  // Trades without closes appear only if they're not active (i.e. fully closed without close records).
   const recentClosedTrades = [
     ...listTrades.filter(
-      (t) => t.status !== 'Aktiv' && !closesExpandedIds.has(t.id)
+      (t) => !closesExpandedIds.has(t.id) && t.status !== 'Aktiv'
     ),
     ...closesExpandedEntries,
   ]

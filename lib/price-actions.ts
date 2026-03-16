@@ -242,6 +242,7 @@ async function checkAndUpdateTPSL(
     richtung: TradeDirection | null
     datum_eroeffnung: string
     created_at: string
+    einstiegspreis: number | null
     tp1: number | null
     tp2: number | null
     tp3: number | null
@@ -253,6 +254,10 @@ async function checkAndUpdateTPSL(
     tp4_erreicht_am: string | null
     sl_erreicht_am: string | null
     tp_sl_geaendert_am: string | null
+    tp1_gewichtung: number | null
+    tp2_gewichtung: number | null
+    tp3_gewichtung: number | null
+    tp4_gewichtung: number | null
   },
   ohlcData: DailyOHLC[]
 ): Promise<boolean> {
@@ -266,6 +271,9 @@ async function checkAndUpdateTPSL(
   // use daily high/low because we don't know if the price hit was before or after creation.
   const createdDate = trade.created_at.split('T')[0]
   const updates: Record<string, string> = {}
+
+  // Track which TPs are newly hit (for auto-close creation)
+  const newlyHitTPs: { typ: 'TP1' | 'TP2' | 'TP3' | 'TP4'; level: number; datum: string; gewichtung: number | null; nummer: number }[] = []
 
   // Walk through each day chronologically to find the FIRST hit date
   for (const day of ohlcData) {
@@ -285,10 +293,10 @@ async function checkAndUpdateTPSL(
 
     // Check TPs: LONG → high >= TP, SHORT → low <= TP
     const tpChecks = [
-      { key: 'tp1_erreicht_am', level: trade.tp1, alreadyHit: trade.tp1_erreicht_am },
-      { key: 'tp2_erreicht_am', level: trade.tp2, alreadyHit: trade.tp2_erreicht_am },
-      { key: 'tp3_erreicht_am', level: trade.tp3, alreadyHit: trade.tp3_erreicht_am },
-      { key: 'tp4_erreicht_am', level: trade.tp4, alreadyHit: trade.tp4_erreicht_am },
+      { key: 'tp1_erreicht_am', typ: 'TP1' as const, level: trade.tp1, alreadyHit: trade.tp1_erreicht_am, gewichtung: trade.tp1_gewichtung, nummer: 1 },
+      { key: 'tp2_erreicht_am', typ: 'TP2' as const, level: trade.tp2, alreadyHit: trade.tp2_erreicht_am, gewichtung: trade.tp2_gewichtung, nummer: 2 },
+      { key: 'tp3_erreicht_am', typ: 'TP3' as const, level: trade.tp3, alreadyHit: trade.tp3_erreicht_am, gewichtung: trade.tp3_gewichtung, nummer: 3 },
+      { key: 'tp4_erreicht_am', typ: 'TP4' as const, level: trade.tp4, alreadyHit: trade.tp4_erreicht_am, gewichtung: trade.tp4_gewichtung, nummer: 4 },
     ]
 
     for (const tp of tpChecks) {
@@ -300,6 +308,7 @@ async function checkAndUpdateTPSL(
 
       if (hit) {
         updates[tp.key] = hitTimestamp
+        newlyHitTPs.push({ typ: tp.typ, level: tp.level, datum: day.date, gewichtung: tp.gewichtung, nummer: tp.nummer })
       }
     }
 
@@ -316,15 +325,109 @@ async function checkAndUpdateTPSL(
   }
 
   // Only write to DB if something changed
-  if (Object.keys(updates).length > 0) {
-    const supabase = createCacheClient()
+  if (Object.keys(updates).length === 0) return false
+
+  const supabase = createCacheClient()
+
+  // Update TP/SL timestamps on trade
+  await supabase
+    .from('trades')
+    .update(updates)
+    .eq('id', trade.id)
+
+  // Auto-create trade_close entries for newly hit TPs
+  for (const tp of newlyHitTPs) {
+    // Check if a close for this TP type already exists (idempotency)
+    const { data: existing } = await supabase
+      .from('trade_closes')
+      .select('id')
+      .eq('trade_fk', trade.id)
+      .eq('typ', tp.typ)
+      .limit(1)
+
+    if (existing && existing.length > 0) continue
+
     await supabase
-      .from('trades')
-      .update(updates)
-      .eq('id', trade.id)
-    return true
+      .from('trade_closes')
+      .insert({
+        trade_fk: trade.id,
+        nummer: tp.nummer,
+        typ: tp.typ,
+        datum: tp.datum,
+        ausstiegspreis: tp.level,
+        anteil: tp.gewichtung ?? 0.25, // fallback to 25% if no weight defined
+      })
   }
-  return false
+
+  // Determine if SL was hit (newly or already)
+  const slHit = !!(trade.sl_erreicht_am || updates.sl_erreicht_am)
+
+  // Determine if ALL defined TPs have been hit (combining existing + new hits)
+  const definedTPs = [
+    { level: trade.tp1, hit: !!(trade.tp1_erreicht_am || updates.tp1_erreicht_am) },
+    { level: trade.tp2, hit: !!(trade.tp2_erreicht_am || updates.tp2_erreicht_am) },
+    { level: trade.tp3, hit: !!(trade.tp3_erreicht_am || updates.tp3_erreicht_am) },
+    { level: trade.tp4, hit: !!(trade.tp4_erreicht_am || updates.tp4_erreicht_am) },
+  ].filter(tp => tp.level !== null)
+
+  const allTPsHit = definedTPs.length > 0 && definedTPs.every(tp => tp.hit)
+
+  // Auto-close trade when all TPs hit or SL hit
+  if (allTPsHit || slHit) {
+    // Find the latest hit date for datum_schliessung
+    const hitDates: string[] = []
+    for (const key of ['tp1_erreicht_am', 'tp2_erreicht_am', 'tp3_erreicht_am', 'tp4_erreicht_am', 'sl_erreicht_am']) {
+      const val = updates[key] || (trade as Record<string, unknown>)[key]
+      if (typeof val === 'string') hitDates.push(val.split('T')[0])
+    }
+    const latestDate = hitDates.sort().pop() ?? new Date().toISOString().split('T')[0]
+
+    if (slHit) {
+      // SL hit → close as Ausgestoppt, create SL close entry if not exists
+      const { data: existingSL } = await supabase
+        .from('trade_closes')
+        .select('id')
+        .eq('trade_fk', trade.id)
+        .eq('typ', 'SL')
+        .limit(1)
+
+      if (!existingSL || existingSL.length === 0) {
+        // Calculate remaining anteil: 1 - sum of existing TP closes
+        const { data: existingCloses } = await supabase
+          .from('trade_closes')
+          .select('anteil')
+          .eq('trade_fk', trade.id)
+
+        const usedAnteil = (existingCloses ?? []).reduce((sum, c) => sum + (c.anteil ?? 0), 0)
+        const remainingAnteil = Math.max(0, 1 - usedAnteil)
+
+        if (remainingAnteil > 0) {
+          await supabase
+            .from('trade_closes')
+            .insert({
+              trade_fk: trade.id,
+              typ: 'SL',
+              datum: latestDate,
+              ausstiegspreis: trade.stop_loss,
+              anteil: parseFloat(remainingAnteil.toFixed(4)),
+            })
+        }
+      }
+
+      await supabase
+        .from('trades')
+        .update({ status: 'Ausgestoppt', datum_schliessung: latestDate })
+        .eq('id', trade.id)
+    } else if (allTPsHit) {
+      // All TPs hit → close as Geschlossen
+      await supabase
+        .from('trades')
+        .update({ status: 'Geschlossen', datum_schliessung: latestDate })
+        .eq('id', trade.id)
+    }
+  }
+
+  return true
 }
 
 // Update all active trade prices + check TP/SL levels using daily High/Low
@@ -334,7 +437,7 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
   // Get all active trades with TP/SL levels and existing hit timestamps
   const { data: activeTrades, error: tradesError } = await supabase
     .from('trades')
-    .select('id, asset, datum_eroeffnung, created_at, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, manuell_getrackt')
+    .select('id, asset, datum_eroeffnung, created_at, einstiegspreis, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, tp1_gewichtung, tp2_gewichtung, tp3_gewichtung, tp4_gewichtung, manuell_getrackt')
     .eq('status', 'Aktiv')
 
   if (tradesError || !activeTrades) {
