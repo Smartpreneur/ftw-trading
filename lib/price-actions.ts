@@ -228,6 +228,7 @@ async function checkAndUpdateTPSL(
     id: string
     richtung: TradeDirection | null
     datum_eroeffnung: string
+    created_at: string
     tp1: number | null
     tp2: number | null
     tp3: number | null
@@ -248,12 +249,19 @@ async function checkAndUpdateTPSL(
   // otherwise fall back to trade entry date
   const referenceDate = (trade.tp_sl_geaendert_am ?? trade.datum_eroeffnung).split('T')[0]
   const openDate = trade.datum_eroeffnung.split('T')[0]
+  // CRITICAL: Never detect TP/SL hits before the trade was actually created in our system.
+  // A trade may have datum_eroeffnung in the past but was only entered (created_at) later.
+  // Only days AFTER created_at are valid for auto-detection.
+  const createdDate = trade.created_at.split('T')[0]
   const updates: Record<string, string> = {}
 
   // Walk through each day chronologically to find the FIRST hit date
   for (const day of ohlcData) {
     // Skip days before the trade was opened
     if (day.date < openDate) continue
+
+    // Skip days before the trade was created in our system
+    if (day.date < createdDate) continue
 
     // Skip the reference day itself (entry day or TP/SL modification day)
     // because we don't know the exact intraday timing
@@ -313,7 +321,7 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
   // Get all active trades with TP/SL levels and existing hit timestamps
   const { data: activeTrades, error: tradesError } = await supabase
     .from('trades')
-    .select('id, asset, datum_eroeffnung, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, manuell_getrackt')
+    .select('id, asset, datum_eroeffnung, created_at, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, manuell_getrackt')
     .eq('status', 'Aktiv')
 
   if (tradesError || !activeTrades) {
