@@ -169,7 +169,7 @@ export function getCurrencySymbol(asset: string, assetKlasse: string): string {
 
   // Check exchange suffix first — covers ETPs and non-standard asset classes
   const mapping = getApiSymbol(asset)
-  if (mapping?.api.endsWith('.DE') || mapping?.api.endsWith('.PA') || mapping?.api.endsWith('.AS') || mapping?.api.endsWith('.MU')) return '€'
+  if (mapping?.api.endsWith('.DE') || mapping?.api.endsWith('.PA') || mapping?.api.endsWith('.AS') || mapping?.api.endsWith('.MU') || mapping?.api.endsWith('.MI')) return '€'
 
   if (assetKlasse === 'Rohstoff' || assetKlasse === 'Krypto') return '$'
   if (assetKlasse === 'Aktie') return mapping ? '$' : '$'
