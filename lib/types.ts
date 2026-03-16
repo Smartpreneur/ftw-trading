@@ -35,6 +35,7 @@ export interface Trade {
   trade_id_legacy: string | null
   datum_eroeffnung: string
   asset: string
+  asset_name: string | null
   asset_klasse: AssetClass
   richtung: TradeDirection | null
   einstiegspreis: number | null
@@ -87,6 +88,7 @@ export interface TradeWithPerformance extends Trade {
 export type TradeFormData = {
   datum_eroeffnung: string
   asset: string
+  asset_name?: string | null
   asset_klasse: AssetClass
   richtung: TradeDirection | null
   einstiegspreis: number | null
@@ -159,6 +161,7 @@ export interface EquityCurvePoint {
   date: string
   cumulative_pct: number
   asset: string
+  asset_name: string | null
   richtung: TradeDirection
   trade_pct: number
   gewichtung: number

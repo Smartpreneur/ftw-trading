@@ -62,7 +62,7 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1.5 flex-1">
-            <h3 className="font-semibold text-base leading-tight">{setup.asset}</h3>
+            <h3 className="font-semibold text-base leading-tight" title={setup.asset}>{setup.asset_name || setup.asset}</h3>
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="text-xs">
                 {setup.asset_klasse}
@@ -229,7 +229,7 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
             <div className="relative w-full aspect-video rounded-md overflow-hidden bg-muted">
               <Image
                 src={setup.chart_bild_url}
-                alt={`Chart für ${setup.asset}`}
+                alt={`Chart für ${setup.asset_name || setup.asset}`}
                 fill
                 className="object-contain"
               />

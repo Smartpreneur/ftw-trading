@@ -26,7 +26,7 @@ function CustomTooltip({ active, payload, label }: any) {
       <p className={`font-medium ${d.cumulative_pct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
         {d.cumulative_pct >= 0 ? '+' : ''}{d.cumulative_pct.toFixed(2)} %
       </p>
-      <p className="text-muted-foreground text-xs">{d.asset} · {d.richtung}</p>
+      <p className="text-muted-foreground text-xs">{d.asset_name || d.asset} · {d.richtung}</p>
     </div>
   )
 }

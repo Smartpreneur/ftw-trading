@@ -67,6 +67,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     )
     return match?.name ?? setup.asset
   })
+  const [assetName, setAssetName] = useState(setup?.asset_name ?? '')
   const [selectedAssetKlasse, setSelectedAssetKlasse] = useState(setup?.asset_klasse ?? 'Index')
   const [tpGewichtung, setTpGewichtung] = useState<Record<string, number | string>>(() => {
     if (setup) {
@@ -226,6 +227,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     try {
       const payload = {
         ...values,
+        asset_name: assetName.trim() || null,
         gewichtung: 1.0,
         manuell_getrackt: false,
         tp1_gewichtung: tpGewichtung.tp1 !== '' ? Number(tpGewichtung.tp1) / 100 : null,
@@ -271,6 +273,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           onSelect={async (instrument) => {
             setAssetValue(instrument.name)
             setValue('asset', instrument.symbol, { shouldValidate: true })
+            setAssetName(instrument.name)
             setValue('asset_klasse', instrument.asset_klasse)
             setSelectedAssetKlasse(instrument.asset_klasse)
 
@@ -289,9 +292,29 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           onManualInput={(val) => {
             setAssetValue(val)
             setValue('asset', val, { shouldValidate: true })
+            setAssetName(val)
           }}
         />
       </Field>
+
+      {/* Bezeichnung + Ticker */}
+      <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+        <Field label="Bezeichnung">
+          <Input
+            placeholder="z.B. Ferrari, S&P 500, Gold..."
+            value={assetName}
+            onChange={(e) => setAssetName(e.target.value)}
+          />
+        </Field>
+        <Field label="Ticker">
+          <Input
+            value={watch('asset') || ''}
+            readOnly
+            tabIndex={-1}
+            className="w-[120px] bg-muted text-muted-foreground cursor-default"
+          />
+        </Field>
+      </div>
 
       {/* Row 2: Klasse, Richtung, Profil */}
       <div className="grid grid-cols-3 gap-3">

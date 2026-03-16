@@ -167,6 +167,7 @@ export function calculateEquityCurve(
       date: `${d}.${m}.${y.slice(2)}`,
       cumulative_pct: Math.round(cumulativePct * 100) / 100,
       asset: t.asset,
+      asset_name: t.asset_name,
       richtung: t.richtung ?? 'LONG',
       trade_pct: t.performance_pct ?? 0,
       gewichtung: weight,

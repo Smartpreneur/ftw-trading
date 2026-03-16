@@ -52,6 +52,7 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
     Math.round((trade?.gewichtung ?? 1) * 100)
   )
   const [manuell, setManuell] = useState(trade?.manuell_getrackt ?? false)
+  const [assetName, setAssetName] = useState(trade?.asset_name ?? '')
   const [tpGewichtung, setTpGewichtung] = useState(() => {
     // If any tp_gewichtung is set, use stored values
     const hasStored = trade && (trade.tp1_gewichtung != null || trade.tp2_gewichtung != null || trade.tp3_gewichtung != null || trade.tp4_gewichtung != null)
@@ -135,6 +136,7 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
 
       const payload = {
         ...values,
+        asset_name: assetName.trim() || null,
         gewichtung: gewichtungPct / 100,
         manuell_getrackt: manuell,
         tp1_gewichtung: tpGewichtung.tp1 !== '' ? Number(tpGewichtung.tp1) / 100 : null,
@@ -179,8 +181,8 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
         <Field label="Eröffnung *" error={errors.datum_eroeffnung?.message}>
           <Input type="date" {...register('datum_eroeffnung')} />
         </Field>
-        <Field label="Asset *" error={errors.asset?.message}>
-          <Input placeholder="z.B. DAX, BTC/USD" {...register('asset')} />
+        <Field label="Ticker *" error={errors.asset?.message}>
+          <Input placeholder="z.B. DE40, AAPL" {...register('asset')} />
         </Field>
         <Field label="Asset-Klasse *" error={errors.asset_klasse?.message}>
           <Select
@@ -213,6 +215,15 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
           </Select>
         </Field>
       </div>
+
+      {/* Bezeichnung */}
+      <Field label="Bezeichnung">
+        <Input
+          placeholder="z.B. Ferrari, S&P 500, Gold..."
+          value={assetName}
+          onChange={(e) => setAssetName(e.target.value)}
+        />
+      </Field>
 
       {/* Row 2 */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -89,7 +89,7 @@ export function RecentTradesSection({
                     </TableCell>
                     <TableCell>
                       <div>
-                        <span className="font-medium">{trade.asset}</span>
+                        <span className="font-medium" title={trade.asset}>{trade.asset_name || trade.asset}</span>
                         {partialCloseLabels[trade.id] && (
                           <span className={cn(
                             'ml-1.5 text-[10px] font-semibold',

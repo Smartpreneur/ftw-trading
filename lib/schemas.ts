@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const tradeSchema = z.object({
   datum_eroeffnung: z.string().min(1, 'Pflichtfeld'),
   asset: z.string().trim().min(1, 'Pflichtfeld'),
+  asset_name: z.string().trim().nullable().optional(),
   asset_klasse: z.enum(['Index', 'Rohstoff', 'Krypto', 'Aktie', 'FX']),
   richtung: z.enum(['LONG', 'SHORT']),
   einstiegspreis: z.number().positive('Muss positiv sein'),

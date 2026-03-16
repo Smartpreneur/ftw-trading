@@ -29,7 +29,7 @@ export function ActiveSetups({ setups }: ActiveSetupsProps) {
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold text-sm truncate">{setup.asset}</span>
+                  <span className="font-semibold text-sm truncate" title={setup.asset}>{setup.asset_name || setup.asset}</span>
                   <Badge variant="secondary" className="text-[10px] shrink-0">
                     {setup.asset_klasse}
                   </Badge>

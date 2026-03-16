@@ -49,7 +49,7 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
       if (sortKey === 'datum') {
         cmp = a.datum_eroeffnung.localeCompare(b.datum_eroeffnung)
       } else if (sortKey === 'asset') {
-        cmp = a.asset.localeCompare(b.asset)
+        cmp = (a.asset_name || a.asset).localeCompare(b.asset_name || b.asset)
       } else if (sortKey === 'richtung') {
         cmp = (a.richtung || '').localeCompare(b.richtung || '')
       }
@@ -137,7 +137,7 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
               </TableCell>
               <TableCell>
                 <div>
-                  <span className="font-medium">{trade.asset}</span>
+                  <span className="font-medium" title={trade.asset}>{trade.asset_name || trade.asset}</span>
                   {trade.manuell_getrackt && (
                     <Popover>
                       <PopoverTrigger asChild>

@@ -46,7 +46,7 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
   const filtered = useMemo(() => {
     // Filter
     let result = trades.filter((t) => {
-      if (search && !t.asset.toLowerCase().includes(search.toLowerCase())) return false
+      if (search && !(t.asset_name || t.asset).toLowerCase().includes(search.toLowerCase())) return false
       if (filterStatus.length > 0 && filterStatus.length < TRADE_LIST_STATUSES.length && !filterStatus.includes(t.status)) return false
       if (filterDirection.length > 0 && filterDirection.length < 2 && t.richtung && !filterDirection.includes(t.richtung)) return false
       if (filterAssetClass.length > 0 && filterAssetClass.length < ASSET_CLASSES.length && !filterAssetClass.includes(t.asset_klasse)) return false
@@ -70,7 +70,7 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
           comparison = (a.effective_datum_schliessung || a.datum_schliessung || '').localeCompare(b.effective_datum_schliessung || b.datum_schliessung || '')
           break
         case 'asset':
-          comparison = a.asset.localeCompare(b.asset)
+          comparison = (a.asset_name || a.asset).localeCompare(b.asset_name || b.asset)
           break
         case 'klasse':
           comparison = a.asset_klasse.localeCompare(b.asset_klasse)
@@ -319,7 +319,7 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
                     {formatDate(trade.effective_datum_schliessung ?? trade.datum_schliessung)}
                   </TableCell>
                   <TableCell className="font-medium">
-                    {trade.asset}
+                    <span title={trade.asset}>{trade.asset_name || trade.asset}</span>
                     {trade.gewichtung < 1 && (
                       <span className="ml-1.5 text-[10px] text-muted-foreground font-normal">
                         {Math.round(trade.gewichtung * 100)}%
