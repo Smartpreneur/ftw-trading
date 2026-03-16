@@ -223,11 +223,15 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
   }
 
   async function onSubmit(values: TradeSchemaValues) {
+    if (!assetName.trim()) {
+      toast.error('Bezeichnung darf nicht leer sein')
+      return
+    }
     setIsSubmitting(true)
     try {
       const payload = {
         ...values,
-        asset_name: assetName.trim() || null,
+        asset_name: assetName.trim(),
         gewichtung: 1.0,
         manuell_getrackt: false,
         tp1_gewichtung: tpGewichtung.tp1 !== '' ? Number(tpGewichtung.tp1) / 100 : null,
@@ -265,45 +269,36 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {/* Row 1: Instrument-Suche */}
-      <Field label="Instrument *" error={errors.asset?.message}>
-        <InstrumentSearch
-          value={assetValue}
-          placeholder="z.B. Apple, DAX, Gold, BTC, EUR/USD..."
-          onSelect={async (instrument) => {
-            setAssetValue(instrument.name)
-            setValue('asset', instrument.symbol, { shouldValidate: true })
-            setAssetName(instrument.name)
-            setValue('asset_klasse', instrument.asset_klasse)
-            setSelectedAssetKlasse(instrument.asset_klasse)
-
-            setIsFetchingPrice(true)
-            try {
-              const price = await fetchInstrumentPrice(instrument.api, instrument.type)
-              if (price !== null) {
-                setValue('aktueller_kurs', price)
-              }
-            } catch {
-              // silently ignore
-            } finally {
-              setIsFetchingPrice(false)
-            }
-          }}
-          onManualInput={(val) => {
-            setAssetValue(val)
-            setValue('asset', val, { shouldValidate: true })
-            setAssetName(val)
-          }}
-        />
-      </Field>
-
-      {/* Bezeichnung + Ticker */}
+      {/* Row 1: Instrument + Ticker */}
       <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
-        <Field label="Bezeichnung">
-          <Input
-            placeholder="z.B. Ferrari, S&P 500, Gold..."
-            value={assetName}
-            onChange={(e) => setAssetName(e.target.value)}
+        <Field label="Instrument *" error={errors.asset?.message}>
+          <InstrumentSearch
+            value={assetValue}
+            placeholder="z.B. Apple, DAX, Gold, BTC, EUR/USD..."
+            onSelect={async (instrument) => {
+              setAssetValue(instrument.name)
+              setValue('asset', instrument.symbol, { shouldValidate: true })
+              setAssetName(instrument.name)
+              setValue('asset_klasse', instrument.asset_klasse)
+              setSelectedAssetKlasse(instrument.asset_klasse)
+
+              setIsFetchingPrice(true)
+              try {
+                const price = await fetchInstrumentPrice(instrument.api, instrument.type)
+                if (price !== null) {
+                  setValue('aktueller_kurs', price)
+                }
+              } catch {
+                // silently ignore
+              } finally {
+                setIsFetchingPrice(false)
+              }
+            }}
+            onManualInput={(val) => {
+              setAssetValue(val)
+              setValue('asset', val, { shouldValidate: true })
+              setAssetName(val)
+            }}
           />
         </Field>
         <Field label="Ticker">
@@ -316,8 +311,15 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         </Field>
       </div>
 
-      {/* Row 2: Klasse, Richtung, Profil */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Row 2: Bezeichnung, Klasse, Richtung, Profil */}
+      <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-end">
+        <Field label="Bezeichnung *">
+          <Input
+            placeholder="z.B. Ferrari, S&P 500..."
+            value={assetName}
+            onChange={(e) => setAssetName(e.target.value)}
+          />
+        </Field>
         <Field label="Asset-Klasse *" error={errors.asset_klasse?.message}>
           <Select
             value={selectedAssetKlasse}
