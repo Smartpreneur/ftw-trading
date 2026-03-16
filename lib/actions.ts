@@ -144,7 +144,9 @@ export async function createTrade(formData: TradeFormData): Promise<void> {
   const { error } = await supabase.from('trades').insert([formData])
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')
+  revalidateTag('prices', 'max')
   revalidatePath('/')
+  revalidatePath('/performance')
   revalidatePath('/trades')
   revalidatePath('/setups')
 }
@@ -154,7 +156,9 @@ export async function updateTrade(id: string, formData: Partial<TradeFormData>):
   const { error } = await supabase.from('trades').update(formData).eq('id', id)
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')
+  revalidateTag('prices', 'max')
   revalidatePath('/')
+  revalidatePath('/performance')
   revalidatePath('/trades')
   revalidatePath('/setups')
 }
@@ -164,7 +168,9 @@ export async function deleteTrade(id: string): Promise<void> {
   const { error } = await supabase.from('trades').delete().eq('id', id)
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')
+  revalidateTag('prices', 'max')
   revalidatePath('/')
+  revalidatePath('/performance')
   revalidatePath('/trades')
   revalidatePath('/setups')
 }
@@ -176,6 +182,8 @@ export async function createTradeClose(data: TradeCloseFormData): Promise<void> 
   const { error } = await supabase.from('trade_closes').insert([data])
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')
+  revalidateTag('prices', 'max')
+  revalidatePath('/performance')
   revalidatePath('/trades')
 }
 
@@ -187,6 +195,8 @@ export async function updateTradeClose(
   const { error } = await supabase.from('trade_closes').update(data).eq('id', closeId)
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')
+  revalidateTag('prices', 'max')
+  revalidatePath('/performance')
   revalidatePath('/trades')
 }
 
@@ -195,6 +205,8 @@ export async function deleteTradeClose(closeId: string): Promise<void> {
   const { error } = await supabase.from('trade_closes').delete().eq('id', closeId)
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')
+  revalidateTag('prices', 'max')
+  revalidatePath('/performance')
   revalidatePath('/trades')
 }
 
@@ -205,6 +217,7 @@ export async function createTradeNote(data: { trade_fk: string; datum: string; t
   const { error } = await supabase.from('trade_notes').insert([data])
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')
+  revalidatePath('/performance')
   revalidatePath('/trades')
 }
 
@@ -213,6 +226,7 @@ export async function deleteTradeNote(noteId: string): Promise<void> {
   const { error } = await supabase.from('trade_notes').delete().eq('id', noteId)
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')
+  revalidatePath('/performance')
   revalidatePath('/trades')
 }
 
