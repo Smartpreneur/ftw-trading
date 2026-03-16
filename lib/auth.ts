@@ -35,6 +35,8 @@ export async function checkAuth(embedToken?: string): Promise<boolean> {
     if (clean(embedToken) === clean(process.env.EMBED_TOKEN)) return true
   }
   const cookieStore = await cookies()
+  // Admin is always authed
+  if (cookieStore.get(ADMIN_COOKIE)?.value === ADMIN_TOKEN) return true
   return cookieStore.get(COOKIE_NAME)?.value === TOKEN_VALUE
 }
 
