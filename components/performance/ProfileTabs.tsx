@@ -15,7 +15,9 @@ export function ProfileTabs({ isAdmin = false }: { isAdmin?: boolean }) {
 
   const tabs = isAdmin ? PROFILE_TABS : ACTIVE_TABS
   const urlTab = searchParams.get('tab')
-  const currentTab = urlTab ?? DEFAULT_TAB
+  // Always derive displayed tab from URL only — never from localStorage.
+  // This ensures the highlighted tab always matches the server-rendered data.
+  const currentTab = urlTab && tabs.some((t) => t.key === urlTab) ? urlTab : DEFAULT_TAB
 
   // Preserve embed token across tab switches
   const token = searchParams.get('token')
@@ -26,7 +28,7 @@ export function ProfileTabs({ isAdmin = false }: { isAdmin?: boolean }) {
       // Sync URL → localStorage
       localStorage.setItem(TAB_STORAGE_KEY, urlTab)
     } else {
-      // No tab in URL → restore saved preference
+      // No tab in URL → restore saved preference (triggers server re-render with correct data)
       const saved = localStorage.getItem(TAB_STORAGE_KEY)
       if (saved && saved !== DEFAULT_TAB && tabs.some((t) => t.key === saved)) {
         const href = `/performance?tab=${saved}${token ? `&token=${token}` : ''}`
