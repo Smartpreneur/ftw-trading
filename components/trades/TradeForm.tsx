@@ -5,9 +5,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { tradeSchema, toNullableNumber, toNullableString, type TradeSchemaValues } from '@/lib/schemas'
 import { createTrade, updateTrade } from '@/lib/actions'
 import { ASSET_CLASSES, TRADE_DIRECTIONS, TRADE_STATUSES, TRADING_PROFILES } from '@/lib/constants'
+import { INSTRUMENTS } from '@/lib/asset-mapping'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { InstrumentSearch } from '@/components/ui/instrument-search'
 import {
   Select,
   SelectContent,
@@ -53,6 +55,14 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
   )
   const [manuell, setManuell] = useState(trade?.manuell_getrackt ?? false)
   const [assetName, setAssetName] = useState(trade?.asset_name ?? '')
+  const [tickerValue, setTickerValue] = useState(() => {
+    if (!trade?.asset) return ''
+    const match = INSTRUMENTS.find(
+      (i) => i.symbol.toLowerCase() === trade.asset.toLowerCase() ||
+             i.name.toLowerCase() === trade.asset.toLowerCase()
+    )
+    return match?.name ?? trade.asset
+  })
   const [tpGewichtung, setTpGewichtung] = useState(() => {
     // If any tp_gewichtung is set, use stored values
     const hasStored = trade && (trade.tp1_gewichtung != null || trade.tp2_gewichtung != null || trade.tp3_gewichtung != null || trade.tp4_gewichtung != null)
@@ -176,13 +186,38 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit, onValidationError)} className="space-y-4">
-      {/* Row 1 */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Row 1: Ticker (Instrument-Suche) + Bezeichnung */}
+      <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+        <Field label="Ticker *" error={errors.asset?.message}>
+          <InstrumentSearch
+            value={tickerValue}
+            placeholder="z.B. Ferrari, DAX, AAPL..."
+            onSelect={(instrument) => {
+              setTickerValue(instrument.name)
+              setValue('asset', instrument.symbol, { shouldValidate: true })
+              setValue('asset_klasse', instrument.asset_klasse)
+              if (!assetName) setAssetName(instrument.name)
+            }}
+            onManualInput={(val) => {
+              setTickerValue(val)
+              setValue('asset', val, { shouldValidate: true })
+            }}
+          />
+        </Field>
+        <Field label="Bezeichnung">
+          <Input
+            className="w-[180px]"
+            placeholder="z.B. Ferrari..."
+            value={assetName}
+            onChange={(e) => setAssetName(e.target.value)}
+          />
+        </Field>
+      </div>
+
+      {/* Row 2: Eröffnung, Klasse, Profil */}
+      <div className="grid grid-cols-3 gap-3">
         <Field label="Eröffnung *" error={errors.datum_eroeffnung?.message}>
           <Input type="date" {...register('datum_eroeffnung')} />
-        </Field>
-        <Field label="Ticker *" error={errors.asset?.message}>
-          <Input placeholder="z.B. DE40, AAPL" {...register('asset')} />
         </Field>
         <Field label="Asset-Klasse *" error={errors.asset_klasse?.message}>
           <Select
@@ -215,15 +250,6 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
           </Select>
         </Field>
       </div>
-
-      {/* Bezeichnung */}
-      <Field label="Bezeichnung">
-        <Input
-          placeholder="z.B. Ferrari, S&P 500, Gold..."
-          value={assetName}
-          onChange={(e) => setAssetName(e.target.value)}
-        />
-      </Field>
 
       {/* Row 2 */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
