@@ -312,9 +312,10 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       </div>
 
       {/* Row 2: Bezeichnung, Klasse, Richtung, Profil */}
-      <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-end">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-3 items-end">
         <Field label="Bezeichnung *">
           <Input
+            className="max-w-[200px]"
             placeholder="z.B. Ferrari, S&P 500..."
             value={assetName}
             onChange={(e) => setAssetName(e.target.value)}
