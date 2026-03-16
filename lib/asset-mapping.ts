@@ -164,15 +164,25 @@ export function getExchangeLabel(mapping: { api: string; type: 'yahoo' | 'twelve
 }
 
 /** Returns currency symbol for display: '€', '$', or '' */
-export function getCurrencySymbol(asset: string, assetKlasse: string): string {
+export function getCurrencySymbol(asset: string, assetKlasse: string, currency?: string | null): string {
   if (assetKlasse === 'Index' || assetKlasse === 'FX') return ''
 
-  // Check exchange suffix first — covers ETPs and non-standard asset classes
+  // Use API-provided currency if available
+  if (currency) {
+    if (currency === 'EUR') return '€'
+    if (currency === 'GBP') return '£'
+    if (currency === 'CHF') return 'CHF '
+    if (currency === 'USD') return '$'
+    return `${currency} `
+  }
+
+  // Fallback: check exchange suffix
   const mapping = getApiSymbol(asset)
   if (mapping?.api.endsWith('.DE') || mapping?.api.endsWith('.PA') || mapping?.api.endsWith('.AS') || mapping?.api.endsWith('.MU') || mapping?.api.endsWith('.MI')) return '€'
+  if (mapping?.api.endsWith('.L')) return '£'
 
   if (assetKlasse === 'Rohstoff' || assetKlasse === 'Krypto') return '$'
-  if (assetKlasse === 'Aktie') return mapping ? '$' : '$'
+  if (assetKlasse === 'Aktie') return '$'
 
   return ''
 }

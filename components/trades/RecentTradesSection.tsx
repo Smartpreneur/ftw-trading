@@ -119,14 +119,14 @@ export function RecentTradesSection({
                     <TableCell className="text-right">
                       <span className="font-mono text-sm">
                         {trade.einstiegspreis
-                          ? `${getCurrencySymbol(trade.asset, trade.asset_klasse)}${formatPrice(trade.einstiegspreis)}`
+                          ? `${getCurrencySymbol(trade.asset, trade.asset_klasse, trade.currency)}${formatPrice(trade.einstiegspreis)}`
                           : '—'}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="font-mono text-sm">
                         {(trade.effective_ausstiegspreis ?? trade.ausstiegspreis)
-                          ? `${getCurrencySymbol(trade.asset, trade.asset_klasse)}${formatPrice(trade.effective_ausstiegspreis ?? trade.ausstiegspreis)}`
+                          ? `${getCurrencySymbol(trade.asset, trade.asset_klasse, trade.currency)}${formatPrice(trade.effective_ausstiegspreis ?? trade.ausstiegspreis)}`
                           : '—'}
                       </span>
                     </TableCell>

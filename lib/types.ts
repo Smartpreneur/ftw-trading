@@ -68,6 +68,7 @@ export interface Trade {
   zeiteinheit: string | null
   dauer_erwartung: string | null
   chart_bild_url: string | null
+  currency: string | null
   created_at: string
   updated_at: string
   closes: TradeClose[]
@@ -172,6 +173,7 @@ export interface ActiveTradePrice {
   trade_id: string
   asset: string
   current_price: number
+  currency: string | null
   updated_at: string
   created_at: string
 }

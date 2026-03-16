@@ -109,6 +109,7 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
         {sortedTrades.map((trade) => {
           const priceData = priceMap.get(trade.id)
           const currentPrice = priceData?.current_price
+          const tradeCurrency = priceData?.currency || trade.currency
           const entryPrice = trade.einstiegspreis
 
           let unrealizedPct: number | null = null
@@ -188,14 +189,14 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
               <TableCell className="text-right">
                 <span className="font-mono text-sm">
                   {entryPrice
-                    ? `${getCurrencySymbol(trade.asset, trade.asset_klasse)}${formatPrice(entryPrice)}`
+                    ? `${getCurrencySymbol(trade.asset, trade.asset_klasse, tradeCurrency)}${formatPrice(entryPrice)}`
                     : '—'}
                 </span>
               </TableCell>
               <TableCell className="text-right">
                 <span className="font-mono text-sm">
                   {currentPrice
-                    ? `${getCurrencySymbol(trade.asset, trade.asset_klasse)}${formatPrice(currentPrice)}`
+                    ? `${getCurrencySymbol(trade.asset, trade.asset_klasse, tradeCurrency)}${formatPrice(currentPrice)}`
                     : '—'}
                 </span>
               </TableCell>

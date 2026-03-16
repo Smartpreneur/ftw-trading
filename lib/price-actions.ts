@@ -17,11 +17,16 @@ interface DailyOHLC {
 
 // ── Current price fetchers ──────────────────────────────────────
 
+interface PriceResult {
+  price: number | null
+  currency: string | null
+}
+
 // Fetch price from Twelve Data API
-async function fetchTwelveDataPrice(symbol: string): Promise<number | null> {
+async function fetchTwelveDataPrice(symbol: string): Promise<PriceResult> {
   if (!TWELVE_DATA_API_KEY) {
     console.warn('TWELVE_DATA_API_KEY not configured')
-    return null
+    return { price: null, currency: null }
   }
 
   try {
@@ -30,47 +35,49 @@ async function fetchTwelveDataPrice(symbol: string): Promise<number | null> {
     const data = await response.json()
 
     if (data.price) {
-      return parseFloat(data.price)
+      return { price: parseFloat(data.price), currency: 'USD' }
     }
-    return null
+    return { price: null, currency: null }
   } catch (error) {
     console.error(`Error fetching price for ${symbol}:`, error)
-    return null
+    return { price: null, currency: null }
   }
 }
 
 // Fetch price from CoinGecko API (free, no key needed)
-async function fetchCoinGeckoPrice(coinId: string): Promise<number | null> {
+async function fetchCoinGeckoPrice(coinId: string): Promise<PriceResult> {
   try {
     const url = `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`
     const response = await fetch(url)
     const data = await response.json()
 
     if (data[coinId]?.usd) {
-      return data[coinId].usd
+      return { price: data[coinId].usd, currency: 'USD' }
     }
-    return null
+    return { price: null, currency: null }
   } catch (error) {
     console.error(`Error fetching price for ${coinId}:`, error)
-    return null
+    return { price: null, currency: null }
   }
 }
 
 // Fetch price from Yahoo Finance API (free, no key needed)
-async function fetchYahooFinancePrice(symbol: string): Promise<number | null> {
+async function fetchYahooFinancePrice(symbol: string): Promise<PriceResult> {
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`
     const response = await fetch(url)
     const data = await response.json()
 
-    const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice
+    const meta = data?.chart?.result?.[0]?.meta
+    const price = meta?.regularMarketPrice
+    const currency = meta?.currency ?? null
     if (price && typeof price === 'number') {
-      return price
+      return { price, currency }
     }
-    return null
+    return { price: null, currency: null }
   } catch (error) {
     console.error(`Error fetching price for ${symbol}:`, error)
-    return null
+    return { price: null, currency: null }
   }
 }
 
@@ -180,16 +187,16 @@ export async function updateAssetPrice(tradeId: string, asset: string): Promise<
   }
 
   // Fetch price from appropriate API
-  let price: number | null = null
+  let result: PriceResult = { price: null, currency: null }
   if (mapping.type === 'twelve') {
-    price = await fetchTwelveDataPrice(mapping.api)
+    result = await fetchTwelveDataPrice(mapping.api)
   } else if (mapping.type === 'coingecko') {
-    price = await fetchCoinGeckoPrice(mapping.api)
+    result = await fetchCoinGeckoPrice(mapping.api)
   } else if (mapping.type === 'yahoo') {
-    price = await fetchYahooFinancePrice(mapping.api)
+    result = await fetchYahooFinancePrice(mapping.api)
   }
 
-  if (price === null) {
+  if (result.price === null) {
     return null
   }
 
@@ -199,7 +206,8 @@ export async function updateAssetPrice(tradeId: string, asset: string): Promise<
     .upsert({
       trade_id: tradeId,
       asset: asset,
-      current_price: price,
+      current_price: result.price,
+      ...(result.currency ? { currency: result.currency } : {}),
     }, {
       onConflict: 'trade_id',
     })
@@ -209,7 +217,12 @@ export async function updateAssetPrice(tradeId: string, asset: string): Promise<
     return null
   }
 
-  return price
+  // Also store currency on the trade itself for display after closing
+  if (result.currency) {
+    await supabase.from('trades').update({ currency: result.currency }).eq('id', tradeId)
+  }
+
+  return result.price
 }
 
 // Check TP/SL levels using daily High/Low data with historical lookback.
@@ -352,14 +365,17 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
     }
 
     // Fetch current price (for display in active trades table)
-    let price: number | null = null
+    let priceResult: PriceResult = { price: null, currency: null }
     if (mapping.type === 'twelve') {
-      price = await fetchTwelveDataPrice(mapping.api)
+      priceResult = await fetchTwelveDataPrice(mapping.api)
     } else if (mapping.type === 'coingecko') {
-      price = await fetchCoinGeckoPrice(mapping.api)
+      priceResult = await fetchCoinGeckoPrice(mapping.api)
     } else if (mapping.type === 'yahoo') {
-      price = await fetchYahooFinancePrice(mapping.api)
+      priceResult = await fetchYahooFinancePrice(mapping.api)
     }
+
+    const price = priceResult.price
+    const currency = priceResult.currency
 
     if (price === null) {
       console.warn(`Price fetch failed for asset: "${asset}" (api: ${mapping.api}, type: ${mapping.type})`)
@@ -377,6 +393,7 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
             trade_id: trade.id,
             asset: trade.asset,
             current_price: price,
+            ...(currency ? { currency } : {}),
           }, { onConflict: 'trade_id' })
         if (upsertError) {
           console.error(`DB upsert failed for ${asset}:`, upsertError)
@@ -384,6 +401,10 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
           if (!failedAssets.includes(asset)) failedAssets.push(`${asset} (DB-Fehler)`)
         } else {
           updated++
+          // Store currency on trade for display after closing
+          if (currency) {
+            await supabase.from('trades').update({ currency }).eq('id', trade.id)
+          }
         }
       } else {
         errors++
@@ -504,10 +525,11 @@ export async function fetchInstrumentPrice(
   apiSymbol: string,
   type: 'yahoo' | 'twelve' | 'coingecko'
 ): Promise<number | null> {
-  if (type === 'yahoo') return fetchYahooFinancePrice(apiSymbol)
-  if (type === 'twelve') return fetchTwelveDataPrice(apiSymbol)
-  if (type === 'coingecko') return fetchCoinGeckoPrice(apiSymbol)
-  return null
+  let result: PriceResult = { price: null, currency: null }
+  if (type === 'yahoo') result = await fetchYahooFinancePrice(apiSymbol)
+  else if (type === 'twelve') result = await fetchTwelveDataPrice(apiSymbol)
+  else if (type === 'coingecko') result = await fetchCoinGeckoPrice(apiSymbol)
+  return result.price
 }
 
 // ── Live instrument search via Yahoo Finance ──────────────────
