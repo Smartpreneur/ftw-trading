@@ -46,7 +46,7 @@ export async function logout() {
 }
 
 // Admin auth
-export async function authenticateAdmin(password: string) {
+export async function authenticateAdmin(password: string, rememberMe = false) {
   if (password !== process.env.ADMIN_PASSWORD) {
     return { error: 'Falsches Passwort' }
   }
@@ -56,7 +56,7 @@ export async function authenticateAdmin(password: string) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: rememberMe ? 60 * 60 * 24 * 90 : 60 * 60 * 24 * 7, // 90 days or 7 days
     path: '/',
   })
 
