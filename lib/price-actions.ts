@@ -249,9 +249,8 @@ async function checkAndUpdateTPSL(
   // otherwise fall back to trade entry date
   const referenceDate = (trade.tp_sl_geaendert_am ?? trade.datum_eroeffnung).split('T')[0]
   const openDate = trade.datum_eroeffnung.split('T')[0]
-  // CRITICAL: Never detect TP/SL hits before the trade was actually created in our system.
-  // A trade may have datum_eroeffnung in the past but was only entered (created_at) later.
-  // Only days AFTER created_at are valid for auto-detection.
+  // The day the trade was actually created in our system — on this day we can't
+  // use daily high/low because we don't know if the price hit was before or after creation.
   const createdDate = trade.created_at.split('T')[0]
   const updates: Record<string, string> = {}
 
@@ -260,12 +259,13 @@ async function checkAndUpdateTPSL(
     // Skip days before the trade was opened
     if (day.date < openDate) continue
 
-    // Skip days before the trade was created in our system
-    if (day.date < createdDate) continue
-
     // Skip the reference day itself (entry day or TP/SL modification day)
     // because we don't know the exact intraday timing
     if (day.date <= referenceDate) continue
+
+    // Skip the creation day if it's after datum_eroeffnung — on that day
+    // we don't know if TP/SL was hit before or after the trade was entered
+    if (day.date === createdDate && createdDate > openDate) continue
 
     // Use 16:00 UTC as approximate market close time for the timestamp
     const hitTimestamp = `${day.date}T16:00:00+00:00`
