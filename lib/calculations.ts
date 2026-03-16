@@ -30,11 +30,6 @@ export function calculateKPIs(trades: TradeWithPerformance[]): PerformanceKPIs {
       ? Math.abs(losers.reduce((s, t) => s + (t.performance_pct ?? 0) * (t.gewichtung ?? 1), 0) / totalLossWeight)
       : 0
 
-  // Profit Factor = Σ(weighted gains) / |Σ(weighted losses)|
-  // Using sums (not averages) ensures Gesamt PF is always between individual PFs
-  const totalGains = winners.reduce((s, t) => s + (t.performance_pct ?? 0) * (t.gewichtung ?? 1), 0)
-  const totalLosses = Math.abs(losers.reduce((s, t) => s + (t.performance_pct ?? 0) * (t.gewichtung ?? 1), 0))
-
   const perfValues = closed.map((t) => t.performance_pct ?? 0)
 
   return {
@@ -43,7 +38,8 @@ export function calculateKPIs(trades: TradeWithPerformance[]): PerformanceKPIs {
     win_rate: Math.round(winRate * 10) / 10,
     avg_win_pct: Math.round(avgWin * 100) / 100,
     avg_loss_pct: Math.round(avgLoss * 100) / 100,
-    profit_factor: totalLosses > 0 ? Math.round((totalGains / totalLosses) * 100) / 100 : 0,
+    // Profit Factor = Ø Gewinn / Ø Verlust — directly matches the displayed values
+    profit_factor: avgLoss > 0 ? Math.round((avgWin / avgLoss) * 100) / 100 : 0,
     best_trade_pct: perfValues.length > 0 ? Math.max(...perfValues) : 0,
     worst_trade_pct: perfValues.length > 0 ? Math.min(...perfValues) : 0,
     avg_holding_days:
