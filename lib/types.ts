@@ -69,6 +69,7 @@ export interface Trade {
   dauer_erwartung: string | null
   chart_bild_url: string | null
   currency: string | null
+  performance_pct: number | null
   created_at: string
   updated_at: string
   closes: TradeClose[]

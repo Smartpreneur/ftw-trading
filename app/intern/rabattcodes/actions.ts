@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { checkAuth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
@@ -28,7 +28,7 @@ export async function getDiscountCodes() {
   const isAuthed = await checkAuth()
   if (!isAuthed) return { error: 'Nicht authentifiziert' }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('discount_codes')
     .select('*')
@@ -50,7 +50,7 @@ export async function updateDiscountCode(
   const isAuthed = await checkAuth()
   if (!isAuthed) return { error: 'Nicht authentifiziert' }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { error } = await supabase
     .from('discount_codes')
     .update({

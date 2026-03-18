@@ -1,7 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/server'
 import { checkAuth } from '@/lib/auth'
 import { unstable_cache } from 'next/cache'
 
@@ -30,10 +29,7 @@ type OrderRow = {
 
 const computeAnalytics = unstable_cache(
   async () => {
-    const supabase = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabase = createAdminClient()
 
     // Paginate landing_events (PostgREST max 1000/request)
     const PAGE_SIZE = 1000

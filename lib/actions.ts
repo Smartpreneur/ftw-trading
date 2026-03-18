@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient, createCacheClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { differenceInCalendarDays, parseISO } from 'date-fns'
 import type { Trade, TradeClose, TradeCloseFormData, TradeFormData, TradeNote, TradeWithPerformance, TradingProfile } from './types'
@@ -12,7 +12,7 @@ function enrichTrade(trade: Trade): TradeWithPerformance {
 
   const closes: TradeClose[] = trade.closes ?? []
 
-  // Performance — prefer calculated from trade_closes
+  // Performance — priority: 1) trade_closes, 2) DB column, 3) legacy ausstiegspreis, 4) bemerkungen
   const closesWithData = closes.filter(
     c => c.ausstiegspreis != null && c.anteil != null
   )
@@ -25,6 +25,9 @@ function enrichTrade(trade: Trade): TradeWithPerformance {
       return sum + perf * c.anteil!
     }, 0)
     performance_pct = Math.round(weighted * 100) / 100
+  } else if (trade.performance_pct != null) {
+    // Stored value in DB (backfilled from bemerkungen or previous calculations)
+    performance_pct = trade.performance_pct
   } else if (trade.ausstiegspreis != null && trade.einstiegspreis != null && trade.richtung != null) {
     // Fallback: legacy ausstiegspreis column (pre-migration data)
     const raw =
@@ -104,7 +107,7 @@ function enrichTrade(trade: Trade): TradeWithPerformance {
 }
 
 export async function getTrades(profiles?: TradingProfile[]): Promise<TradeWithPerformance[]> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   let query = supabase
     .from('trades')
     .select('*, closes:trade_closes(*), notes:trade_notes(*)')
@@ -126,7 +129,7 @@ export async function getTrades(profiles?: TradingProfile[]): Promise<TradeWithP
 export async function getCachedTrades() {
   return unstable_cache(
     async () => {
-      const supabase = createCacheClient()
+      const supabase = createAdminClient()
       const { data, error } = await supabase
         .from('trades')
         .select('*, closes:trade_closes(*), notes:trade_notes(*)')
@@ -140,7 +143,7 @@ export async function getCachedTrades() {
 }
 
 export async function createTrade(formData: TradeFormData): Promise<void> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { error } = await supabase.from('trades').insert([formData])
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')
@@ -152,7 +155,7 @@ export async function createTrade(formData: TradeFormData): Promise<void> {
 }
 
 export async function updateTrade(id: string, formData: Partial<TradeFormData>): Promise<void> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { error } = await supabase.from('trades').update(formData).eq('id', id)
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')
@@ -164,7 +167,7 @@ export async function updateTrade(id: string, formData: Partial<TradeFormData>):
 }
 
 export async function deleteTrade(id: string): Promise<void> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { error } = await supabase.from('trades').delete().eq('id', id)
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')
@@ -177,10 +180,42 @@ export async function deleteTrade(id: string): Promise<void> {
 
 // ── Trade Close CRUD ────────────────────────────────────────────
 
+/** Recalculate and persist performance_pct on the parent trade after close changes */
+async function recalcTradePerformance(tradeId: string): Promise<void> {
+  const supabase = createAdminClient()
+  const { data: trade } = await supabase
+    .from('trades')
+    .select('einstiegspreis, richtung')
+    .eq('id', tradeId)
+    .single()
+  if (!trade?.einstiegspreis || !trade?.richtung) return
+
+  const { data: closes } = await supabase
+    .from('trade_closes')
+    .select('ausstiegspreis, anteil')
+    .eq('trade_fk', tradeId)
+  const valid = (closes ?? []).filter(c => c.ausstiegspreis != null && c.anteil != null)
+  if (valid.length === 0) return
+
+  const weighted = valid.reduce((sum, c) => {
+    const perf =
+      trade.richtung === 'LONG'
+        ? ((c.ausstiegspreis! - trade.einstiegspreis!) / trade.einstiegspreis!) * 100
+        : ((trade.einstiegspreis! - c.ausstiegspreis!) / trade.einstiegspreis!) * 100
+    return sum + perf * c.anteil!
+  }, 0)
+
+  await supabase
+    .from('trades')
+    .update({ performance_pct: Math.round(weighted * 100) / 100 })
+    .eq('id', tradeId)
+}
+
 export async function createTradeClose(data: TradeCloseFormData): Promise<void> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { error } = await supabase.from('trade_closes').insert([data])
   if (error) throw new Error(error.message)
+  await recalcTradePerformance(data.trade_fk)
   revalidateTag('trades', 'max')
   revalidateTag('prices', 'max')
   revalidatePath('/performance')
@@ -191,9 +226,16 @@ export async function updateTradeClose(
   closeId: string,
   data: Partial<TradeCloseFormData>
 ): Promise<void> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
+  // Get trade_fk before update
+  const { data: existing } = await supabase
+    .from('trade_closes')
+    .select('trade_fk')
+    .eq('id', closeId)
+    .single()
   const { error } = await supabase.from('trade_closes').update(data).eq('id', closeId)
   if (error) throw new Error(error.message)
+  if (existing?.trade_fk) await recalcTradePerformance(existing.trade_fk)
   revalidateTag('trades', 'max')
   revalidateTag('prices', 'max')
   revalidatePath('/performance')
@@ -201,9 +243,16 @@ export async function updateTradeClose(
 }
 
 export async function deleteTradeClose(closeId: string): Promise<void> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
+  // Get trade_fk before delete
+  const { data: existing } = await supabase
+    .from('trade_closes')
+    .select('trade_fk')
+    .eq('id', closeId)
+    .single()
   const { error } = await supabase.from('trade_closes').delete().eq('id', closeId)
   if (error) throw new Error(error.message)
+  if (existing?.trade_fk) await recalcTradePerformance(existing.trade_fk)
   revalidateTag('trades', 'max')
   revalidateTag('prices', 'max')
   revalidatePath('/performance')
@@ -213,7 +262,7 @@ export async function deleteTradeClose(closeId: string): Promise<void> {
 // ── Trade Notes CRUD ────────────────────────────────────────────
 
 export async function createTradeNote(data: { trade_fk: string; datum: string; text: string }): Promise<void> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { error } = await supabase.from('trade_notes').insert([data])
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')
@@ -222,7 +271,7 @@ export async function createTradeNote(data: { trade_fk: string; datum: string; t
 }
 
 export async function deleteTradeNote(noteId: string): Promise<void> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { error } = await supabase.from('trade_notes').delete().eq('id', noteId)
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')
@@ -236,7 +285,7 @@ export async function uploadChartImage(formData: FormData): Promise<string> {
   const file = formData.get('file') as File
   if (!file) throw new Error('Keine Datei ausgewählt')
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
   const filePath = `setups/${fileName}`
@@ -258,7 +307,7 @@ export async function uploadChartImage(formData: FormData): Promise<string> {
 
 export async function trackPageView(path: string, referrer: string | null): Promise<void> {
   try {
-    const supabase = createCacheClient()
+    const supabase = createAdminClient()
     await supabase.from('page_views').insert({
       path,
       referrer: referrer || null,
@@ -269,7 +318,7 @@ export async function trackPageView(path: string, referrer: string | null): Prom
 }
 
 export async function deleteChartImage(url: string): Promise<void> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const match = url.match(/chart-images\/(.+)$/)
   if (!match) return
   const { error } = await supabase.storage

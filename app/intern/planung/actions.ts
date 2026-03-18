@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { checkAuth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
@@ -24,7 +24,7 @@ export async function getPlanungTasks() {
   const isAuthed = await checkAuth()
   if (!isAuthed) return { error: 'Nicht authentifiziert' }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('kanban_tasks')
     .select('*')
@@ -45,7 +45,7 @@ export async function createPlanungTask(input: {
   const isAuthed = await checkAuth()
   if (!isAuthed) return { error: 'Nicht authentifiziert' }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // Get max position in backlog column
   const { data: maxRow } = await supabase
@@ -93,7 +93,7 @@ export async function updatePlanungTask(
   const isAuthed = await checkAuth()
   if (!isAuthed) return { error: 'Nicht authentifiziert' }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { error } = await supabase
     .from('kanban_tasks')
     .update({ ...updates, updated_at: new Date().toISOString() })
@@ -108,7 +108,7 @@ export async function deletePlanungTask(id: string) {
   const isAuthed = await checkAuth()
   if (!isAuthed) return { error: 'Nicht authentifiziert' }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { error } = await supabase
     .from('kanban_tasks')
     .delete()
@@ -129,7 +129,7 @@ export async function uploadTaskImage(formData: FormData) {
   const ext = file.name.split('.').pop()
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { error } = await supabase.storage
     .from('kanban-images')
     .upload(filename, file)
@@ -150,7 +150,7 @@ export async function deleteTaskImage(url: string) {
   const parts = url.split('/kanban-images/')
   if (parts.length < 2) return { error: 'Ungültige URL' }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { error } = await supabase.storage
     .from('kanban-images')
     .remove([parts[1]])
@@ -163,7 +163,7 @@ export async function reorderTasks(taskIds: string[]) {
   const isAuthed = await checkAuth()
   if (!isAuthed) return { error: 'Nicht authentifiziert' }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const now = new Date().toISOString()
 
   for (let i = 0; i < taskIds.length; i++) {

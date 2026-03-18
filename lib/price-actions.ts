@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient, createCacheClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { revalidateTag, unstable_cache } from 'next/cache'
 import { getApiSymbol } from './asset-mapping'
 import type { ActiveTradePrice, TradeDirection } from './types'
@@ -8,6 +8,30 @@ import type { ActiveTradePrice, TradeDirection } from './types'
 const TWELVE_DATA_API_KEY = process.env.TWELVE_DATA_API_KEY || ''
 const PRICE_CACHE_MINUTES = 15 // Only update if older than 15 minutes
 const OHLC_LOOKBACK_DAYS = 14 // How many days back to check for TP/SL hits
+
+/** Calculate weighted performance from all closes of a trade */
+async function calcPerformanceFromCloses(
+  supabase: ReturnType<typeof createAdminClient>,
+  tradeId: string,
+  einstiegspreis: number | null,
+  richtung: TradeDirection | null
+): Promise<number | null> {
+  if (!einstiegspreis || !richtung) return null
+  const { data: closes } = await supabase
+    .from('trade_closes')
+    .select('ausstiegspreis, anteil')
+    .eq('trade_fk', tradeId)
+  const valid = (closes ?? []).filter(c => c.ausstiegspreis != null && c.anteil != null)
+  if (valid.length === 0) return null
+  const weighted = valid.reduce((sum, c) => {
+    const perf =
+      richtung === 'LONG'
+        ? ((c.ausstiegspreis! - einstiegspreis) / einstiegspreis) * 100
+        : ((einstiegspreis - c.ausstiegspreis!) / einstiegspreis) * 100
+    return sum + perf * c.anteil!
+  }, 0)
+  return Math.round(weighted * 100) / 100
+}
 
 interface DailyOHLC {
   date: string // "2026-03-03"
@@ -177,7 +201,7 @@ async function fetchOHLCData(mapping: { api: string; type: 'twelve' | 'coingecko
 
 // Get or update price for a single asset
 export async function updateAssetPrice(tradeId: string, asset: string): Promise<number | null> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // Get API symbol mapping
   const mapping = getApiSymbol(asset)
@@ -327,7 +351,7 @@ async function checkAndUpdateTPSL(
   // Only write to DB if something changed
   if (Object.keys(updates).length === 0) return false
 
-  const supabase = createCacheClient()
+  const supabase = createAdminClient()
 
   // Update TP/SL timestamps on trade
   await supabase
@@ -414,15 +438,18 @@ async function checkAndUpdateTPSL(
         }
       }
 
+      // Recalculate performance from all closes and persist
+      const perfPct = await calcPerformanceFromCloses(supabase, trade.id, trade.einstiegspreis, trade.richtung)
       await supabase
         .from('trades')
-        .update({ status: 'Ausgestoppt', datum_schliessung: latestDate })
+        .update({ status: 'Ausgestoppt', datum_schliessung: latestDate, performance_pct: perfPct })
         .eq('id', trade.id)
     } else if (allTPsHit) {
       // All TPs hit → close as Geschlossen
+      const perfPct = await calcPerformanceFromCloses(supabase, trade.id, trade.einstiegspreis, trade.richtung)
       await supabase
         .from('trades')
-        .update({ status: 'Geschlossen', datum_schliessung: latestDate })
+        .update({ status: 'Geschlossen', datum_schliessung: latestDate, performance_pct: perfPct })
         .eq('id', trade.id)
     }
   }
@@ -432,7 +459,7 @@ async function checkAndUpdateTPSL(
 
 // Update all active trade prices + check TP/SL levels using daily High/Low
 export async function updateAllActiveTradePrices(): Promise<{ updated: number; errors: number; failedAssets: string[] }> {
-  const supabase = createCacheClient()
+  const supabase = createAdminClient()
 
   // Get all active trades with TP/SL levels and existing hit timestamps
   const { data: activeTrades, error: tradesError } = await supabase
@@ -538,7 +565,7 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
 
 // Get current prices for active trades (only fetch if cache is stale)
 export async function getActiveTradePrices(): Promise<ActiveTradePrice[]> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // Check if we need to update prices (if any are older than PRICE_CACHE_MINUTES)
   const cacheThreshold = new Date(Date.now() - PRICE_CACHE_MINUTES * 60 * 1000).toISOString()
@@ -573,7 +600,7 @@ export async function getActiveTradePrices(): Promise<ActiveTradePrice[]> {
  * Designed to be called via after() in server components — non-blocking, fire-and-forget.
  */
 export async function triggerPriceRefreshIfStale(): Promise<void> {
-  const supabase = createCacheClient()
+  const supabase = createAdminClient()
   const threshold = new Date(Date.now() - PRICE_CACHE_MINUTES * 60 * 1000).toISOString()
 
   // Check for stale entries OR empty table (both need a refresh)
@@ -607,7 +634,7 @@ export async function refreshActiveTradePrices(): Promise<{ updated: number; err
 export async function getCachedActivePrices(): Promise<ActiveTradePrice[]> {
   return unstable_cache(
     async () => {
-      const supabase = createCacheClient()
+      const supabase = createAdminClient()
       const { data, error } = await supabase
         .from('active_trade_prices')
         .select('*')
