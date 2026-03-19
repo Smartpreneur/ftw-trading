@@ -225,7 +225,7 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
                     trade.sl_erreicht_am
                       ? `SL erreicht am ${formatDate(trade.sl_erreicht_am)}`
                       : trade.stop_loss_vorher
-                      ? `Angepasst: von ${formatPrice(trade.stop_loss_vorher)} auf ${formatPrice(trade.stop_loss)}`
+                      ? `Angepasst am ${formatDate(trade.tp_sl_geaendert_am)}: von ${formatPrice(trade.stop_loss_vorher)} auf ${formatPrice(trade.stop_loss)}`
                       : undefined
                   }
                 >
@@ -250,7 +250,7 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
                       tp.hit
                         ? `${tp.label} erreicht am ${formatDate(tp.hit)}`
                         : tp.vorher
-                        ? `Angepasst: von ${formatPrice(tp.vorher)} auf ${formatPrice(tp.level)}`
+                        ? `Angepasst am ${formatDate(trade.tp_sl_geaendert_am)}: von ${formatPrice(tp.vorher)} auf ${formatPrice(tp.level)}`
                         : undefined
                     }
                   >
