@@ -11,13 +11,14 @@ const SETUP_STATUSES = ['Entwurf'] as const
 export default async function SetupsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ profiles?: string }>
+  searchParams: Promise<{ profiles?: string; dev?: string }>
 }) {
   const isAdmin = await checkAdmin()
   if (!isAdmin) return <div className="py-16 text-center text-sm text-muted-foreground">Kein Zugriff.</div>
 
   const params = await searchParams
   const profilesParam = params.profiles
+  const devMode = params.dev === '1'
   const selectedProfiles = profilesParam?.split(',') as TradingProfile[] | undefined
 
   let setups: Trade[] = []
@@ -62,7 +63,7 @@ export default async function SetupsPage({
         </div>
       )}
 
-      <SetupGrid setups={setups} isAdmin={isAdmin} />
+      <SetupGrid setups={setups} isAdmin={isAdmin} devMode={devMode} />
     </div>
   )
 }

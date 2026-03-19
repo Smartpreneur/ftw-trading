@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/formatters'
 import { deleteTrade, updateTrade, deleteChartImage } from '@/lib/actions'
+import { sendEilmeldung } from '@/lib/email/send-alert'
 import { SetupDialog } from './SetupDialog'
 import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2, Play, Check } from 'lucide-react'
 import { toast } from 'sonner'
@@ -16,13 +17,15 @@ import type { Trade } from '@/lib/types'
 interface SetupCardProps {
   setup: Trade
   isAdmin?: boolean
+  devMode?: boolean
 }
 
-export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
+export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCardProps) {
   const isLong = setup.richtung === 'LONG'
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
+  const [sendEmail, setSendEmail] = useState(false)
 
   const date = new Date(setup.datum_eroeffnung)
   const formattedDate = `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`
@@ -30,6 +33,10 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
   async function handleConvertToTrade() {
     setIsConverting(true)
     try {
+      if (sendEmail) {
+        await sendEilmeldung(setup.id)
+        toast.success('Eilmeldung versendet')
+      }
       await updateTrade(setup.id, { status: 'Aktiv' })
       toast.success('Trade veröffentlicht')
       router.refresh()
@@ -268,15 +275,30 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
 
         {/* Convert to Trade button - only for drafts, admin only */}
         {isAdmin && setup.status === 'Entwurf' && (
-          <Button
-            onClick={handleConvertToTrade}
-            disabled={isConverting}
-            className="w-full mt-2"
-            size="sm"
-          >
-            <Play className="h-3.5 w-3.5 mr-1.5" />
-            {isConverting ? 'Wird veröffentlicht...' : 'Trade veröffentlichen'}
-          </Button>
+          <div className="space-y-2 mt-2">
+            {devMode && (
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sendEmail}
+                  onChange={(e) => setSendEmail(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                Auch als E-Mail senden (Test)
+              </label>
+            )}
+            <Button
+              onClick={handleConvertToTrade}
+              disabled={isConverting}
+              className="w-full"
+              size="sm"
+            >
+              <Play className="h-3.5 w-3.5 mr-1.5" />
+              {isConverting
+                ? (sendEmail ? 'Wird versendet...' : 'Wird veröffentlicht...')
+                : (sendEmail ? 'Veröffentlichen & E-Mail senden' : 'Trade veröffentlichen')}
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>
