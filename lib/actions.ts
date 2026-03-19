@@ -309,12 +309,13 @@ export async function uploadChartImage(formData: FormData): Promise<string> {
 
 // ── Page view tracking (referrer monitoring for iframe embeds) ──
 
-export async function trackPageView(path: string, referrer: string | null): Promise<void> {
+export async function trackPageView(path: string, referrer: string | null, sessionId: string | null = null): Promise<void> {
   try {
     const supabase = createAdminClient()
     await supabase.from('page_views').insert({
       path,
       referrer: referrer || null,
+      session_id: sessionId || null,
     })
   } catch {
     // Non-critical — never block page rendering

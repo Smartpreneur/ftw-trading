@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { after } from 'next/server'
-import { headers } from 'next/headers'
-import { getCachedTrades, trackPageView } from '@/lib/actions'
+import { getCachedTrades } from '@/lib/actions'
 import { getCachedActivePrices, triggerPriceRefreshIfStale } from '@/lib/price-actions'
 import { checkAdmin, checkAuth } from '@/lib/auth'
 import { PasswordGate } from '@/components/password-gate'
@@ -21,6 +20,7 @@ import { InfoPopover } from '@/components/ui/info-popover'
 import { Suspense } from 'react'
 import { ProfileTabs } from '@/components/performance/ProfileTabs'
 import { resolveTab } from '@/lib/profile-tabs'
+import { PageTracker } from '@/components/page-tracker'
 
 export const metadata: Metadata = {
   title: 'Performance-Übersicht | FTW Trading',
@@ -53,12 +53,9 @@ export default async function DashboardPage({
     error = e?.message ?? 'Fehler beim Laden der Daten'
   }
 
-  // After response is sent: background tasks (non-blocking, fire-and-forget)
-  const headersList = await headers()
-  const referrer = headersList.get('referer')
+  // After response is sent: background price refresh (non-blocking, fire-and-forget)
   after(() => {
     triggerPriceRefreshIfStale()
-    trackPageView('/performance', referrer)
   })
 
   // Filter in-memory by tab profiles (no DB round-trip)
@@ -233,6 +230,7 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-8">
+      <PageTracker path="/performance" />
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
