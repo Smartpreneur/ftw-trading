@@ -22,6 +22,7 @@ import type { Trade } from '@/lib/types'
 import { toast } from 'sonner'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Upload, X, ImageIcon, Loader2, Plus, Trash2 } from 'lucide-react'
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import Image from 'next/image'
 
 interface SetupFormProps {
@@ -80,6 +81,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     }
     return { tp1: 100, tp2: '', tp3: '', tp4: '' }
   })
+  const [analyseHtml, setAnalyseHtml] = useState(setup?.analyse_text ?? '')
   const [tvSymbol, setTvSymbol] = useState(setup?.tradingview_symbol ?? '')
   const [tvSearch, setTvSearch] = useState('')
   const [tvResults, setTvResults] = useState<Awaited<ReturnType<typeof searchTradingView>>>([])
@@ -289,7 +291,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         zeiteinheit: values.zeiteinheit ?? null,
         dauer_erwartung: values.dauer_erwartung ?? null,
         bemerkungen: values.bemerkungen ?? null,
-        analyse_text: values.analyse_text ?? null,
+        analyse_text: analyseHtml?.trim() || null,
         tradingview_symbol: tvSymbol || null,
         chart_bild_url: imageUrl,
       }
@@ -782,15 +784,15 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         />
       </Field>
 
-      {/* Analyse (lang) */}
-      <Field label="Ausführliche Analyse (für E-Mail)" error={errors.analyse_text?.message}>
-        <textarea
-          rows={12}
-          className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-y min-h-[200px]"
+      {/* Analyse (lang) — WYSIWYG Editor */}
+      <div className="space-y-1">
+        <Label className="text-xs font-medium">Ausführliche Analyse (für E-Mail)</Label>
+        <RichTextEditor
+          content={analyseHtml}
+          onChange={setAnalyseHtml}
           placeholder="Detaillierte Marktanalyse, technische Einschätzung, Hintergründe..."
-          {...register('analyse_text', { setValueAs: asNullableStr })}
         />
-      </Field>
+      </div>
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onSuccess}>
