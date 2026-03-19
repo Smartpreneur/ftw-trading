@@ -280,7 +280,10 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           await deleteChartImage(setup.chart_bild_url)
         }
         await updateTrade(setup.id, payload)
-        await saveTradeEntries(setup.id, parsedEntries)
+        // Only save entries if the user has defined entry points
+        if (parsedEntries.length > 0 || (setup.entries && setup.entries.length > 0)) {
+          await saveTradeEntries(setup.id, parsedEntries)
+        }
         toast.success('Setup aktualisiert')
       } else {
         const newTradeId = await createTrade(payload as any)

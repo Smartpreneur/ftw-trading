@@ -389,7 +389,11 @@ export async function deleteTradeEntry(entryId: string): Promise<void> {
 export async function saveTradeEntries(tradeFk: string, entries: Array<{ preis: number; anteil: number }>): Promise<void> {
   const supabase = createAdminClient()
   // Delete existing entries
-  await supabase.from('trade_entries').delete().eq('trade_fk', tradeFk)
+  const { error: delError } = await supabase.from('trade_entries').delete().eq('trade_fk', tradeFk)
+  if (delError) {
+    console.error('Error deleting trade entries:', delError)
+    throw new Error(`Fehler beim Löschen der Einstiegspunkte: ${delError.message}`)
+  }
   // Insert new ones
   if (entries.length > 0) {
     const rows = entries.map((e, i) => ({
@@ -399,7 +403,10 @@ export async function saveTradeEntries(tradeFk: string, entries: Array<{ preis: 
       anteil: e.anteil,
     }))
     const { error } = await supabase.from('trade_entries').insert(rows)
-    if (error) throw new Error(error.message)
+    if (error) {
+      console.error('Error inserting trade entries:', error)
+      throw new Error(`Fehler beim Speichern der Einstiegspunkte: ${error.message}`)
+    }
   }
   // Recalc blended price if any entries are already triggered
   await recalcBlendedEinstiegspreis(tradeFk)
