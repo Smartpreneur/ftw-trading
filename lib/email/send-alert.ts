@@ -1,11 +1,8 @@
 'use server'
 
-import { Resend } from 'resend'
 import { createAdminClient } from '@/lib/supabase/server'
 import { buildEilmeldungHtml } from './template'
 import type { Trade } from '@/lib/types'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 /**
  * Send a trade alert email for the given trade.
@@ -13,8 +10,14 @@ const resend = new Resend(process.env.RESEND_API_KEY)
  * Phase 2: will be replaced with Mailchimp campaign send.
  */
 export async function sendEilmeldung(tradeId: string): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) throw new Error('RESEND_API_KEY nicht konfiguriert')
+
   const testEmail = process.env.EILMELDUNG_TEST_EMAIL
   if (!testEmail) throw new Error('EILMELDUNG_TEST_EMAIL nicht konfiguriert')
+
+  const { Resend } = await import('resend')
+  const resend = new Resend(apiKey)
 
   const supabase = createAdminClient()
 
