@@ -55,6 +55,11 @@ export interface Trade {
   tp4_erreicht_am: string | null
   sl_erreicht_am: string | null
   tp_sl_geaendert_am: string | null
+  stop_loss_vorher: number | null
+  tp1_vorher: number | null
+  tp2_vorher: number | null
+  tp3_vorher: number | null
+  tp4_vorher: number | null
   manuell_getrackt: boolean
   gewichtung: number
   tp1_gewichtung: number | null

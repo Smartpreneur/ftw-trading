@@ -160,6 +160,34 @@ export async function createTrade(formData: TradeFormData): Promise<void> {
 
 export async function updateTrade(id: string, formData: Partial<TradeFormData>): Promise<void> {
   const supabase = createAdminClient()
+
+  // Track previous TP/SL values when levels change
+  const tpSlFields = ['tp1', 'tp2', 'tp3', 'tp4', 'stop_loss'] as const
+  const hasTpSlUpdate = tpSlFields.some((f) => f in formData)
+
+  if (hasTpSlUpdate) {
+    const { data: current } = await supabase
+      .from('trades')
+      .select('tp1, tp2, tp3, tp4, stop_loss')
+      .eq('id', id)
+      .single()
+
+    if (current) {
+      const vorher: Record<string, number | null> = {}
+      for (const field of tpSlFields) {
+        if (!(field in formData)) continue
+        const oldVal = current[field] ?? null
+        const newVal = (formData as Record<string, unknown>)[field] ?? null
+        if (oldVal !== newVal && oldVal !== null) {
+          vorher[`${field}_vorher`] = oldVal
+        }
+      }
+      if (Object.keys(vorher).length > 0) {
+        Object.assign(formData, vorher)
+      }
+    }
+  }
+
   const { error } = await supabase.from('trades').update(formData).eq('id', id)
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')

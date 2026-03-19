@@ -218,62 +218,47 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
                 <span
                   className={cn(
                     "font-mono text-sm inline-flex items-center justify-end gap-1",
-                    trade.sl_erreicht_am && "text-rose-600 font-semibold"
+                    trade.sl_erreicht_am && "text-rose-600 font-semibold",
+                    !trade.sl_erreicht_am && trade.stop_loss_vorher && "underline decoration-dotted decoration-muted-foreground/40 underline-offset-2"
                   )}
-                  title={trade.sl_erreicht_am ? `SL erreicht am ${formatDate(trade.sl_erreicht_am)}` : undefined}
+                  title={
+                    trade.sl_erreicht_am
+                      ? `SL erreicht am ${formatDate(trade.sl_erreicht_am)}`
+                      : trade.stop_loss_vorher
+                      ? `Angepasst: von ${formatPrice(trade.stop_loss_vorher)} auf ${formatPrice(trade.stop_loss)}`
+                      : undefined
+                  }
                 >
                   {trade.stop_loss ? formatPrice(trade.stop_loss) : '—'}
                   {trade.sl_erreicht_am && <AlertTriangle className="h-3 w-3" />}
                 </span>
               </TableCell>
-              <TableCell className="text-right">
-                <span
-                  className={cn(
-                    "font-mono text-sm inline-flex items-center justify-end gap-1",
-                    trade.tp1_erreicht_am && "text-emerald-600 font-semibold"
-                  )}
-                  title={trade.tp1_erreicht_am ? `TP1 erreicht am ${formatDate(trade.tp1_erreicht_am)}` : undefined}
-                >
-                  {trade.tp1 ? formatPrice(trade.tp1) : '—'}
-                  {trade.tp1_erreicht_am && <Check className="h-3 w-3" />}
-                </span>
-              </TableCell>
-              <TableCell className="text-right">
-                <span
-                  className={cn(
-                    "font-mono text-sm inline-flex items-center justify-end gap-1",
-                    trade.tp2_erreicht_am && "text-emerald-600 font-semibold"
-                  )}
-                  title={trade.tp2_erreicht_am ? `TP2 erreicht am ${formatDate(trade.tp2_erreicht_am)}` : undefined}
-                >
-                  {trade.tp2 ? formatPrice(trade.tp2) : '—'}
-                  {trade.tp2_erreicht_am && <Check className="h-3 w-3" />}
-                </span>
-              </TableCell>
-              <TableCell className="text-right">
-                <span
-                  className={cn(
-                    "font-mono text-sm inline-flex items-center justify-end gap-1",
-                    trade.tp3_erreicht_am && "text-emerald-600 font-semibold"
-                  )}
-                  title={trade.tp3_erreicht_am ? `TP3 erreicht am ${formatDate(trade.tp3_erreicht_am)}` : undefined}
-                >
-                  {trade.tp3 ? formatPrice(trade.tp3) : '—'}
-                  {trade.tp3_erreicht_am && <Check className="h-3 w-3" />}
-                </span>
-              </TableCell>
-              <TableCell className="text-right">
-                <span
-                  className={cn(
-                    "font-mono text-sm inline-flex items-center justify-end gap-1",
-                    trade.tp4_erreicht_am && "text-emerald-600 font-semibold"
-                  )}
-                  title={trade.tp4_erreicht_am ? `TP4 erreicht am ${formatDate(trade.tp4_erreicht_am)}` : undefined}
-                >
-                  {trade.tp4 ? formatPrice(trade.tp4) : '—'}
-                  {trade.tp4_erreicht_am && <Check className="h-3 w-3" />}
-                </span>
-              </TableCell>
+              {([
+                { level: trade.tp1, vorher: trade.tp1_vorher, hit: trade.tp1_erreicht_am, label: 'TP1' },
+                { level: trade.tp2, vorher: trade.tp2_vorher, hit: trade.tp2_erreicht_am, label: 'TP2' },
+                { level: trade.tp3, vorher: trade.tp3_vorher, hit: trade.tp3_erreicht_am, label: 'TP3' },
+                { level: trade.tp4, vorher: trade.tp4_vorher, hit: trade.tp4_erreicht_am, label: 'TP4' },
+              ] as const).map((tp) => (
+                <TableCell key={tp.label} className="text-right">
+                  <span
+                    className={cn(
+                      "font-mono text-sm inline-flex items-center justify-end gap-1",
+                      tp.hit && "text-emerald-600 font-semibold",
+                      !tp.hit && tp.vorher && "underline decoration-dotted decoration-muted-foreground/40 underline-offset-2"
+                    )}
+                    title={
+                      tp.hit
+                        ? `${tp.label} erreicht am ${formatDate(tp.hit)}`
+                        : tp.vorher
+                        ? `Angepasst: von ${formatPrice(tp.vorher)} auf ${formatPrice(tp.level)}`
+                        : undefined
+                    }
+                  >
+                    {tp.level ? formatPrice(tp.level) : '—'}
+                    {tp.hit && <Check className="h-3 w-3" />}
+                  </span>
+                </TableCell>
+              ))}
               <TableCell>
                 {!highestHit ? (
                   <span className="text-sm text-muted-foreground">Offen</span>
