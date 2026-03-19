@@ -70,8 +70,11 @@ function enrichTrade(trade: Trade): TradeWithPerformance {
   }
 
   // Effective close date: use latest close datum, fall back to datum_schliessung
-  const effectiveCloseDatum =
-    closes.length > 0
+  // For active trades, don't show a close date — partial closes are visible in Teilschließungen view
+  const isActive = trade.status === 'Aktiv'
+  const effectiveCloseDatum = isActive
+    ? null
+    : closes.length > 0
       ? closes.reduce((latest, c) => (c.datum > latest ? c.datum : latest), closes[0].datum)
       : trade.datum_schliessung
 
@@ -84,8 +87,9 @@ function enrichTrade(trade: Trade): TradeWithPerformance {
     : Math.max(0, diffDays)
 
   // Effective exit price: weighted avg of closes (for display), else legacy ausstiegspreis
-  let effective_ausstiegspreis: number | null = trade.ausstiegspreis
-  if (closesWithData.length > 0 && trade.einstiegspreis != null) {
+  // For active trades, don't show an exit price — partial closes are visible in Teilschließungen view
+  let effective_ausstiegspreis: number | null = isActive ? null : trade.ausstiegspreis
+  if (!isActive && closesWithData.length > 0 && trade.einstiegspreis != null) {
     const totalAnteil = closesWithData.reduce((s, c) => s + c.anteil!, 0)
     if (totalAnteil > 0) {
       effective_ausstiegspreis = closesWithData.reduce(
