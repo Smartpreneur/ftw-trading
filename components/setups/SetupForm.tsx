@@ -117,6 +117,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           dauer_erwartung: setup.dauer_erwartung ?? undefined,
           status: SETUP_STATUS,
           bemerkungen: setup.bemerkungen ?? undefined,
+          analyse_text: setup.analyse_text ?? undefined,
           profil: setup.profil,
           gewichtung: 1,
         }
@@ -268,6 +269,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         zeiteinheit: values.zeiteinheit ?? null,
         dauer_erwartung: values.dauer_erwartung ?? null,
         bemerkungen: values.bemerkungen ?? null,
+        analyse_text: values.analyse_text ?? null,
         chart_bild_url: imageUrl,
       }
       // Parse entry points for saving
@@ -690,13 +692,23 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         )}
       </div>
 
-      {/* Bemerkungen */}
-      <Field label="Bemerkungen" error={errors.bemerkungen?.message}>
+      {/* Bemerkungen (kurz) */}
+      <Field label="Bemerkungen (kurz)" error={errors.bemerkungen?.message}>
         <textarea
-          rows={6}
+          rows={3}
           className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
-          placeholder="Setup-Analyse, Positionsmanagement, besondere Hinweise..."
+          placeholder="z.B. SL auf Einstand nachziehen sobald TP1 erreicht..."
           {...register('bemerkungen', { setValueAs: asNullableStr })}
+        />
+      </Field>
+
+      {/* Analyse (lang) */}
+      <Field label="Ausführliche Analyse" error={errors.analyse_text?.message}>
+        <textarea
+          rows={8}
+          className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-y"
+          placeholder="Detaillierte Marktanalyse, technische Einschätzung, Hintergründe..."
+          {...register('analyse_text', { setValueAs: asNullableStr })}
         />
       </Field>
 

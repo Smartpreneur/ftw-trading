@@ -97,6 +97,7 @@ export interface Trade {
   performance_pct: number | null
   created_at: string
   updated_at: string
+  analyse_text: string | null
   eilmeldung_sent_at: string | null
   closes: TradeClose[]
   notes: TradeNote[]

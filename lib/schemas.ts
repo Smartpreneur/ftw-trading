@@ -20,6 +20,7 @@ export const tradeSchema = z.object({
     'Ungültig',
   ]),
   bemerkungen: z.string().nullable().optional(),
+  analyse_text: z.string().nullable().optional(),
   gewichtung: z.number().min(0, 'Min. 0%').max(1, 'Max. 100%'),
   profil: z.enum(['MB', 'SJ']),
   // Setup-specific optional fields
