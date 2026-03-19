@@ -124,11 +124,11 @@ export function buildEilmeldungHtml(trade: Trade): string {
     <td style="padding:12px 24px;">
       <table width="100%" cellpadding="0" cellspacing="0"><tr>
         <td width="33%" style="vertical-align:top;">
-          <div style="font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">&#x2937; CRV</div>
+          <div style="font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">CRV</div>
           <div style="font-size:15px;font-weight:700;color:#000;">${crvText}</div>
         </td>
         <td width="33%" style="vertical-align:top;">
-          <div style="font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">&#x25F7; Zeiteinheit</div>
+          <div style="font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">Zeiteinheit</div>
           <div style="font-size:15px;font-weight:700;color:#000;">${esc(trade.zeiteinheit ?? '–')}</div>
         </td>
         <td width="33%" style="vertical-align:top;">

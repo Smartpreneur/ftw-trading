@@ -7,7 +7,8 @@ import { formatPrice } from '@/lib/formatters'
 import { deleteTrade, updateTrade, deleteChartImage } from '@/lib/actions'
 import { sendEilmeldung } from '@/lib/email/send-alert'
 import { SetupDialog } from './SetupDialog'
-import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2, Play, Check } from 'lucide-react'
+import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2, Play, Check, Mail } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -275,17 +276,30 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
 
         {/* Convert to Trade button - only for drafts, admin only */}
         {isAdmin && setup.status === 'Entwurf' && (
-          <div className="space-y-2 mt-2">
+          <div className="space-y-3 mt-3 pt-3 border-t">
             {devMode && (
-              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-                <input
-                  type="checkbox"
+              <div
+                className={`flex items-center justify-between rounded-lg border px-4 py-3 cursor-pointer transition-colors ${
+                  sendEmail ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                }`}
+                onClick={() => setSendEmail(!sendEmail)}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Mail className={`h-4 w-4 ${sendEmail ? 'text-blue-600' : 'text-muted-foreground'}`} />
+                  <div>
+                    <p className={`text-sm font-medium ${sendEmail ? 'text-blue-900' : 'text-foreground'}`}>
+                      Als E-Mail versenden
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {sendEmail ? 'Eilmeldung wird beim Veröffentlichen gesendet' : 'Eilmeldung an Abonnenten senden'}
+                    </p>
+                  </div>
+                </div>
+                <Switch
                   checked={sendEmail}
-                  onChange={(e) => setSendEmail(e.target.checked)}
-                  className="rounded border-gray-300"
+                  onCheckedChange={setSendEmail}
                 />
-                Auch als E-Mail senden (Test)
-              </label>
+              </div>
             )}
             <Button
               onClick={handleConvertToTrade}
