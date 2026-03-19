@@ -177,10 +177,23 @@ export default async function DashboardPage({
   }
 
   // Trade-Ideen counts (original trades only, excluding Ungültig)
+  // Use same "truly active" logic as activeTrades section to keep numbers consistent
+  function isTrulyActive(t: (typeof kpiTrades)[number]) {
+    if (t.status !== 'Aktiv') return false
+    if (t.sl_erreicht_am) return false
+    const definedTPs = [
+      { level: t.tp1, hit: t.tp1_erreicht_am },
+      { level: t.tp2, hit: t.tp2_erreicht_am },
+      { level: t.tp3, hit: t.tp3_erreicht_am },
+      { level: t.tp4, hit: t.tp4_erreicht_am },
+    ].filter((tp) => tp.level != null)
+    if (definedTPs.length > 0 && definedTPs.every((tp) => tp.hit)) return false
+    return true
+  }
   const tradeIdeen = kpiTrades.filter((t) => t.status !== 'Ungültig')
   const tradeIdeenGesamt = tradeIdeen.length
-  const tradeIdeenGeschlossen = tradeIdeen.filter((t) => t.status !== 'Aktiv').length
-  const tradeIdeenOffen = tradeIdeen.filter((t) => t.status === 'Aktiv').length
+  const tradeIdeenOffen = tradeIdeen.filter(isTrulyActive).length
+  const tradeIdeenGeschlossen = tradeIdeenGesamt - tradeIdeenOffen
 
   // KPI counts use original trades (matching Übersicht), monthly chart uses expanded close entries
   const tradesForMonthly = [
