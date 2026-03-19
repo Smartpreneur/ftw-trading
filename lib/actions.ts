@@ -17,6 +17,7 @@ function enrichTrade(trade: Trade): TradeWithPerformance {
     c => c.ausstiegspreis != null && c.anteil != null
   )
   if (closesWithData.length > 0 && trade.einstiegspreis != null && trade.richtung != null) {
+    const totalAnteil = closesWithData.reduce((s, c) => s + c.anteil!, 0)
     const weighted = closesWithData.reduce((sum, c) => {
       const perf =
         trade.richtung === 'LONG'
@@ -24,7 +25,9 @@ function enrichTrade(trade: Trade): TradeWithPerformance {
           : ((trade.einstiegspreis! - c.ausstiegspreis!) / trade.einstiegspreis!) * 100
       return sum + perf * c.anteil!
     }, 0)
-    performance_pct = Math.round(weighted * 100) / 100
+    performance_pct = totalAnteil > 0
+      ? Math.round((weighted / totalAnteil) * 100) / 100
+      : null
   } else if (trade.performance_pct != null) {
     // Stored value in DB (backfilled from bemerkungen or previous calculations)
     performance_pct = trade.performance_pct
@@ -230,6 +233,7 @@ async function recalcTradePerformance(tradeId: string): Promise<void> {
   const valid = (closes ?? []).filter(c => c.ausstiegspreis != null && c.anteil != null)
   if (valid.length === 0) return
 
+  const totalAnteil = valid.reduce((s, c) => s + c.anteil!, 0)
   const weighted = valid.reduce((sum, c) => {
     const perf =
       trade.richtung === 'LONG'
@@ -237,10 +241,11 @@ async function recalcTradePerformance(tradeId: string): Promise<void> {
         : ((trade.einstiegspreis! - c.ausstiegspreis!) / trade.einstiegspreis!) * 100
     return sum + perf * c.anteil!
   }, 0)
+  const avgPerf = totalAnteil > 0 ? Math.round((weighted / totalAnteil) * 100) / 100 : null
 
   await supabase
     .from('trades')
-    .update({ performance_pct: Math.round(weighted * 100) / 100 })
+    .update({ performance_pct: avgPerf })
     .eq('id', tradeId)
 }
 

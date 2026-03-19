@@ -23,6 +23,8 @@ async function calcPerformanceFromCloses(
     .eq('trade_fk', tradeId)
   const valid = (closes ?? []).filter(c => c.ausstiegspreis != null && c.anteil != null)
   if (valid.length === 0) return null
+  const totalAnteil = valid.reduce((s, c) => s + c.anteil!, 0)
+  if (totalAnteil <= 0) return null
   const weighted = valid.reduce((sum, c) => {
     const perf =
       richtung === 'LONG'
@@ -30,7 +32,7 @@ async function calcPerformanceFromCloses(
         : ((einstiegspreis - c.ausstiegspreis!) / einstiegspreis) * 100
     return sum + perf * c.anteil!
   }, 0)
-  return Math.round(weighted * 100) / 100
+  return Math.round((weighted / totalAnteil) * 100) / 100
 }
 
 interface DailyOHLC {
