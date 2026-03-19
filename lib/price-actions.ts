@@ -454,15 +454,102 @@ async function checkAndUpdateTPSL(
   return true
 }
 
+// Check entry-point levels: detect when planned entry prices are reached.
+// Mirrors the TP/SL detection logic but for entries (buy triggers).
+async function checkAndUpdateEntries(
+  trade: {
+    id: string
+    richtung: 'LONG' | 'SHORT' | null
+    datum_eroeffnung: string
+    created_at: string
+    status: string
+  },
+  entries: Array<{ id: string; nummer: number; preis: number; anteil: number; erreicht_am: string | null }>,
+  ohlcData: DailyOHLC[]
+): Promise<boolean> {
+  if (!trade.richtung || ohlcData.length === 0) return false
+
+  const pending = entries.filter(e => !e.erreicht_am)
+  if (pending.length === 0) return false
+
+  const openDate = trade.datum_eroeffnung.split('T')[0]
+  const createdDate = trade.created_at.split('T')[0]
+  const supabase = createAdminClient()
+  let changed = false
+
+  for (const day of ohlcData) {
+    if (day.date < openDate) continue
+    if (day.date <= openDate) continue // skip entry day itself
+    if (day.date === createdDate && createdDate > openDate) continue
+
+    const hitTimestamp = `${day.date}T16:00:00+00:00`
+
+    for (const entry of pending) {
+      if (entry.erreicht_am) continue
+
+      // LONG: buy triggered when price dips to or below entry level
+      // SHORT: sell triggered when price rises to or above entry level
+      const hit = trade.richtung === 'LONG'
+        ? day.low <= entry.preis
+        : day.high >= entry.preis
+
+      if (hit) {
+        await supabase
+          .from('trade_entries')
+          .update({ erreicht_am: hitTimestamp, datum: day.date })
+          .eq('id', entry.id)
+
+        entry.erreicht_am = hitTimestamp
+        changed = true
+      }
+    }
+  }
+
+  if (!changed) return false
+
+  // Check if this is the first triggered entry → activate the trade
+  const anyTriggeredBefore = entries.some(e => e.erreicht_am && !pending.some(p => p.id === e.id && p.erreicht_am))
+  const hasTriggered = entries.some(e => e.erreicht_am)
+
+  if (hasTriggered && trade.status === 'Entwurf') {
+    // Conditional update to avoid race conditions
+    await supabase
+      .from('trades')
+      .update({ status: 'Aktiv' })
+      .eq('id', trade.id)
+      .eq('status', 'Entwurf')
+  }
+
+  // Recalculate blended einstiegspreis from triggered entries
+  const triggered = entries.filter(e => e.erreicht_am)
+  const totalAnteil = triggered.reduce((s, e) => s + e.anteil, 0)
+  if (totalAnteil > 0) {
+    const blended = triggered.reduce((s, e) => s + e.preis * (e.anteil / totalAnteil), 0)
+    await supabase
+      .from('trades')
+      .update({ einstiegspreis: Math.round(blended * 100000) / 100000 })
+      .eq('id', trade.id)
+
+    // Recalc performance from closes
+    const perfPct = await calcPerformanceFromCloses(supabase, trade.id,
+      Math.round(blended * 100000) / 100000, trade.richtung)
+    if (perfPct !== null) {
+      await supabase.from('trades').update({ performance_pct: perfPct }).eq('id', trade.id)
+    }
+  }
+
+  return true
+}
+
 // Update all active trade prices + check TP/SL levels using daily High/Low
 export async function updateAllActiveTradePrices(): Promise<{ updated: number; errors: number; failedAssets: string[] }> {
   const supabase = createAdminClient()
 
-  // Get all active trades with TP/SL levels and existing hit timestamps
+  // Get active trades + Entwurf trades (for entry-point detection)
   const { data: activeTrades, error: tradesError } = await supabase
     .from('trades')
-    .select('id, asset, datum_eroeffnung, created_at, einstiegspreis, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, tp1_gewichtung, tp2_gewichtung, tp3_gewichtung, tp4_gewichtung, manuell_getrackt')
-    .eq('status', 'Aktiv')
+    .select('id, asset, status, datum_eroeffnung, created_at, einstiegspreis, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, tp1_gewichtung, tp2_gewichtung, tp3_gewichtung, tp4_gewichtung, manuell_getrackt, entries:trade_entries(id, nummer, preis, anteil, erreicht_am)')
+    .in('status', ['Aktiv', 'Entwurf'])
 
   if (tradesError || !activeTrades) {
     console.error('Error fetching active trades:', tradesError)
@@ -512,6 +599,18 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
     const ohlcData = await fetchOHLCData(mapping)
 
     for (const trade of assetTrades) {
+      const tradeEntries = (trade as any).entries ?? []
+      const isEntwurf = trade.status === 'Entwurf'
+
+      // Check entry-point triggers for setups with entries
+      if (!trade.manuell_getrackt && tradeEntries.length > 0 && ohlcData.length > 0) {
+        const entryChanged = await checkAndUpdateEntries(trade, tradeEntries, ohlcData)
+        if (entryChanged) tpSlChanged = true
+      }
+
+      // Skip price tracking for Entwurf trades (not yet in the market)
+      if (isEntwurf) continue
+
       if (price !== null) {
         // Update current price in DB
         const { error: upsertError } = await supabase
@@ -538,7 +637,7 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
         if (!failedAssets.includes(asset)) failedAssets.push(asset)
       }
 
-      // Check TP/SL with daily High/Low data (skip manually tracked)
+      // Check TP/SL with daily High/Low data (skip manually tracked, only for active trades)
       if (!trade.manuell_getrackt && ohlcData.length > 0) {
         const changed = await checkAndUpdateTPSL(trade, ohlcData)
         if (changed) tpSlChanged = true

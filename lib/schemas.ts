@@ -43,6 +43,14 @@ export const tradeCloseSchema = z.object({
 
 export type TradeCloseSchemaValues = z.infer<typeof tradeCloseSchema>
 
+export const tradeEntrySchema = z.object({
+  preis: z.number().positive('Muss positiv sein'),
+  anteil: z.number().min(1, 'Min. 1%').max(100, 'Max. 100%'),
+  bemerkungen: z.string().nullable().optional(),
+})
+
+export type TradeEntrySchemaValues = z.infer<typeof tradeEntrySchema>
+
 /** Converts empty-string input to null for optional number fields */
 export function toNullableNumber(v: unknown): number | null {
   if (v === '' || v === null || v === undefined) return null

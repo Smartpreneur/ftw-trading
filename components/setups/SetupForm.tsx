@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { tradeSchema, toNullableNumber, toNullableString, type TradeSchemaValues } from '@/lib/schemas'
-import { createTrade, updateTrade, uploadChartImage, deleteChartImage } from '@/lib/actions'
+import { createTrade, updateTrade, uploadChartImage, deleteChartImage, saveTradeEntries } from '@/lib/actions'
 import { fetchInstrumentPrice } from '@/lib/price-actions'
 import { ASSET_CLASSES, TRADE_DIRECTIONS, TRADING_PROFILES } from '@/lib/constants'
 import { INSTRUMENTS } from '@/lib/asset-mapping'
@@ -21,7 +21,7 @@ import {
 import type { Trade } from '@/lib/types'
 import { toast } from 'sonner'
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Upload, X, ImageIcon, Loader2 } from 'lucide-react'
+import { Upload, X, ImageIcon, Loader2, Plus, Trash2 } from 'lucide-react'
 import Image from 'next/image'
 
 interface SetupFormProps {
@@ -80,6 +80,14 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     }
     return { tp1: 100, tp2: '', tp3: '', tp4: '' }
   })
+  const [entryPoints, setEntryPoints] = useState<Array<{ preis: string; anteil: string }>>(() => {
+    if (setup?.entries && setup.entries.length > 0) {
+      return setup.entries
+        .sort((a, b) => a.nummer - b.nummer)
+        .map(e => ({ preis: String(e.preis), anteil: String(Math.round(e.anteil * 100)) }))
+    }
+    return []
+  })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const {
@@ -122,6 +130,19 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           gewichtung: 1,
         },
   })
+
+  // Auto-calculate blended einstiegspreis from entry points
+  useEffect(() => {
+    if (entryPoints.length === 0) return
+    const valid = entryPoints
+      .map(e => ({ preis: parseFloat(e.preis), anteil: parseFloat(e.anteil) }))
+      .filter(e => !isNaN(e.preis) && e.preis > 0 && !isNaN(e.anteil) && e.anteil > 0)
+    if (valid.length === 0) return
+    const totalAnteil = valid.reduce((s, e) => s + e.anteil, 0)
+    if (totalAnteil <= 0) return
+    const blended = valid.reduce((s, e) => s + e.preis * (e.anteil / totalAnteil), 0)
+    setValue('einstiegspreis', Math.round(blended * 100) / 100)
+  }, [entryPoints, setValue])
 
   const watchTp1 = watch('tp1')
   const watchTp2 = watch('tp2')
@@ -249,14 +270,23 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         bemerkungen: values.bemerkungen ?? null,
         chart_bild_url: imageUrl,
       }
+      // Parse entry points for saving
+      const parsedEntries = entryPoints
+        .map(e => ({ preis: parseFloat(e.preis), anteil: parseFloat(e.anteil) / 100 }))
+        .filter(e => !isNaN(e.preis) && e.preis > 0 && !isNaN(e.anteil) && e.anteil > 0)
+
       if (setup) {
         if (setup.chart_bild_url && setup.chart_bild_url !== imageUrl) {
           await deleteChartImage(setup.chart_bild_url)
         }
         await updateTrade(setup.id, payload)
+        await saveTradeEntries(setup.id, parsedEntries)
         toast.success('Setup aktualisiert')
       } else {
-        await createTrade(payload as any)
+        const newTradeId = await createTrade(payload as any)
+        if (parsedEntries.length > 0) {
+          await saveTradeEntries(newTradeId, parsedEntries)
+        }
         toast.success('Setup erstellt')
       }
       onSuccess()
@@ -393,11 +423,13 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
             )}
           </div>
         </Field>
-        <Field label="Einstiegspreis *" error={errors.einstiegspreis?.message}>
+        <Field label={entryPoints.length > 0 ? 'Mischkurs (auto)' : 'Einstiegspreis *'} error={errors.einstiegspreis?.message}>
           <Input
             type="number"
             step="any"
             placeholder="0.00"
+            readOnly={entryPoints.length > 0}
+            className={entryPoints.length > 0 ? 'bg-muted text-muted-foreground cursor-default' : ''}
             {...register('einstiegspreis', { valueAsNumber: true })}
           />
         </Field>
@@ -410,6 +442,82 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           />
         </Field>
       </div>
+
+      {/* Einstiegspunkte */}
+      {entryPoints.length > 0 && (
+        <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-semibold">Einstiegspunkte</Label>
+            <button
+              type="button"
+              onClick={() => setEntryPoints(prev => [...prev, { preis: '', anteil: '' }])}
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              <Plus className="h-3 w-3" />
+              Einstieg hinzufügen
+            </button>
+          </div>
+          <div className="space-y-2">
+            {entryPoints.map((ep, i) => (
+              <div key={i} className="grid grid-cols-[auto_1fr_80px_auto] gap-2 items-center">
+                <span className="text-xs font-medium text-muted-foreground w-5">E{i + 1}</span>
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder="Kurs"
+                  value={ep.preis}
+                  onChange={(e) => setEntryPoints(prev => prev.map((p, j) => j === i ? { ...p, preis: e.target.value } : p))}
+                />
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={100}
+                    step={1}
+                    placeholder="%"
+                    value={ep.anteil}
+                    onChange={(e) => setEntryPoints(prev => prev.map((p, j) => j === i ? { ...p, anteil: e.target.value } : p))}
+                  />
+                  <span className="text-xs text-muted-foreground">%</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEntryPoints(prev => prev.filter((_, j) => j !== i))}
+                  className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          {(() => {
+            const sum = entryPoints.reduce((s, e) => s + (parseFloat(e.anteil) || 0), 0)
+            return (
+              <div className="flex items-center justify-between pt-1 border-t border-border/50">
+                <span className="text-xs text-muted-foreground">
+                  Mischkurs: <span className="font-semibold font-mono">{watchEinstieg ? watchEinstieg.toFixed(2) : '–'}</span>
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Summe:</span>
+                  <span className={`text-sm font-semibold tabular-nums ${sum === 100 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    {sum}%
+                  </span>
+                </div>
+              </div>
+            )
+          })()}
+        </div>
+      )}
+      {entryPoints.length === 0 && (
+        <button
+          type="button"
+          onClick={() => setEntryPoints([{ preis: '', anteil: '50' }, { preis: '', anteil: '50' }])}
+          className="w-full text-xs text-muted-foreground hover:text-primary border border-dashed rounded-lg py-2 transition-colors"
+        >
+          <Plus className="h-3 w-3 inline mr-1" />
+          Mehrere Einstiegspunkte definieren
+        </button>
+      )}
 
       {/* Take-Profit Ziele & Gewichtung */}
       <div className="rounded-lg border bg-muted/30 p-4 space-y-3">

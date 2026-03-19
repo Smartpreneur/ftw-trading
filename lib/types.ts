@@ -29,6 +29,26 @@ export interface TradeClose {
   created_at: string
 }
 
+export interface TradeEntry {
+  id: string
+  trade_fk: string
+  nummer: number
+  preis: number
+  anteil: number
+  datum: string | null
+  erreicht_am: string | null
+  bemerkungen: string | null
+  created_at: string
+}
+
+export type TradeEntryFormData = {
+  trade_fk: string
+  nummer?: number
+  preis: number
+  anteil: number
+  bemerkungen?: string | null
+}
+
 export interface Trade {
   id: string
   trade_id: number
@@ -79,6 +99,7 @@ export interface Trade {
   updated_at: string
   closes: TradeClose[]
   notes: TradeNote[]
+  entries: TradeEntry[]
 }
 
 export interface TradeWithPerformance extends Trade {

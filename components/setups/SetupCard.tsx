@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/formatters'
 import { deleteTrade, updateTrade, deleteChartImage } from '@/lib/actions'
 import { SetupDialog } from './SetupDialog'
-import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2, Play } from 'lucide-react'
+import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2, Play, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -119,14 +119,31 @@ export function SetupCard({ setup, isAdmin = false }: SetupCardProps) {
               {setup.richtung}
             </span>
           </p>
-          {setup.einstiegspreis != null && (
+          {setup.entries && setup.entries.length > 1 ? (
+            <div className="text-sm space-y-0.5">
+              <span className="font-medium">Einstiege:</span>
+              {setup.entries
+                .sort((a, b) => a.nummer - b.nummer)
+                .map((e) => (
+                  <div key={e.id} className="flex items-center gap-2 ml-2">
+                    <span className="text-xs text-muted-foreground">E{e.nummer}</span>
+                    <span className="font-mono font-semibold">{formatPrice(e.preis)}</span>
+                    <span className="text-xs text-muted-foreground">{Math.round(e.anteil * 100)}%</span>
+                    {e.erreicht_am && <Check className="h-3 w-3 text-emerald-600" />}
+                  </div>
+                ))}
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Mischkurs: <span className="font-mono font-semibold">{formatPrice(setup.einstiegspreis)}</span>
+              </p>
+            </div>
+          ) : setup.einstiegspreis != null ? (
             <p className="text-sm">
               <span className="font-medium">Einstieg:</span>{' '}
               <span className="font-mono font-semibold">
                 {formatPrice(setup.einstiegspreis)}
               </span>
             </p>
-          )}
+          ) : null}
         </div>
 
         {/* Take-Profit Levels */}

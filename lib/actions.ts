@@ -114,7 +114,7 @@ export async function getTrades(profiles?: TradingProfile[]): Promise<TradeWithP
   const supabase = createAdminClient()
   let query = supabase
     .from('trades')
-    .select('*, closes:trade_closes(*), notes:trade_notes(*)')
+    .select('*, closes:trade_closes(*), notes:trade_notes(*), entries:trade_entries(*)')
     .order('datum_eroeffnung', { ascending: false })
 
   if (profiles && profiles.length > 0) {
@@ -136,7 +136,7 @@ export async function getCachedTrades() {
       const supabase = createAdminClient()
       const { data, error } = await supabase
         .from('trades')
-        .select('*, closes:trade_closes(*), notes:trade_notes(*)')
+        .select('*, closes:trade_closes(*), notes:trade_notes(*), entries:trade_entries(*)')
         .order('datum_eroeffnung', { ascending: false })
       if (error) throw new Error(error.message)
       return ((data as Trade[]) ?? []).map(enrichTrade)
@@ -146,9 +146,9 @@ export async function getCachedTrades() {
   )()
 }
 
-export async function createTrade(formData: TradeFormData): Promise<void> {
+export async function createTrade(formData: TradeFormData): Promise<string> {
   const supabase = createAdminClient()
-  const { error } = await supabase.from('trades').insert([formData])
+  const { data, error } = await supabase.from('trades').insert([formData]).select('id').single()
   if (error) throw new Error(error.message)
   revalidateTag('trades', 'max')
   revalidateTag('prices', 'max')
@@ -156,6 +156,7 @@ export async function createTrade(formData: TradeFormData): Promise<void> {
   revalidatePath('/performance')
   revalidatePath('/trades')
   revalidatePath('/setups')
+  return data.id
 }
 
 export async function updateTrade(id: string, formData: Partial<TradeFormData>): Promise<void> {
@@ -309,6 +310,98 @@ export async function deleteTradeNote(noteId: string): Promise<void> {
   revalidateTag('trades', 'max')
   revalidatePath('/performance')
   revalidatePath('/trades')
+}
+
+// ── Trade Entries CRUD ──────────────────────────────────────────
+
+/** Recalculate the blended einstiegspreis from triggered entries */
+async function recalcBlendedEinstiegspreis(tradeId: string): Promise<void> {
+  const supabase = createAdminClient()
+  const { data: entries } = await supabase
+    .from('trade_entries')
+    .select('preis, anteil, erreicht_am')
+    .eq('trade_fk', tradeId)
+
+  const triggered = (entries ?? []).filter(e => e.erreicht_am != null)
+  if (triggered.length === 0) return
+
+  const totalAnteil = triggered.reduce((s, e) => s + e.anteil, 0)
+  if (totalAnteil <= 0) return
+
+  const blended = triggered.reduce((s, e) => s + e.preis * (e.anteil / totalAnteil), 0)
+  await supabase
+    .from('trades')
+    .update({ einstiegspreis: Math.round(blended * 100000) / 100000 })
+    .eq('id', tradeId)
+
+  await recalcTradePerformance(tradeId)
+}
+
+export async function createTradeEntry(data: import('./types').TradeEntryFormData): Promise<void> {
+  const supabase = createAdminClient()
+  const { error } = await supabase.from('trade_entries').insert([data])
+  if (error) throw new Error(error.message)
+  await recalcBlendedEinstiegspreis(data.trade_fk)
+  revalidateTag('trades', 'max')
+  revalidatePath('/performance')
+  revalidatePath('/trades')
+  revalidatePath('/setups')
+}
+
+export async function updateTradeEntry(entryId: string, data: Partial<import('./types').TradeEntryFormData>): Promise<void> {
+  const supabase = createAdminClient()
+  const { data: existing } = await supabase
+    .from('trade_entries')
+    .select('trade_fk')
+    .eq('id', entryId)
+    .single()
+  const { error } = await supabase.from('trade_entries').update(data).eq('id', entryId)
+  if (error) throw new Error(error.message)
+  if (existing?.trade_fk) await recalcBlendedEinstiegspreis(existing.trade_fk)
+  revalidateTag('trades', 'max')
+  revalidatePath('/performance')
+  revalidatePath('/trades')
+  revalidatePath('/setups')
+}
+
+export async function deleteTradeEntry(entryId: string): Promise<void> {
+  const supabase = createAdminClient()
+  const { data: existing } = await supabase
+    .from('trade_entries')
+    .select('trade_fk')
+    .eq('id', entryId)
+    .single()
+  const { error } = await supabase.from('trade_entries').delete().eq('id', entryId)
+  if (error) throw new Error(error.message)
+  if (existing?.trade_fk) await recalcBlendedEinstiegspreis(existing.trade_fk)
+  revalidateTag('trades', 'max')
+  revalidatePath('/performance')
+  revalidatePath('/trades')
+  revalidatePath('/setups')
+}
+
+/** Bulk-save entries for a trade: deletes existing, inserts new ones */
+export async function saveTradeEntries(tradeFk: string, entries: Array<{ preis: number; anteil: number }>): Promise<void> {
+  const supabase = createAdminClient()
+  // Delete existing entries
+  await supabase.from('trade_entries').delete().eq('trade_fk', tradeFk)
+  // Insert new ones
+  if (entries.length > 0) {
+    const rows = entries.map((e, i) => ({
+      trade_fk: tradeFk,
+      nummer: i + 1,
+      preis: e.preis,
+      anteil: e.anteil,
+    }))
+    const { error } = await supabase.from('trade_entries').insert(rows)
+    if (error) throw new Error(error.message)
+  }
+  // Recalc blended price if any entries are already triggered
+  await recalcBlendedEinstiegspreis(tradeFk)
+  revalidateTag('trades', 'max')
+  revalidatePath('/performance')
+  revalidatePath('/trades')
+  revalidatePath('/setups')
 }
 
 // ── Chart Image Storage ────────────────────────────────────────
