@@ -167,7 +167,7 @@ export function buildEilmeldungHtml(trade: Trade): string {
   ${trade.analyse_text ? `
   <tr>
     <td style="padding:16px 24px;">
-      <p style="font-size:16px;color:#000;line-height:1.6;margin:0;white-space:pre-wrap;">${esc(trade.analyse_text)}</p>
+      <p style="font-size:16px;color:#000;line-height:1.6;margin:0;white-space:pre-wrap;">${escWithBold(trade.analyse_text)}</p>
     </td>
   </tr>` : ''}
 
@@ -207,4 +207,9 @@ function dataRow(label: string, value: string): string {
 
 function esc(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+/** Escape HTML + convert **bold** markdown to <strong> tags */
+function escWithBold(text: string): string {
+  return esc(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
 }
