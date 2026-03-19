@@ -11,7 +11,6 @@ export function buildEilmeldungHtml(trade: Trade): string {
   const dirLabel = trade.richtung ?? 'LONG'
   const dirArrow = isLong ? '▲' : '▼'
 
-  // TP data
   const tps = [
     { label: 'TP1', level: trade.tp1, weight: trade.tp1_gewichtung },
     { label: 'TP2', level: trade.tp2, weight: trade.tp2_gewichtung },
@@ -19,51 +18,50 @@ export function buildEilmeldungHtml(trade: Trade): string {
     { label: 'TP4', level: trade.tp4, weight: trade.tp4_gewichtung },
   ].filter(tp => tp.level != null)
 
-  // Entry points
-  const entries = (trade.entries ?? [])
-    .filter(e => e.preis > 0)
-    .sort((a, b) => a.nummer - b.nummer)
+  const entries = (trade.entries ?? []).filter(e => e.preis > 0).sort((a, b) => a.nummer - b.nummer)
 
-  // CRV
   const crvText = trade.risiko_reward_min != null && trade.risiko_reward_max != null
     ? `${trade.risiko_reward_min.toFixed(1)}-${trade.risiko_reward_max.toFixed(1)}`
-    : trade.risiko_reward_min != null
-    ? trade.risiko_reward_min.toFixed(1)
-    : '–'
+    : trade.risiko_reward_min != null ? trade.risiko_reward_min.toFixed(1) : '–'
 
-  // Current time HH:MM
   const now = new Date()
   const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} Uhr`
 
-  // Ticker
-  const ticker = trade.asset && trade.asset !== trade.asset_name ? trade.asset : null
+  const ticker = trade.asset ?? ''
+  // TradingView URL from ticker
+  const tvUrl = ticker ? `https://www.tradingview.com/symbols/${encodeURIComponent(ticker.replace('.', '-'))}/` : null
 
   return `<!DOCTYPE html>
 <html lang="de">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f4f4f4;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;color:#000000;">
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;color:#000;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:20px 0;">
 <tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:4px;overflow:hidden;">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:4px;overflow:hidden;">
 
   <!-- HEADER -->
   <tr>
     <td style="background:${dirColor};padding:14px 24px;">
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td><span style="color:#fff;font-size:14px;font-weight:700;letter-spacing:0.5px;">${dirArrow} ${dirLabel}</span></td>
-          <td align="right"><span style="color:#fff;font-size:12px;font-weight:600;letter-spacing:0.5px;">EILMELDUNG</span></td>
-        </tr>
-      </table>
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td><span style="color:#fff;font-size:14px;font-weight:700;letter-spacing:0.5px;">${dirArrow} ${dirLabel}</span></td>
+        <td align="right"><span style="color:#fff;font-size:12px;font-weight:600;letter-spacing:0.5px;">EILMELDUNG</span></td>
+      </tr></table>
     </td>
   </tr>
 
-  <!-- ASSET NAME + TICKER + KURS -->
+  <!-- ASSET + TICKER + KURS -->
   <tr>
     <td style="padding:20px 24px 4px;">
       <h1 style="margin:0;font-size:22px;font-weight:700;color:#000;">
-        ${esc(trade.asset_name || trade.asset)}${ticker ? ` <span style="font-size:14px;font-weight:500;color:#71717a;">(${esc(ticker)})</span>` : ''}
+        ${esc(trade.asset_name || trade.asset)}
       </h1>
+      <p style="margin:4px 0 0;font-size:13px;color:#71717a;">
+        ${tvUrl
+          ? `<a href="${tvUrl}" style="color:#3b82f6;text-decoration:none;font-weight:600;">${esc(ticker)}</a>`
+          : esc(ticker)
+        }
+        · ${esc(trade.asset_klasse)}${trade.profil ? ` · ${trade.profil}` : ''}
+      </p>
       ${trade.aktueller_kurs ? `
       <p style="margin:4px 0 0;font-size:14px;color:#4d4d4d;">
         Kurs aktuell: <strong>${formatPrice(trade.aktueller_kurs)}</strong> · ${timeStr}
@@ -97,55 +95,47 @@ export function buildEilmeldungHtml(trade: Trade): string {
     </td>
   </tr>` : ''}
 
-  <!-- TAKE PROFIT — compact tiles -->
+  <!-- TAKE PROFIT TILES -->
   ${tps.length > 0 ? `
   <tr>
     <td style="padding:8px 24px;">
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td width="120" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:6px;">Take Profit</td>
-          <td>
-            <table cellpadding="0" cellspacing="0" width="100%">
-              <tr>
-                ${tps.map((tp, i) => `
-                <td width="${Math.floor(100 / tps.length)}%" style="padding:0 ${i < tps.length - 1 ? '3' : '0'}px 0 ${i > 0 ? '3' : '0'}px;vertical-align:top;">
-                  <div style="background:#ecfdf5;border-radius:6px;padding:8px 10px;">
-                    <table width="100%" cellpadding="0" cellspacing="0"><tr>
-                      <td style="font-size:11px;font-weight:700;color:#059669;">${tp.label}</td>
-                      ${tp.weight != null ? `<td align="right" style="font-size:11px;color:#71717a;font-weight:500;">${Math.round(tp.weight * 100)}%</td>` : ''}
-                    </tr></table>
-                    <div style="font-family:monospace;font-size:15px;font-weight:700;color:#000;margin-top:2px;">${formatPrice(tp.level)}</div>
-                  </div>
-                </td>`).join('')}
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td width="120" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:6px;">Take Profit</td>
+        <td>
+          <table cellpadding="0" cellspacing="0" width="100%"><tr>
+            ${tps.map((tp, i) => `
+            <td width="${Math.floor(100 / tps.length)}%" style="padding:0 ${i < tps.length - 1 ? '3' : '0'}px 0 ${i > 0 ? '3' : '0'}px;vertical-align:top;">
+              <div style="background:#ecfdf5;border-radius:6px;padding:8px 10px;text-align:center;">
+                <div style="font-size:11px;font-weight:700;color:#059669;">${tp.label}</div>
+                <div style="font-family:monospace;font-size:15px;font-weight:700;color:#000;margin:3px 0;">${formatPrice(tp.level)}</div>
+                ${tp.weight != null ? `<div style="font-size:12px;font-weight:600;color:#4d4d4d;">(${Math.round(tp.weight * 100)}%)</div>` : ''}
+              </div>
+            </td>`).join('')}
+          </tr></table>
+        </td>
+      </tr></table>
     </td>
   </tr>` : ''}
 
   <tr><td style="padding:8px 24px;"><hr style="border:none;border-top:1px solid #d0d0d0;margin:0;"></td></tr>
 
-  <!-- CRV / ZEITEINHEIT / DAUER — clean 3-column -->
+  <!-- CRV / ZEITEINHEIT / DAUER -->
   <tr>
     <td style="padding:12px 24px;">
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td width="33%" style="vertical-align:top;">
-            <div style="font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">CRV</div>
-            <div style="font-size:15px;font-weight:700;color:#000;">${crvText}</div>
-          </td>
-          <td width="33%" style="vertical-align:top;">
-            <div style="font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">Zeiteinheit</div>
-            <div style="font-size:15px;font-weight:700;color:#000;">${esc(trade.zeiteinheit ?? '–')}</div>
-          </td>
-          <td width="33%" style="vertical-align:top;">
-            <div style="font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">Dauer</div>
-            <div style="font-size:15px;font-weight:700;color:#000;">${esc(trade.dauer_erwartung ?? '–')}</div>
-          </td>
-        </tr>
-      </table>
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td width="33%" style="vertical-align:top;">
+          <div style="font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">&#x2937; CRV</div>
+          <div style="font-size:15px;font-weight:700;color:#000;">${crvText}</div>
+        </td>
+        <td width="33%" style="vertical-align:top;">
+          <div style="font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">&#x25F7; Zeiteinheit</div>
+          <div style="font-size:15px;font-weight:700;color:#000;">${esc(trade.zeiteinheit ?? '–')}</div>
+        </td>
+        <td width="33%" style="vertical-align:top;">
+          <div style="font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">Dauer</div>
+          <div style="font-size:15px;font-weight:700;color:#000;">${esc(trade.dauer_erwartung ?? '–')}</div>
+        </td>
+      </tr></table>
     </td>
   </tr>
 
@@ -180,7 +170,7 @@ export function buildEilmeldungHtml(trade: Trade): string {
     <td style="padding:8px 24px 16px;">
       <div style="background:#eff6ff;border-left:3px solid #3b82f6;padding:10px 14px;border-radius:0 4px 4px 0;">
         <p style="margin:0;font-size:13px;color:#1e40af;">
-          <strong>Hinweis:</strong> Dieses Setup stellt keine Anlageberatung dar. Jeder Trader handelt auf eigenes Risiko. Vergangene Ergebnisse sind kein Indikator für zukünftige Performance.
+          <strong>Hinweis:</strong> Dieses Setup stellt keine Anlageberatung dar. Jeder Trader handelt auf eigenes Risiko.
         </p>
       </div>
     </td>
@@ -198,19 +188,15 @@ export function buildEilmeldungHtml(trade: Trade): string {
   </tr>
 
 </table>
-</td></tr>
-</table>
-</body>
-</html>`
+</td></tr></table>
+</body></html>`
 }
 
 function dataRow(label: string, value: string): string {
-  return `<table width="100%" cellpadding="0" cellspacing="0">
-    <tr>
-      <td width="120" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:4px;">${label}</td>
-      <td>${value}</td>
-    </tr>
-  </table>`
+  return `<table width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td width="120" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:4px;">${label}</td>
+    <td>${value}</td>
+  </tr></table>`
 }
 
 function esc(text: string): string {
