@@ -98,6 +98,7 @@ export interface Trade {
   created_at: string
   updated_at: string
   analyse_text: string | null
+  tradingview_symbol: string | null
   eilmeldung_sent_at: string | null
   closes: TradeClose[]
   notes: TradeNote[]

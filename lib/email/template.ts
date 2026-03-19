@@ -28,8 +28,14 @@ export function buildEilmeldungHtml(trade: Trade): string {
   const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} Uhr`
 
   const ticker = trade.asset ?? ''
-  // TradingView URL from ticker
-  const tvUrl = ticker ? `https://www.tradingview.com/symbols/${encodeURIComponent(ticker.replace('.', '-'))}/` : null
+  // TradingView URL: use dedicated tradingview_symbol if set, otherwise fallback to asset ticker
+  const tvSymbol = trade.tradingview_symbol
+  const tvUrl = tvSymbol
+    ? `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol)}`
+    : ticker
+    ? `https://www.tradingview.com/symbols/${encodeURIComponent(ticker.replace('.', '-'))}/`
+    : null
+  const tvDisplayLabel = tvSymbol || ticker
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -57,8 +63,8 @@ export function buildEilmeldungHtml(trade: Trade): string {
       </h1>
       <p style="margin:4px 0 0;font-size:13px;color:#71717a;">
         ${tvUrl
-          ? `<a href="${tvUrl}" style="color:#3b82f6;text-decoration:none;font-weight:600;">${esc(ticker)}</a>`
-          : esc(ticker)
+          ? `<a href="${tvUrl}" style="color:#3b82f6;text-decoration:none;font-weight:600;">${esc(tvDisplayLabel)}</a> · Chart öffnen`
+          : esc(tvDisplayLabel)
         }
         · ${esc(trade.asset_klasse)}${trade.profil ? ` · ${trade.profil}` : ''}
       </p>

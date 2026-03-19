@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { tradeSchema, toNullableNumber, toNullableString, type TradeSchemaValues } from '@/lib/schemas'
 import { createTrade, updateTrade, uploadChartImage, deleteChartImage, saveTradeEntries } from '@/lib/actions'
-import { fetchInstrumentPrice } from '@/lib/price-actions'
+import { fetchInstrumentPrice, searchTradingView } from '@/lib/price-actions'
 import { ASSET_CLASSES, TRADE_DIRECTIONS, TRADING_PROFILES } from '@/lib/constants'
 import { INSTRUMENTS } from '@/lib/asset-mapping'
 import { Button } from '@/components/ui/button'
@@ -80,6 +80,26 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     }
     return { tp1: 100, tp2: '', tp3: '', tp4: '' }
   })
+  const [tvSymbol, setTvSymbol] = useState(setup?.tradingview_symbol ?? '')
+  const [tvSearch, setTvSearch] = useState('')
+  const [tvResults, setTvResults] = useState<Awaited<ReturnType<typeof searchTradingView>>>([])
+  const [tvSearching, setTvSearching] = useState(false)
+  const tvTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function handleTvSearch(query: string) {
+    setTvSearch(query)
+    if (tvTimeoutRef.current) clearTimeout(tvTimeoutRef.current)
+    if (query.length < 2) { setTvResults([]); return }
+    tvTimeoutRef.current = setTimeout(async () => {
+      setTvSearching(true)
+      try {
+        const results = await searchTradingView(query)
+        setTvResults(results)
+      } catch { setTvResults([]) }
+      finally { setTvSearching(false) }
+    }, 300)
+  }
+
   const [entryPoints, setEntryPoints] = useState<Array<{ preis: string; anteil: string }>>(() => {
     if (setup?.entries && setup.entries.length > 0) {
       return setup.entries
@@ -270,6 +290,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         dauer_erwartung: values.dauer_erwartung ?? null,
         bemerkungen: values.bemerkungen ?? null,
         analyse_text: values.analyse_text ?? null,
+        tradingview_symbol: tvSymbol || null,
         chart_bild_url: imageUrl,
       }
       // Parse entry points for saving
@@ -345,6 +366,65 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           />
         </Field>
       </div>
+
+      {/* TradingView Symbol */}
+      <Field label="TradingView-Symbol (für Chart-Link in E-Mail)">
+        <div className="relative">
+          {tvSymbol ? (
+            <div className="flex items-center gap-2">
+              <a
+                href={`https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 border border-blue-200 px-3 py-1.5 text-sm font-mono font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
+              >
+                {tvSymbol}
+                <span className="text-xs font-normal text-blue-500">↗</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => { setTvSymbol(''); setTvSearch('') }}
+                className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+              >
+                Ändern
+              </button>
+            </div>
+          ) : (
+            <>
+              <Input
+                placeholder="z.B. Gold, XAUUSD, DAX..."
+                value={tvSearch}
+                onChange={(e) => handleTvSearch(e.target.value)}
+              />
+              {tvSearching && (
+                <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+              )}
+              {tvResults.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md max-h-[200px] overflow-y-auto">
+                  {tvResults.map((r) => (
+                    <button
+                      key={r.fullSymbol}
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center justify-between"
+                      onClick={() => {
+                        setTvSymbol(r.fullSymbol)
+                        setTvSearch('')
+                        setTvResults([])
+                      }}
+                    >
+                      <div>
+                        <span className="font-mono font-semibold">{r.fullSymbol}</span>
+                        <span className="ml-2 text-muted-foreground">{r.description}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{r.type}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </Field>
 
       {/* Row 2: Bezeichnung, Klasse, Richtung, Profil */}
       <div className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-3 items-end">

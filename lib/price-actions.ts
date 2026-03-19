@@ -814,3 +814,45 @@ export async function searchInstruments(query: string): Promise<{
     return []
   }
 }
+
+// ── TradingView Symbol Search ──────────────────────────────────
+
+export async function searchTradingView(query: string): Promise<{
+  symbol: string       // e.g. "GOLD"
+  exchange: string     // e.g. "TVC"
+  fullSymbol: string   // e.g. "TVC:GOLD"
+  description: string
+  type: string
+  url: string          // TradingView chart URL
+}[]> {
+  if (!query || query.trim().length < 2) return []
+
+  try {
+    const url = `https://symbol-search.tradingview.com/symbol_search/?text=${encodeURIComponent(query.trim())}&hl=0&exchange=&lang=de&type=&domain=production`
+    const response = await fetch(url, {
+      headers: {
+        'Origin': 'https://www.tradingview.com',
+        'Referer': 'https://www.tradingview.com/',
+      },
+    })
+    const data = await response.json()
+
+    if (!Array.isArray(data)) return []
+
+    return data.slice(0, 8).map((r: { symbol: string; exchange: string; description: string; type: string; prefix?: string }) => {
+      const exchange = r.prefix || r.exchange
+      const fullSymbol = `${exchange}:${r.symbol}`
+      return {
+        symbol: r.symbol,
+        exchange,
+        fullSymbol,
+        description: r.description.replace(/<\/?em>/g, ''),
+        type: r.type,
+        url: `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(fullSymbol)}`,
+      }
+    })
+  } catch (error) {
+    console.error('TradingView search error:', error)
+    return []
+  }
+}
