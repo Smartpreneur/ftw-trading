@@ -20,7 +20,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import type { Trade } from '@/lib/types'
 import { toast } from 'sonner'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 
 interface TradeFormProps {
   trade?: Trade
@@ -50,6 +50,7 @@ const asNullableStr = (v: unknown) => toNullableString(v)
 
 export function TradeForm({ trade, onSuccess }: TradeFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const submittingRef = useRef(false)
   const [gewichtungPct, setGewichtungPct] = useState(
     Math.round((trade?.gewichtung ?? 1) * 100)
   )
@@ -128,6 +129,8 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
   })
 
   async function onSubmit(values: TradeSchemaValues) {
+    if (submittingRef.current) return
+    submittingRef.current = true
     setIsSubmitting(true)
     try {
       // Detect if TP/SL levels changed (for reference-date-aware auto-detection)
@@ -173,6 +176,7 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
     } catch (err: any) {
       toast.error(err?.message ?? 'Fehler beim Speichern')
     } finally {
+      submittingRef.current = false
       setIsSubmitting(false)
     }
   }

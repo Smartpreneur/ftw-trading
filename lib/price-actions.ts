@@ -359,19 +359,12 @@ async function checkAndUpdateTPSL(
     .update(updates)
     .eq('id', trade.id)
 
-  // Auto-create trade_close entries for newly hit TPs
+  // Auto-create trade_close entries for newly hit TPs.
+  // Uses insert with conflict handling — the unique partial index
+  // (trade_fk, typ) WHERE typ IN ('TP1','TP2','TP3','TP4','SL')
+  // prevents duplicates even under concurrent requests.
   for (const tp of newlyHitTPs) {
-    // Check if a close for this TP type already exists (idempotency)
-    const { data: existing } = await supabase
-      .from('trade_closes')
-      .select('id')
-      .eq('trade_fk', trade.id)
-      .eq('typ', tp.typ)
-      .limit(1)
-
-    if (existing && existing.length > 0) continue
-
-    await supabase
+    const { error: insertErr } = await supabase
       .from('trade_closes')
       .insert({
         trade_fk: trade.id,
@@ -379,8 +372,13 @@ async function checkAndUpdateTPSL(
         typ: tp.typ,
         datum: tp.datum,
         ausstiegspreis: tp.level,
-        anteil: tp.gewichtung ?? 0.25, // fallback to 25% if no weight defined
+        anteil: tp.gewichtung ?? 0.25,
       })
+
+    // Ignore unique constraint violation (concurrent request already inserted)
+    if (insertErr && !insertErr.code?.startsWith('23505')) {
+      console.error(`Error inserting ${tp.typ} close for trade ${trade.id}:`, insertErr)
+    }
   }
 
   // Determine if SL was hit (newly or already)
@@ -408,25 +406,19 @@ async function checkAndUpdateTPSL(
 
     if (slHit) {
       // SL hit → close as Ausgestoppt, create SL close entry if not exists
-      const { data: existingSL } = await supabase
+      // Calculate remaining anteil: 1 - sum of existing TP closes
+      const { data: existingCloses } = await supabase
         .from('trade_closes')
-        .select('id')
+        .select('anteil, typ')
         .eq('trade_fk', trade.id)
-        .eq('typ', 'SL')
-        .limit(1)
 
-      if (!existingSL || existingSL.length === 0) {
-        // Calculate remaining anteil: 1 - sum of existing TP closes
-        const { data: existingCloses } = await supabase
-          .from('trade_closes')
-          .select('anteil')
-          .eq('trade_fk', trade.id)
-
+      const hasSL = (existingCloses ?? []).some(c => c.typ === 'SL')
+      if (!hasSL) {
         const usedAnteil = (existingCloses ?? []).reduce((sum, c) => sum + (c.anteil ?? 0), 0)
         const remainingAnteil = Math.max(0, 1 - usedAnteil)
 
         if (remainingAnteil > 0) {
-          await supabase
+          const { error: slErr } = await supabase
             .from('trade_closes')
             .insert({
               trade_fk: trade.id,
@@ -435,6 +427,11 @@ async function checkAndUpdateTPSL(
               ausstiegspreis: trade.stop_loss,
               anteil: parseFloat(remainingAnteil.toFixed(4)),
             })
+
+          // Ignore unique constraint violation (concurrent request already inserted)
+          if (slErr && !slErr.code?.startsWith('23505')) {
+            console.error(`Error inserting SL close for trade ${trade.id}:`, slErr)
+          }
         }
       }
 

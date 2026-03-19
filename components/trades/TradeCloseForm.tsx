@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select'
 import type { TradeClose } from '@/lib/types'
 import { toast } from 'sonner'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Trash2 } from 'lucide-react'
 
 const CLOSE_TYPES = ['TP1', 'TP2', 'TP3', 'TP4', 'SL', 'Manuell'] as const
@@ -48,6 +48,7 @@ function Field({
 export function TradeCloseForm({ tradeFk, close, onSuccess }: TradeCloseFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const submittingRef = useRef(false)
 
   const {
     register,
@@ -71,6 +72,8 @@ export function TradeCloseForm({ tradeFk, close, onSuccess }: TradeCloseFormProp
   })
 
   async function onSubmit(values: TradeCloseSchemaValues) {
+    if (submittingRef.current) return
+    submittingRef.current = true
     setIsSubmitting(true)
     try {
       const payload = {
@@ -89,6 +92,7 @@ export function TradeCloseForm({ tradeFk, close, onSuccess }: TradeCloseFormProp
     } catch (err: any) {
       toast.error(err?.message ?? 'Fehler beim Speichern')
     } finally {
+      submittingRef.current = false
       setIsSubmitting(false)
     }
   }

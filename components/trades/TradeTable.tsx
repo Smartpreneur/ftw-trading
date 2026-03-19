@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { TradeDialog } from './TradeDialog'
+import { TradeCloseDialog } from './TradeCloseDialog'
 import { StatusBadge } from './StatusBadge'
 import { DirectionBadge } from './DirectionBadge'
 import { ASSET_CLASSES, TRADE_LIST_STATUSES, TRADER_NAMES } from '@/lib/constants'
@@ -23,8 +24,28 @@ import type { TradeWithPerformance, TradingProfile, TradeStatus, AssetClass } fr
 import { Pencil, Plus, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+type ViewMode = 'trades' | 'closes'
 type SortField = 'id' | 'eroeffnung' | 'schliessung' | 'asset' | 'klasse' | 'richtung' | 'status' | 'performance'
 type SortOrder = 'asc' | 'desc'
+
+interface DisplayRow {
+  /** Original trade data (for rendering shared columns) */
+  trade: TradeWithPerformance
+  /** If this row represents a single close, its close ID */
+  closeId: string | null
+  /** Close type label, e.g. "TP1", "SL" */
+  closeTyp: string | null
+  /** Close-specific exit price (null = use trade-level) */
+  closeAusstiegspreis: number | null
+  /** Close-specific date (null = use trade-level) */
+  closeDatum: string | null
+  /** Close-specific performance % */
+  closePerformance: number | null
+  /** Close anteil (0-1) */
+  closeAnteil: number | null
+  /** Unique key for React */
+  key: string
+}
 
 interface TradeTableProps {
   trades: TradeWithPerformance[]
@@ -35,17 +56,17 @@ interface TradeTableProps {
 
 export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin = false }: TradeTableProps) {
   const profileOptions = availableProfiles ?? ACTIVE_PROFILES
+  const [viewMode, setViewMode] = useState<ViewMode>('trades')
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string[]>(TRADE_LIST_STATUSES)
   const [filterDirection, setFilterDirection] = useState<string[]>(['LONG', 'SHORT'])
   const [filterAssetClass, setFilterAssetClass] = useState<string[]>(ASSET_CLASSES)
   const [filterTrader, setFilterTrader] = useState<string[]>(initialProfiles ?? profileOptions)
-  const [sortBy, setSortBy] = useState<SortField>('id')
+  const [sortBy, setSortBy] = useState<SortField>('schliessung')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
   const filtered = useMemo(() => {
-    // Filter
-    let result = trades.filter((t) => {
+    return trades.filter((t) => {
       if (search && !(t.asset_name || t.asset).toLowerCase().includes(search.toLowerCase())) return false
       if (filterStatus.length > 0 && filterStatus.length < TRADE_LIST_STATUSES.length && !filterStatus.includes(t.status)) return false
       if (filterDirection.length > 0 && filterDirection.length < 2 && t.richtung && !filterDirection.includes(t.richtung)) return false
@@ -53,50 +74,119 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
       if (filterTrader.length > 0 && filterTrader.length < profileOptions.length && !filterTrader.includes(t.profil)) return false
       return true
     })
+  }, [trades, search, filterStatus, filterDirection, filterAssetClass, filterTrader, profileOptions])
 
-    // Sort
-    result.sort((a, b) => {
+  /** Build display rows: in closes mode, expand trades with closes into individual rows */
+  const rows: DisplayRow[] = useMemo(() => {
+    if (viewMode === 'trades') {
+      return filtered.map((t) => ({
+        trade: t,
+        closeId: null,
+        closeTyp: null,
+        closeAusstiegspreis: null,
+        closeDatum: null,
+        closePerformance: null,
+        closeAnteil: null,
+        key: t.id,
+      }))
+    }
+
+    // Closes mode: expand each trade into its close rows
+    const result: DisplayRow[] = []
+    for (const trade of filtered) {
+      const validCloses = (trade.closes ?? []).filter(
+        (c) => c.ausstiegspreis != null && c.anteil != null
+      )
+
+      if (validCloses.length === 0) {
+        // No closes — show as single row (same as trade view)
+        result.push({
+          trade,
+          closeId: null,
+          closeTyp: null,
+          closeAusstiegspreis: null,
+          closeDatum: null,
+          closePerformance: null,
+          closeAnteil: null,
+          key: trade.id,
+        })
+        continue
+      }
+
+      const sorted = [...validCloses].sort((a, b) => (a.nummer ?? 0) - (b.nummer ?? 0))
+      for (const close of sorted) {
+        let perf: number | null = null
+        if (trade.einstiegspreis && trade.richtung && close.ausstiegspreis != null) {
+          const raw = trade.richtung === 'LONG'
+            ? ((close.ausstiegspreis - trade.einstiegspreis) / trade.einstiegspreis) * 100
+            : ((trade.einstiegspreis - close.ausstiegspreis) / trade.einstiegspreis) * 100
+          perf = Math.round(raw * 100) / 100
+        }
+
+        result.push({
+          trade,
+          closeId: close.id,
+          closeTyp: close.typ,
+          closeAusstiegspreis: close.ausstiegspreis,
+          closeDatum: close.datum,
+          closePerformance: perf,
+          closeAnteil: close.anteil,
+          key: `${trade.id}-${close.id}`,
+        })
+      }
+    }
+    return result
+  }, [filtered, viewMode])
+
+  /** Sort the display rows */
+  const sortedRows = useMemo(() => {
+    const copy = [...rows]
+    copy.sort((a, b) => {
       let comparison = 0
+      const at = a.trade
+      const bt = b.trade
 
       switch (sortBy) {
-        case 'id': {
-          comparison = (a.trade_id || 0) - (b.trade_id || 0)
+        case 'id':
+          comparison = (at.trade_id || 0) - (bt.trade_id || 0)
+          break
+        case 'eroeffnung':
+          comparison = (at.datum_eroeffnung || '').localeCompare(bt.datum_eroeffnung || '')
+          break
+        case 'schliessung': {
+          const dateA = a.closeDatum || at.effective_datum_schliessung || at.datum_schliessung || ''
+          const dateB = b.closeDatum || bt.effective_datum_schliessung || bt.datum_schliessung || ''
+          // No close date = active trades → sort to top (desc) or bottom (asc)
+          if (!dateA && !dateB) { comparison = 0; break }
+          if (!dateA) { comparison = 1; break }
+          if (!dateB) { comparison = -1; break }
+          comparison = dateA.localeCompare(dateB)
           break
         }
-        case 'eroeffnung':
-          comparison = (a.datum_eroeffnung || '').localeCompare(b.datum_eroeffnung || '')
-          break
-        case 'schliessung':
-          comparison = (a.effective_datum_schliessung || a.datum_schliessung || '').localeCompare(b.effective_datum_schliessung || b.datum_schliessung || '')
-          break
         case 'asset':
-          comparison = (a.asset_name || a.asset).localeCompare(b.asset_name || b.asset)
+          comparison = (at.asset_name || at.asset).localeCompare(bt.asset_name || bt.asset)
           break
         case 'klasse':
-          comparison = a.asset_klasse.localeCompare(b.asset_klasse)
+          comparison = at.asset_klasse.localeCompare(bt.asset_klasse)
           break
-        case 'richtung': {
-          const aDir = a.richtung || ''
-          const bDir = b.richtung || ''
-          comparison = aDir.localeCompare(bDir)
+        case 'richtung':
+          comparison = (at.richtung || '').localeCompare(bt.richtung || '')
           break
-        }
         case 'status':
-          comparison = a.status.localeCompare(b.status)
+          comparison = at.status.localeCompare(bt.status)
           break
         case 'performance': {
-          const aPerf = a.performance_pct ?? -Infinity
-          const bPerf = b.performance_pct ?? -Infinity
-          comparison = aPerf - bPerf
+          const perfA = (a.closePerformance ?? a.trade.performance_pct) ?? -Infinity
+          const perfB = (b.closePerformance ?? b.trade.performance_pct) ?? -Infinity
+          comparison = perfA - perfB
           break
         }
       }
 
       return sortOrder === 'asc' ? comparison : -comparison
     })
-
-    return result
-  }, [trades, search, filterStatus, filterDirection, filterAssetClass, filterTrader, sortBy, sortOrder])
+    return copy
+  }, [rows, sortBy, sortOrder])
 
   const hasFilters =
     search ||
@@ -133,9 +223,36 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
     )
   }
 
+  const isClosesView = viewMode === 'closes'
 
   return (
     <div className="space-y-4">
+      {/* View toggle */}
+      <div className="inline-flex rounded-lg border bg-muted p-0.5">
+        <button
+          onClick={() => setViewMode('trades')}
+          className={cn(
+            'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+            viewMode === 'trades'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          Trades
+        </button>
+        <button
+          onClick={() => setViewMode('closes')}
+          className={cn(
+            'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+            viewMode === 'closes'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          Teilschließungen
+        </button>
+      </div>
+
       {/* Toolbar */}
       <div className="flex flex-wrap items-end gap-2">
         {/* Search */}
@@ -212,7 +329,7 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
 
       {/* Count */}
       <p className="text-sm text-muted-foreground">
-        {filtered.length} {filtered.length === 1 ? 'Trade' : 'Trades'}
+        {sortedRows.length} {isClosesView ? (sortedRows.length === 1 ? 'Eintrag' : 'Einträge') : (sortedRows.length === 1 ? 'Trade' : 'Trades')}
         {hasFilters && ` (gefiltert von ${trades.length})`}
       </p>
 
@@ -257,6 +374,8 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
                   <SortIcon field="asset" />
                 </button>
               </TableHead>
+              {isClosesView && <TableHead className="w-16">Typ</TableHead>}
+              {isClosesView && <TableHead className="w-16 text-right">Anteil</TableHead>}
               <TableHead>
                 <button
                   onClick={() => toggleSort('klasse')}
@@ -284,15 +403,17 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
                   <SortIcon field="performance" />
                 </button>
               </TableHead>
-              <TableHead>
-                <button
-                  onClick={() => toggleSort('status')}
-                  className="flex items-center hover:text-foreground transition-colors"
-                >
-                  Status
-                  <SortIcon field="status" />
-                </button>
-              </TableHead>
+              {!isClosesView && (
+                <TableHead>
+                  <button
+                    onClick={() => toggleSort('status')}
+                    className="flex items-center hover:text-foreground transition-colors"
+                  >
+                    Status
+                    <SortIcon field="status" />
+                  </button>
+                </TableHead>
+              )}
               <TableHead className="text-right">Einstieg</TableHead>
               <TableHead className="text-right">Ausstieg</TableHead>
               <TableHead>Trader</TableHead>
@@ -300,86 +421,133 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {sortedRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 12 : 11} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={isAdmin ? 14 : 13} className="h-24 text-center text-muted-foreground">
                   {hasFilters ? 'Keine Trades für diese Filter' : 'Noch keine Trades vorhanden'}
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((trade) => (
-                <TableRow key={trade.id} className="group">
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {trade.trade_id}
-                  </TableCell>
-                  <TableCell className="text-sm whitespace-nowrap">
-                    {formatDate(trade.datum_eroeffnung)}
-                  </TableCell>
-                  <TableCell className="text-sm whitespace-nowrap">
-                    {formatDate(trade.effective_datum_schliessung ?? trade.datum_schliessung)}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <span title={trade.asset}>{trade.asset_name || trade.asset}</span>
-                    {trade.gewichtung < 1 && (
-                      <span className="ml-1.5 text-[10px] text-muted-foreground font-normal">
-                        {Math.round(trade.gewichtung * 100)}%
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="text-xs">
-                      {trade.asset_klasse}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <DirectionBadge direction={trade.richtung ?? 'LONG'} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {trade.performance_pct !== null ? (
-                      <span
-                        className={cn(
-                          'font-semibold text-sm',
-                          trade.performance_pct > 0
-                            ? 'text-emerald-600'
-                            : trade.performance_pct < 0
-                            ? 'text-rose-600'
-                            : 'text-muted-foreground'
-                        )}
-                      >
-                        {formatPercent(trade.performance_pct)}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">–</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={trade.status} />
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {formatPrice(trade.einstiegspreis)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {formatPrice(trade.effective_ausstiegspreis ?? trade.ausstiegspreis)}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                    {TRADER_NAMES[trade.profil] ?? trade.profil}
-                  </TableCell>
-                  {isAdmin && (
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <TradeDialog
-                          trade={trade}
-                          trigger={
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                          }
-                        />
-                      </div>
+              sortedRows.map((row) => {
+                const trade = row.trade
+                const perf = row.closePerformance ?? trade.performance_pct
+                const exitPrice = row.closeAusstiegspreis ?? (isClosesView ? null : (trade.effective_ausstiegspreis ?? trade.ausstiegspreis))
+                const closeDate = row.closeDatum ?? trade.effective_datum_schliessung ?? trade.datum_schliessung
+
+                return (
+                  <TableRow key={row.key} className="group">
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {trade.trade_id}
                     </TableCell>
-                  )}
-                </TableRow>
-              ))
+                    <TableCell className="text-sm whitespace-nowrap">
+                      {formatDate(trade.datum_eroeffnung)}
+                    </TableCell>
+                    <TableCell className="text-sm whitespace-nowrap">
+                      {formatDate(closeDate)}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <span title={trade.asset}>{trade.asset_name || trade.asset}</span>
+                      {!isClosesView && trade.gewichtung < 1 && (
+                        <span className="ml-1.5 text-[10px] text-muted-foreground font-normal">
+                          {Math.round(trade.gewichtung * 100)}%
+                        </span>
+                      )}
+                    </TableCell>
+                    {isClosesView && (
+                      <TableCell>
+                        {row.closeTyp ? (
+                          <span className={cn(
+                            'text-xs font-semibold',
+                            row.closeTyp === 'SL' ? 'text-rose-600' : 'text-emerald-600'
+                          )}>
+                            {row.closeTyp}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">–</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {isClosesView && (
+                      <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
+                        {row.closeAnteil != null
+                          ? `${Math.round(row.closeAnteil * 100)}%`
+                          : '–'}
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      <Badge variant="secondary" className="text-xs">
+                        {trade.asset_klasse}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DirectionBadge direction={trade.richtung ?? 'LONG'} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {perf !== null ? (
+                        <span
+                          className={cn(
+                            'font-semibold text-sm',
+                            perf > 0
+                              ? 'text-emerald-600'
+                              : perf < 0
+                              ? 'text-rose-600'
+                              : 'text-muted-foreground'
+                          )}
+                        >
+                          {formatPercent(perf)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">–</span>
+                      )}
+                    </TableCell>
+                    {!isClosesView && (
+                      <TableCell>
+                        <StatusBadge status={trade.status} />
+                      </TableCell>
+                    )}
+                    <TableCell className="text-right font-mono text-sm">
+                      {formatPrice(trade.einstiegspreis)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      {formatPrice(exitPrice)}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      {TRADER_NAMES[trade.profil] ?? trade.profil}
+                    </TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {row.closeId ? (
+                            (() => {
+                              const tradeClose = (trade.closes ?? []).find((c) => c.id === row.closeId) ?? null
+                              return tradeClose ? (
+                                <TradeCloseDialog
+                                  tradeFk={trade.id}
+                                  close={tradeClose}
+                                  trigger={
+                                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    </Button>
+                                  }
+                                />
+                              ) : null
+                            })()
+                          ) : (
+                            <TradeDialog
+                              trade={trade}
+                              trigger={
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              }
+                            />
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>
