@@ -35,7 +35,7 @@ type AnalyticsData = {
 type OrderRow = {
   order_id: string
   ordered_at: string
-  is_new_order: boolean
+  is_new_order: string
   amount: number
   campaign_id: string | null
   plan_name: string | null
@@ -242,7 +242,9 @@ export function InternDashboard() {
     : (data.orders || []).filter(o => rangeDays.includes(o.ordered_at?.slice(0, 10) || ''))
   const displayOrderCount = filteredOrders.length
   const displayRevenue = filteredOrders.reduce((s, o) => s + (Number(o.amount) || 0), 0)
-  const displayNewOrders = filteredOrders.filter(o => o.is_new_order).length
+  const isNewOrder = (v: string) => v === 'true' || v === 'TRUE'
+  const isCancellation = (v: string) => !isNewOrder(v) && v !== 'false'
+  const displayNewOrders = filteredOrders.filter(o => isNewOrder(o.is_new_order)).length
 
   const displayOrdersByCampaign: Record<string, { count: number; revenue: number; newOrders: number }> = {}
   const displayOrdersByPlan: Record<string, { count: number; revenue: number; unitPrice: number; arr: number; multiplier: number }> = {}
@@ -251,7 +253,7 @@ export function InternDashboard() {
     if (!displayOrdersByCampaign[cid]) displayOrdersByCampaign[cid] = { count: 0, revenue: 0, newOrders: 0 }
     displayOrdersByCampaign[cid].count++
     displayOrdersByCampaign[cid].revenue += Number(o.amount) || 0
-    if (o.is_new_order) displayOrdersByCampaign[cid].newOrders++
+    if (isNewOrder(o.is_new_order)) displayOrdersByCampaign[cid].newOrders++
     const plan = shortenPlan(o.plan_name || 'Unbekannt')
     const amount = Number(o.amount) || 0
     const mult = arrMultiplier(o.plan_name || '')
@@ -767,7 +769,7 @@ export function InternDashboard() {
                     <td>{o.campaign_id || '–'}</td>
                     <td>{o.country_code || '–'}</td>
                     <td>{o.payment_method || '–'}</td>
-                    <td>{o.is_new_order ? 'Ja' : 'Nein'}</td>
+                    <td>{isNewOrder(o.is_new_order) ? 'Ja' : isCancellation(o.is_new_order) ? o.is_new_order : 'Nein'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{Number(o.amount).toFixed(2).replace('.', ',')}&nbsp;&euro;</td>
                   </tr>
                 ))}

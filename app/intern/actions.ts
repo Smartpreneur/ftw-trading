@@ -22,7 +22,7 @@ type UtmEntry = {
 }
 
 type OrderRow = {
-  order_id: string; ordered_at: string; is_new_order: boolean; amount: number;
+  order_id: string; ordered_at: string; is_new_order: string; amount: number;
   campaign_id: string | null; plan_name: string | null; country_code: string | null;
   payment_method: string | null;
 }
@@ -207,7 +207,7 @@ const computeAnalytics = unstable_cache(
       if (!ordersByCampaign[cid]) ordersByCampaign[cid] = { count: 0, revenue: 0, newOrders: 0 }
       ordersByCampaign[cid].count++
       ordersByCampaign[cid].revenue += Number(o.amount) || 0
-      if (o.is_new_order) ordersByCampaign[cid].newOrders++
+      if (o.is_new_order === 'true' || o.is_new_order === 'TRUE') ordersByCampaign[cid].newOrders++
     }
 
     return {

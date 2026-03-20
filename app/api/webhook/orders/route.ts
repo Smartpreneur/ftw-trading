@@ -47,9 +47,9 @@ export async function POST(req: NextRequest) {
     orderedAt = new Date().toISOString()
   }
 
-  // Boolean: TRUE/true/"TRUE"/1 → true
-  const rawNew = body.is_new_order ?? body.Is_New_Order ?? true
-  const isNewOrder = rawNew === true || rawNew === 'TRUE' || rawNew === 'true' || rawNew === 1
+  // Rohwert als Text speichern (z.B. "TRUE", "Subscription_Cancelled")
+  const rawNew = body.is_new_order ?? body.Is_New_Order ?? 'true'
+  const isNewOrder = String(rawNew)
 
   // Amount: kann leer sein
   const rawAmount = body.amount || body.Amount || 0
