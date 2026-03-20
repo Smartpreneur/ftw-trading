@@ -204,7 +204,7 @@ export function buildEilmeldungHtml(trade: Trade): string {
             </a>
           </td>
           <td style="padding:0 8px;">
-            <a href="https://facebook.com/finanzmarktweltde-691614924190379/" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+            <a href="https://www.facebook.com/share/1FpWPtAYHB/" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
               <img src="https://cdn-images.mailchimp.com/icons/social-block-v3/block-icons-v3/facebook-filled-dark-40.png" alt="Facebook" width="24" height="24" style="display:block;" />
             </a>
           </td>
