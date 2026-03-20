@@ -1,5 +1,6 @@
 import type { Trade } from '@/lib/types'
 import { formatPrice } from '@/lib/formatters'
+import { TRADER_NAMES } from '@/lib/constants'
 
 /**
  * Builds an HTML email for a trade alert ("Eilmeldung").
@@ -50,7 +51,7 @@ export function buildEilmeldungHtml(trade: Trade): string {
     <td style="background:${dirColor};padding:14px 24px;">
       <table width="100%" cellpadding="0" cellspacing="0"><tr>
         <td><span style="color:#fff;font-size:14px;font-weight:700;letter-spacing:0.5px;">${dirArrow} ${dirLabel}</span></td>
-        <td align="right"><span style="color:#fff;font-size:12px;font-weight:600;letter-spacing:0.5px;">EILMELDUNG</span></td>
+        <td align="right"><span style="color:#fff;font-size:12px;font-weight:600;letter-spacing:0.5px;">EILMELDUNG ${esc(TRADER_NAMES[trade.profil] ?? trade.profil)}</span></td>
       </tr></table>
     </td>
   </tr>
@@ -63,10 +64,10 @@ export function buildEilmeldungHtml(trade: Trade): string {
       </h1>
       <p style="margin:4px 0 0;font-size:13px;color:#71717a;">
         ${tvUrl
-          ? `<a href="${tvUrl}" style="color:#3b82f6;text-decoration:none;font-weight:600;">${esc(tvDisplayLabel)}</a> · Chart öffnen`
+          ? `<a href="${tvUrl}" style="color:#3b82f6;text-decoration:none;font-weight:600;">${esc(tvDisplayLabel)}</a>`
           : esc(tvDisplayLabel)
         }
-        · ${esc(trade.asset_klasse)}${trade.profil ? ` · ${trade.profil}` : ''}
+        · ${esc(trade.asset_klasse)}
       </p>
       ${trade.aktueller_kurs ? `
       <p style="margin:4px 0 0;font-size:14px;color:#4d4d4d;">
