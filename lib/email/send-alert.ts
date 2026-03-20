@@ -64,10 +64,16 @@ export async function sendEilmeldung(tradeId: string): Promise<{ ok: boolean; er
     const campaignId = campaign.id
 
     // 2. Set campaign content
+    // If a Mailchimp template is configured, use it (template handles header/footer/social)
+    // Otherwise fall back to raw HTML
+    const templateId = process.env.MAILCHIMP_TEMPLATE_ID
+    const contentBody = templateId
+      ? { template: { id: parseInt(templateId, 10), sections: { body_content: html } } }
+      : { html }
     const contentRes = await fetch(`${baseUrl}/campaigns/${campaignId}/content`, {
       method: 'PUT',
       headers,
-      body: JSON.stringify({ html }),
+      body: JSON.stringify(contentBody),
     })
 
     if (!contentRes.ok) {

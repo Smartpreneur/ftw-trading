@@ -198,22 +198,22 @@ export function buildEilmeldungHtml(trade: Trade): string {
         <tr>
           <td style="padding:0 8px;">
             <a href="https://youtube.com/user/FinanzmarktWelt" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-              <img src="https://cdn-images.mailchimp.com/icons/social-block-v3/block-v3-youtube-48.png" alt="YouTube" width="24" height="24" style="display:block;" />
+              <img src="https://cdn-images.mailchimp.com/icons/social-block-v3/block-icons-v3/youtube-filled-dark-40.png" alt="YouTube" width="24" height="24" style="display:block;" />
             </a>
           </td>
           <td style="padding:0 8px;">
             <a href="https://x.com/finanzmarktwelt" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-              <img src="https://cdn-images.mailchimp.com/icons/social-block-v3/block-v3-x-48.png" alt="X" width="24" height="24" style="display:block;" />
+              <img src="https://cdn-images.mailchimp.com/icons/social-block-v3/block-icons-v3/twitter-filled-dark-40.png" alt="X" width="24" height="24" style="display:block;" />
             </a>
           </td>
           <td style="padding:0 8px;">
             <a href="https://instagram.com/finanzmarktwelt/" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-              <img src="https://cdn-images.mailchimp.com/icons/social-block-v3/block-v3-instagram-48.png" alt="Instagram" width="24" height="24" style="display:block;" />
+              <img src="https://cdn-images.mailchimp.com/icons/social-block-v3/block-icons-v3/instagram-filled-dark-40.png" alt="Instagram" width="24" height="24" style="display:block;" />
             </a>
           </td>
           <td style="padding:0 8px;">
             <a href="https://facebook.com/finanzmarktweltde-691614924190379/" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-              <img src="https://cdn-images.mailchimp.com/icons/social-block-v3/block-v3-facebook-48.png" alt="Facebook" width="24" height="24" style="display:block;" />
+              <img src="https://cdn-images.mailchimp.com/icons/social-block-v3/block-icons-v3/facebook-filled-dark-40.png" alt="Facebook" width="24" height="24" style="display:block;" />
             </a>
           </td>
         </tr>
