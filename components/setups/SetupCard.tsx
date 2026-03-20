@@ -25,6 +25,7 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
   const isLong = setup.richtung === 'LONG'
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
   const [sendEmail, setSendEmail] = useState(false)
 
@@ -49,7 +50,6 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
   }
 
   async function handleDelete() {
-    if (!confirm('Setup wirklich löschen?')) return
     setIsDeleting(true)
     try {
       if (setup.chart_bild_url) {
@@ -94,7 +94,7 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
               </div>
             )}
             {isAdmin && (
-              <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-0.5">
                 <SetupDialog
                   setup={setup}
                   trigger={
@@ -106,8 +106,8 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-destructive hover:text-destructive"
-                  onClick={handleDelete}
+                  className="h-7 w-7 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => setShowDeleteConfirm(true)}
                   disabled={isDeleting}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -273,6 +273,34 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
         <p className="text-xs text-muted-foreground">
           {formattedDate}
         </p>
+
+        {/* Delete confirmation */}
+        {showDeleteConfirm && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+            <p className="text-sm font-medium text-destructive">Setup wirklich löschen?</p>
+            <p className="text-xs text-muted-foreground">Dieser Vorgang kann nicht rückgängig gemacht werden.</p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="destructive"
+                className="flex-1"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Wird gelöscht...' : 'Löschen'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+              >
+                Abbrechen
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Convert to Trade button - only for drafts, admin only */}
         {isAdmin && setup.status === 'Entwurf' && (
