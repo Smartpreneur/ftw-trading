@@ -31,11 +31,12 @@ export async function POST(req: NextRequest) {
   if (isNewOrder.toLowerCase().includes('cancelled') || isNewOrder.toLowerCase().includes('canceled')) {
     const now = new Date()
 
-    // Bestehende Order nachschlagen
+    // Bestehende Original-Order nachschlagen
     const { data: existing } = await supabase
       .from('ablefy_orders')
       .select('ordered_at')
       .eq('order_id', orderId)
+      .eq('event_type', 'order')
       .single()
 
     let cancellationType = 'Kündigung' // Default: nicht gefunden oder > 37 Tage
@@ -47,22 +48,29 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Nur Cancellation-Felder updaten, originale Bestelldaten behalten
+    // Neuen Eintrag als 'cancellation' anlegen (Original-Order bleibt unverändert)
     const { error } = await supabase
       .from('ablefy_orders')
-      .update({
+      .upsert({
+        order_id: orderId,
+        event_type: 'cancellation',
         is_new_order: isNewOrder,
+        ordered_at: existing?.ordered_at || now.toISOString(),
         cancelled_at: now.toISOString(),
         cancellation_type: cancellationType,
+        amount: 0,
+        campaign_id: body.campaign_id || body.Campaign_ID || null,
+        plan_name: body.plan_name || body.Plan_Name || null,
+        country_code: body.country_code || body.Country_Code || null,
+        payment_method: body.payment_method || body.Payment_Method || null,
         synced_at: now.toISOString(),
-      })
-      .eq('order_id', orderId)
+      }, { onConflict: 'order_id,event_type' })
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, order_id: orderId, cancellation_type: cancellationType })
+    return NextResponse.json({ success: true, order_id: orderId, event_type: 'cancellation', cancellation_type: cancellationType })
   }
 
   // --- Normale Bestellung ---
@@ -99,6 +107,7 @@ export async function POST(req: NextRequest) {
 
   const row = {
     order_id: orderId,
+    event_type: 'order',
     ordered_at: orderedAt,
     is_new_order: isNewOrder,
     amount,
@@ -111,11 +120,11 @@ export async function POST(req: NextRequest) {
 
   const { error } = await supabase
     .from('ablefy_orders')
-    .upsert(row, { onConflict: 'order_id' })
+    .upsert(row, { onConflict: 'order_id,event_type' })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true, order_id: orderId })
+  return NextResponse.json({ success: true, order_id: orderId, event_type: 'order' })
 }

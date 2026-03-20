@@ -44,14 +44,6 @@ export function buildEilmeldungHtml(trade: Trade): string {
 <body style="margin:0;padding:0;background:#f4f4f4;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;color:#000;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:20px 0;">
 <tr><td align="center">
-<!-- Browser view link -->
-<table width="600" cellpadding="0" cellspacing="0">
-  <tr>
-    <td align="right" style="padding:0 0 8px;">
-      <a href="*|ARCHIVE|*" style="font-size:11px;color:#a1a1aa;text-decoration:none;">E-Mail im Browser öffnen</a>
-    </td>
-  </tr>
-</table>
 <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:4px;overflow:hidden;">
 
   <!-- HEADER -->
