@@ -50,7 +50,10 @@ export function buildEilmeldungHtml(trade: Trade): string {
   <tr>
     <td style="background:${dirColor};padding:14px 24px;">
       <table width="100%" cellpadding="0" cellspacing="0"><tr>
-        <td><span style="color:#fff;font-size:14px;font-weight:700;letter-spacing:0.5px;">${dirArrow} ${dirLabel}</span></td>
+        <td>
+          <span style="color:#fff;font-size:14px;font-weight:700;letter-spacing:0.5px;">${dirArrow} ${dirLabel}</span>
+          <span style="color:rgba(255,255,255,0.85);font-size:14px;font-weight:500;margin-left:6px;">${esc(trade.asset_name || trade.asset)}</span>
+        </td>
         <td align="right"><span style="color:#fff;font-size:12px;font-weight:600;letter-spacing:0.5px;">EILMELDUNG ${esc(TRADER_NAMES[trade.profil] ?? trade.profil)}</span></td>
       </tr></table>
     </td>
@@ -67,12 +70,8 @@ export function buildEilmeldungHtml(trade: Trade): string {
           ? `<a href="${tvUrl}" style="color:#3b82f6;text-decoration:none;font-weight:600;">${esc(tvDisplayLabel)}</a>`
           : esc(tvDisplayLabel)
         }
-        · ${esc(trade.asset_klasse)}
+        ${trade.aktueller_kurs ? ` · Kurs aktuell: <strong style="color:#000;">${formatPrice(trade.aktueller_kurs)}</strong> (${timeStr})` : ''}
       </p>
-      ${trade.aktueller_kurs ? `
-      <p style="margin:4px 0 0;font-size:14px;color:#4d4d4d;">
-        Kurs aktuell: <strong>${formatPrice(trade.aktueller_kurs)}</strong> · ${timeStr}
-      </p>` : ''}
     </td>
   </tr>
 
