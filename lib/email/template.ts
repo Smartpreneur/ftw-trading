@@ -147,22 +147,19 @@ export function buildEilmeldungHtml(trade: Trade): string {
 
   <tr><td style="padding:0 24px;"><hr style="border:none;border-top:1px solid #d0d0d0;margin:0;"></td></tr>
 
-  <!-- BEMERKUNGEN (kurz) -->
+  <!-- BEMERKUNGEN (kurz) — may contain HTML from rich text editor -->
   ${trade.bemerkungen ? `
   <tr>
-    <td style="padding:16px 24px 8px;">
-      <p style="font-size:14px;color:#000;line-height:1.6;margin:0;white-space:pre-wrap;">${esc(trade.bemerkungen)}</p>
+    <td style="padding:16px 24px 8px;font-size:14px;color:#000;line-height:1.6;">
+      ${trade.bemerkungen}
     </td>
   </tr>` : ''}
 
-  <!-- CHART IMAGE (clickable → opens full size) -->
+  <!-- CHART IMAGE (embedded full width) -->
   ${trade.chart_bild_url ? `
   <tr>
     <td style="padding:12px 24px;">
-      <a href="${trade.chart_bild_url}" target="_blank" rel="noopener noreferrer" style="display:block;">
-        <img src="${trade.chart_bild_url}" alt="Chart ${esc(trade.asset_name || trade.asset)}" style="width:100%;border-radius:4px;border:1px solid #d0d0d0;cursor:pointer;" />
-      </a>
-      <p style="margin:4px 0 0;font-size:11px;color:#a1a1aa;text-align:center;">Bild anklicken für Vollansicht</p>
+      <img src="${trade.chart_bild_url}" alt="Chart ${esc(trade.asset_name || trade.asset)}" style="width:100%;border-radius:4px;border:1px solid #d0d0d0;" />
     </td>
   </tr>` : ''}
 

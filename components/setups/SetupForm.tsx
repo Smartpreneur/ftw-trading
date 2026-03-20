@@ -81,6 +81,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     }
     return { tp1: 100, tp2: '', tp3: '', tp4: '' }
   })
+  const [bemerkungenHtml, setBemerkungenHtml] = useState(setup?.bemerkungen ?? '')
   const [analyseHtml, setAnalyseHtml] = useState(setup?.analyse_text ?? '')
   const [tvSymbol, setTvSymbol] = useState(setup?.tradingview_symbol ?? '')
   const [tvSearch, setTvSearch] = useState('')
@@ -292,7 +293,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         risiko_reward_max: values.risiko_reward_max ?? null,
         zeiteinheit: values.zeiteinheit ?? null,
         dauer_erwartung: values.dauer_erwartung ?? null,
-        bemerkungen: values.bemerkungen ?? null,
+        bemerkungen: bemerkungenHtml?.trim() || null,
         analyse_text: analyseHtml?.trim() || null,
         tradingview_symbol: tvSymbol || null,
         chart_bild_url: imageUrl,
@@ -779,14 +780,14 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       </div>
 
       {/* Bemerkungen (kurz) */}
-      <Field label="Bemerkungen (kurz)" error={errors.bemerkungen?.message}>
-        <textarea
-          rows={3}
-          className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+      <div className="space-y-1">
+        <Label className="text-xs font-medium">Bemerkungen (kurz)</Label>
+        <RichTextEditor
+          content={bemerkungenHtml}
+          onChange={setBemerkungenHtml}
           placeholder="z.B. SL auf Einstand nachziehen sobald TP1 erreicht..."
-          {...register('bemerkungen', { setValueAs: asNullableStr })}
         />
-      </Field>
+      </div>
 
       {/* Analyse (lang) — WYSIWYG Editor */}
       <div className="space-y-1">

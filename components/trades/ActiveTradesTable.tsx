@@ -300,31 +300,31 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
 
 function BemerkungCell({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false)
-  const lineCount = text.split('\n').length
-  const needsClamp = lineCount > 3 || text.length > 200
+  const isHtml = text.includes('<')
+  const plainLength = text.replace(/<[^>]*>/g, '').length
+  const needsClamp = plainLength > 200 || text.split('\n').length > 3
 
   if (!needsClamp) {
-    return (
-      <span className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
-        {text}
-      </span>
+    return isHtml ? (
+      <div className="text-sm text-muted-foreground prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: text }} />
+    ) : (
+      <span className="text-sm text-muted-foreground whitespace-pre-wrap break-words">{text}</span>
     )
   }
 
   return (
     <div>
-      <span
-        className={cn(
-          "text-sm text-muted-foreground whitespace-pre-wrap break-words",
-          !expanded && "line-clamp-3"
-        )}
-      >
-        {text}
-      </span>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="text-xs text-blue-600 hover:underline mt-0.5 block"
-      >
+      {isHtml ? (
+        <div
+          className={cn("text-sm text-muted-foreground prose prose-sm max-w-none", !expanded && "line-clamp-3")}
+          dangerouslySetInnerHTML={{ __html: text }}
+        />
+      ) : (
+        <span className={cn("text-sm text-muted-foreground whitespace-pre-wrap break-words", !expanded && "line-clamp-3")}>
+          {text}
+        </span>
+      )}
+      <button onClick={() => setExpanded(!expanded)} className="text-xs text-blue-600 hover:underline mt-0.5 block">
         {expanded ? 'Weniger' : 'Mehr anzeigen'}
       </button>
     </div>
