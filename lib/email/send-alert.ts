@@ -32,7 +32,9 @@ export async function sendEilmeldung(tradeId: string): Promise<void> {
 
   const html = buildEilmeldungHtml(trade as Trade)
   const dirLabel = trade.richtung === 'SHORT' ? 'SHORT' : 'LONG'
-  const subject = `⚡ EILMELDUNG: ${dirLabel} ${trade.asset_name || trade.asset}`
+  const { TRADER_NAMES } = await import('@/lib/constants')
+  const traderName = TRADER_NAMES[trade.profil] ?? trade.profil
+  const subject = `Eilmeldung von ${traderName} – ${trade.asset_name || trade.asset} ${dirLabel}`
 
   const { error: sendError } = await resend.emails.send({
     from: process.env.EMAIL_FROM || 'FTW Trading <onboarding@resend.dev>',
