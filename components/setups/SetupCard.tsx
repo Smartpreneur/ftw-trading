@@ -8,8 +8,9 @@ import { deleteTrade, updateTrade, deleteChartImage } from '@/lib/actions'
 import { sendEilmeldung } from '@/lib/email/send-alert'
 import { updateAssetPrice } from '@/lib/price-actions'
 import { SetupDialog } from './SetupDialog'
-import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2, Play, Check, Mail } from 'lucide-react'
+import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2, Play, Check, Mail, Eye } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -54,6 +55,28 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
       toast.error(err?.message ?? 'Fehler beim Veröffentlichen')
     } finally {
       setIsConverting(false)
+    }
+  }
+
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null)
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+
+  async function handlePreview() {
+    setIsLoadingPreview(true)
+    try {
+      const res = await fetch(`/api/email-preview?trade_id=${setup.trade_id}`)
+      if (res.ok) {
+        const html = await res.text()
+        setPreviewHtml(html)
+        setShowPreview(true)
+      } else {
+        toast.error('Vorschau konnte nicht geladen werden')
+      }
+    } catch {
+      toast.error('Fehler beim Laden der Vorschau')
+    } finally {
+      setIsLoadingPreview(false)
     }
   }
 
@@ -327,9 +350,56 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
           </div>
         )}
 
+        {/* E-Mail Preview Modal */}
+        <Dialog open={showPreview} onOpenChange={setShowPreview}>
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden p-0">
+            <DialogHeader className="px-6 pt-6 pb-2">
+              <DialogTitle>E-Mail Vorschau</DialogTitle>
+            </DialogHeader>
+            <div className="px-6 pb-4 flex gap-2">
+              <Button
+                onClick={() => {
+                  setShowPreview(false)
+                  handleTestEmail()
+                }}
+                disabled={isSendingTest}
+                size="sm"
+              >
+                <Mail className="h-3.5 w-3.5 mr-1.5" />
+                Test-Mail senden
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPreview(false)}
+              >
+                Schließen
+              </Button>
+            </div>
+            {previewHtml && (
+              <iframe
+                srcDoc={previewHtml}
+                className="w-full border-t"
+                style={{ height: 'calc(85vh - 120px)' }}
+                title="E-Mail Vorschau"
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* Convert to Trade button - only for drafts, admin only */}
         {isAdmin && setup.status === 'Entwurf' && (
           <div className="space-y-3 mt-3 pt-3 border-t">
+            <Button
+              onClick={handlePreview}
+              disabled={isLoadingPreview}
+              variant="outline"
+              className="w-full"
+              size="sm"
+            >
+              <Eye className="h-3.5 w-3.5 mr-1.5" />
+              {isLoadingPreview ? 'Wird geladen...' : 'E-Mail Vorschau'}
+            </Button>
             <Button
               onClick={handleTestEmail}
               disabled={isSendingTest}

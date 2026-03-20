@@ -1,7 +1,7 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/server'
-import { buildEilmeldungHtml } from './template'
+import { buildEilmeldungContent } from './template'
 import { TRADER_NAMES } from '@/lib/constants'
 import type { Trade } from '@/lib/types'
 
@@ -34,7 +34,7 @@ export async function sendEilmeldung(tradeId: string): Promise<{ ok: boolean; er
 
     if (error || !trade) return { ok: false, error: 'Trade nicht gefunden' }
 
-    const html = buildEilmeldungHtml(trade as Trade)
+    const html = buildEilmeldungContent(trade as Trade)
     const dirLabel = trade.richtung === 'SHORT' ? 'SHORT' : 'LONG'
     const traderName = TRADER_NAMES[trade.profil] ?? trade.profil
     const subject = `Eilmeldung von ${traderName} – ${trade.asset_name || trade.asset} ${dirLabel}`
