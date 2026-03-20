@@ -95,7 +95,7 @@ export function InternDashboard() {
   const [dateRange, setDateRange] = useState<number | null>(7)
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
-  const [activeTab, setActiveTab] = useState<'quellen' | 'klicks' | 'bestellungen'>('quellen')
+  const [activeTab, setActiveTab] = useState<'quellen' | 'klicks' | 'bestellungen' | 'cancellations'>('quellen')
   const [clicksOpen, setClicksOpen] = useState(false)
   const [ordersOpen, setOrdersOpen] = useState(false)
   const [arrOpen, setArrOpen] = useState(false)
@@ -153,7 +153,7 @@ export function InternDashboard() {
   const ordersCountByDay: Record<string, number> = {}
   const revenueByDay: Record<string, number> = {}
   for (const d of chartDays) {
-    const dayOrders = data.ordersByDay[d] || []
+    const dayOrders = (data.ordersByDay[d] || []).filter(o => o.event_type !== 'cancellation')
     ordersCountByDay[d] = dayOrders.length
     revenueByDay[d] = dayOrders.reduce((s, o) => s + (Number(o.amount) || 0), 0)
   }
@@ -171,7 +171,7 @@ export function InternDashboard() {
   const revenueByPlanByDay: Record<string, PlanBreakdown> = {}
   const arrByPlanByDay: Record<string, PlanBreakdown> = {}
   for (const d of chartDays) {
-    const dayOrders = data.ordersByDay[d] || []
+    const dayOrders = (data.ordersByDay[d] || []).filter(o => o.event_type !== 'cancellation')
     const rev: PlanBreakdown = { jahres: 0, quartal: 0, halbjahres: 0 }
     const arr: PlanBreakdown = { jahres: 0, quartal: 0, halbjahres: 0 }
     for (const o of dayOrders) {
@@ -240,14 +240,26 @@ export function InternDashboard() {
     ? `${customFrom ? formatDE(customFrom) : '...'} – ${customTo ? formatDE(customTo) : '...'}`
     : dateRange !== null ? `Letzte ${dateRange} Tage` : 'Gesamt'
   // --- Orders filtered by range/day ---
-  const filteredOrders = isDayFiltered
-    ? (data.ordersByDay[selectedDay] || [])
-    : (data.orders || []).filter(o => rangeDays.includes(o.ordered_at?.slice(0, 10) || ''))
-  const displayOrderCount = filteredOrders.length
-  const displayRevenue = filteredOrders.reduce((s, o) => s + (Number(o.amount) || 0), 0)
   const isNewOrder = (v: string) => v === 'true' || v === 'TRUE'
   const isCancellation = (v: string) => !isNewOrder(v) && v !== 'false'
+
+  const allFiltered = isDayFiltered
+    ? (data.ordersByDay[selectedDay] || [])
+    : (data.orders || []).filter(o => {
+        const day = o.event_type === 'cancellation' ? o.cancelled_at?.slice(0, 10) : o.ordered_at?.slice(0, 10)
+        return rangeDays.includes(day || '')
+      })
+  const filteredOrders = allFiltered.filter(o => o.event_type !== 'cancellation')
+  const filteredCancellations = allFiltered.filter(o => o.event_type === 'cancellation')
+
+  const displayOrderCount = filteredOrders.length
+  const displayRevenue = filteredOrders.reduce((s, o) => s + (Number(o.amount) || 0), 0)
   const displayNewOrders = filteredOrders.filter(o => isNewOrder(o.is_new_order)).length
+
+  // Cancellation KPIs
+  const displayCancellationCount = filteredCancellations.length
+  const displayWiderrufe = filteredCancellations.filter(o => o.cancellation_type === 'Widerruf').length
+  const displayKuendigungen = filteredCancellations.filter(o => o.cancellation_type === 'Kündigung').length
 
   const displayOrdersByCampaign: Record<string, { count: number; revenue: number; newOrders: number }> = {}
   const displayOrdersByPlan: Record<string, { count: number; revenue: number; unitPrice: number; arr: number; multiplier: number }> = {}
@@ -456,6 +468,19 @@ export function InternDashboard() {
             </div>
           )}
         </div>
+      {displayCancellationCount > 0 && (
+          <div className="funnel__step funnel__step--cancellations" style={{ borderLeft: '3px solid #e74c3c', marginLeft: 8, paddingLeft: 12, opacity: 0.85 }}>
+            <div className="funnel__step-header">
+              <span className="funnel__step-label">Cancellations</span>
+              <span className="funnel__step-value">{displayCancellationCount}</span>
+            </div>
+            <div className="funnel__step-sub">
+              {displayWiderrufe > 0 && <span style={{ color: '#e67e22' }}>{displayWiderrufe} Widerruf{displayWiderrufe !== 1 ? 'e' : ''}</span>}
+              {displayWiderrufe > 0 && displayKuendigungen > 0 && ' | '}
+              {displayKuendigungen > 0 && <span style={{ color: '#e74c3c' }}>{displayKuendigungen} Kündigung{displayKuendigungen !== 1 ? 'en' : ''}</span>}
+            </div>
+          </div>
+        )}
       </div>
       <div className="funnel__meta">{displayLabel}</div>
 
@@ -591,6 +616,7 @@ export function InternDashboard() {
           { key: 'quellen' as const, label: 'Quellen' },
           { key: 'klicks' as const, label: 'Klicks' },
           { key: 'bestellungen' as const, label: 'Bestellungen' },
+          { key: 'cancellations' as const, label: 'Cancellations' },
         ]).map(tab => (
           <button
             key={tab.key}
@@ -761,25 +787,81 @@ export function InternDashboard() {
                   <th>Zahlung</th>
                   <th>Neu</th>
                   <th>Betrag</th>
-                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredOrders.map(o => (
-                  <tr key={o.order_id} style={o.cancellation_type ? { opacity: 0.6 } : undefined}>
+                  <tr key={o.order_id}>
                     <td>{new Date(o.ordered_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })}</td>
                     <td>{o.order_id}</td>
                     <td>{o.plan_name ? shortenPlan(o.plan_name) : '–'}</td>
                     <td>{o.campaign_id || '–'}</td>
                     <td>{o.country_code || '–'}</td>
                     <td>{o.payment_method || '–'}</td>
-                    <td>{isNewOrder(o.is_new_order) ? 'Ja' : isCancellation(o.is_new_order) ? '–' : 'Nein'}</td>
+                    <td>{isNewOrder(o.is_new_order) ? 'Ja' : 'Nein'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{Number(o.amount).toFixed(2).replace('.', ',')}&nbsp;&euro;</td>
-                    <td>{o.cancellation_type ? <span style={{ color: o.cancellation_type === 'Widerruf' ? '#e67e22' : '#e74c3c' }}>{o.cancellation_type}</span> : '–'}</td>
                   </tr>
                 ))}
                 {filteredOrders.length === 0 && (
-                  <tr><td colSpan={9}>{isDayFiltered ? 'Keine Bestellungen an diesem Tag' : 'Noch keine Bestellungen'}</td></tr>
+                  <tr><td colSpan={8}>{isDayFiltered ? 'Keine Bestellungen an diesem Tag' : 'Noch keine Bestellungen'}</td></tr>
+                )}
+              </tbody>
+            </table>
+          </CollapsibleSection>
+        </div>
+      )}
+
+      {/* Tab: Cancellations */}
+      {activeTab === 'cancellations' && (
+        <div className="detail-tab-content">
+          <CollapsibleSection title="Übersicht" filterTag={isDayFiltered ? displayLabel : undefined}>
+            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 13, color: '#5a6a7a' }}>Gesamt</div>
+                <div style={{ fontSize: 24, fontWeight: 700 }}>{displayCancellationCount}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 13, color: '#e67e22' }}>Widerrufe</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#e67e22' }}>{displayWiderrufe}</div>
+                <div style={{ fontSize: 12, color: '#5a6a7a' }}>innerhalb 37 Tage</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 13, color: '#e74c3c' }}>Kündigungen</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#e74c3c' }}>{displayKuendigungen}</div>
+                <div style={{ fontSize: 12, color: '#5a6a7a' }}>nach 37 Tagen</div>
+              </div>
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Einzelne Cancellations" filterTag={isDayFiltered ? displayLabel : undefined}>
+            <table className="intern-table">
+              <thead>
+                <tr>
+                  <th>Storniert am</th>
+                  <th>Order-ID</th>
+                  <th>Bestellt am</th>
+                  <th>Plan</th>
+                  <th>Betrag</th>
+                  <th>Campaign</th>
+                  <th>Typ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCancellations
+                  .sort((a, b) => (b.cancelled_at || '').localeCompare(a.cancelled_at || ''))
+                  .map(o => (
+                  <tr key={`${o.order_id}-cancel`}>
+                    <td>{o.cancelled_at ? new Date(o.cancelled_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }) : '–'}</td>
+                    <td>{o.order_id}</td>
+                    <td>{new Date(o.ordered_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'Europe/Berlin' })}</td>
+                    <td>{o.plan_name ? shortenPlan(o.plan_name) : '–'}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{Number(o.amount).toFixed(2).replace('.', ',')}&nbsp;&euro;</td>
+                    <td>{o.campaign_id || '–'}</td>
+                    <td><span style={{ color: o.cancellation_type === 'Widerruf' ? '#e67e22' : '#e74c3c', fontWeight: 600 }}>{o.cancellation_type}</span></td>
+                  </tr>
+                ))}
+                {filteredCancellations.length === 0 && (
+                  <tr><td colSpan={7}>{isDayFiltered ? 'Keine Cancellations an diesem Tag' : 'Keine Cancellations im Zeitraum'}</td></tr>
                 )}
               </tbody>
             </table>

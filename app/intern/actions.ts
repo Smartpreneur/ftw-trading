@@ -201,14 +201,20 @@ const computeAnalytics = unstable_cache(
     const ordersByDay: Record<string, OrderRow[]> = {}
     const ordersByCampaign: Record<string, { count: number; revenue: number; newOrders: number }> = {}
     for (const o of (orders || []) as OrderRow[]) {
-      const day = o.ordered_at?.slice(0, 10) || ''
+      // Cancellations nach cancelled_at einsortieren, Orders nach ordered_at
+      const day = o.event_type === 'cancellation'
+        ? (o.cancelled_at?.slice(0, 10) || '')
+        : (o.ordered_at?.slice(0, 10) || '')
       if (!ordersByDay[day]) ordersByDay[day] = []
       ordersByDay[day].push(o)
-      const cid = o.campaign_id || 'Ohne Campaign'
-      if (!ordersByCampaign[cid]) ordersByCampaign[cid] = { count: 0, revenue: 0, newOrders: 0 }
-      ordersByCampaign[cid].count++
-      ordersByCampaign[cid].revenue += Number(o.amount) || 0
-      if (o.is_new_order === 'true' || o.is_new_order === 'TRUE') ordersByCampaign[cid].newOrders++
+      // Nur echte Orders für Campaign-KPIs zählen
+      if (o.event_type !== 'cancellation') {
+        const cid = o.campaign_id || 'Ohne Campaign'
+        if (!ordersByCampaign[cid]) ordersByCampaign[cid] = { count: 0, revenue: 0, newOrders: 0 }
+        ordersByCampaign[cid].count++
+        ordersByCampaign[cid].revenue += Number(o.amount) || 0
+        if (o.is_new_order === 'true' || o.is_new_order === 'TRUE') ordersByCampaign[cid].newOrders++
+      }
     }
 
     return {
