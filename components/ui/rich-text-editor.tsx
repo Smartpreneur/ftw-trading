@@ -9,18 +9,34 @@ interface RichTextEditorProps {
   content: string
   onChange: (html: string) => void
   placeholder?: string
+  /** Compact mode: only bold+italic, smaller height (for Bemerkungen) */
+  compact?: boolean
 }
 
-export function RichTextEditor({ content, onChange, placeholder }: RichTextEditorProps) {
+export function RichTextEditor({ content, onChange, placeholder, compact = false }: RichTextEditorProps) {
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit.configure(compact ? {
+        bulletList: false,
+        orderedList: false,
+        listItem: false,
+        heading: false,
+        blockquote: false,
+        codeBlock: false,
+        code: false,
+        horizontalRule: false,
+      } : {}),
+    ],
     content,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none min-h-[250px] px-3 py-2 focus:outline-none',
+        class: cn(
+          'prose prose-sm max-w-none px-3 py-2 focus:outline-none',
+          compact ? 'min-h-[60px]' : 'min-h-[250px]'
+        ),
       },
     },
   })
@@ -30,7 +46,7 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
   return (
     <div className="rounded-md border border-input overflow-hidden">
       {/* Toolbar */}
-      <div className="flex items-center gap-0.5 border-b bg-muted/30 px-2 py-1.5">
+      <div className="flex items-center gap-0.5 border-b bg-muted/30 px-2 py-1">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           active={editor.isActive('bold')}
@@ -45,35 +61,39 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
         >
           <Italic className="h-4 w-4" />
         </ToolbarButton>
-        <div className="w-px h-5 bg-border mx-1" />
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          active={editor.isActive('bulletList')}
-          title="Aufzählung"
-        >
-          <List className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          active={editor.isActive('orderedList')}
-          title="Nummerierung"
-        >
-          <ListOrdered className="h-4 w-4" />
-        </ToolbarButton>
+        {!compact && (
+          <>
+            <div className="w-px h-5 bg-border mx-1" />
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              active={editor.isActive('bulletList')}
+              title="Aufzählung"
+            >
+              <List className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              active={editor.isActive('orderedList')}
+              title="Nummerierung"
+            >
+              <ListOrdered className="h-4 w-4" />
+            </ToolbarButton>
+          </>
+        )}
         <div className="w-px h-5 bg-border mx-1" />
         <ToolbarButton
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
           title="Rückgängig (Ctrl+Z)"
         >
-          <Undo className="h-4 w-4" />
+          <Undo className="h-3.5 w-3.5" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
           title="Wiederholen (Ctrl+Y)"
         >
-          <Redo className="h-4 w-4" />
+          <Redo className="h-3.5 w-3.5" />
         </ToolbarButton>
       </div>
 

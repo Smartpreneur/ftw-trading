@@ -786,6 +786,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           content={bemerkungenHtml}
           onChange={setBemerkungenHtml}
           placeholder="z.B. SL auf Einstand nachziehen sobald TP1 erreicht..."
+          compact
         />
       </div>
 
