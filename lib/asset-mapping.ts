@@ -149,7 +149,14 @@ export const ISIN_TO_TICKER: Record<string, string> = {
 /** Returns a human-readable exchange/source label for a given API mapping */
 export function getExchangeLabel(mapping: { api: string; type: 'yahoo' | 'twelve' | 'coingecko' }): string {
   if (mapping.type === 'coingecko') return 'CoinGecko'
-  if (mapping.type === 'twelve') return 'TwelveData'
+  if (mapping.type === 'twelve') {
+    const api = mapping.api
+    if (api.includes('XAU') || api.includes('XAG')) return 'COMEX'
+    if (api.includes('WTI')) return 'NYMEX'
+    if (api.includes('BRENT')) return 'ICE'
+    if (api.includes('/')) return 'Forex (Interbank)'
+    return 'Global'
+  }
 
   const api = mapping.api
   if (api.endsWith('.DE')) return 'XETRA'
