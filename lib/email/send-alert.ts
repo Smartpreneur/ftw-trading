@@ -11,13 +11,13 @@ import type { Trade } from '@/lib/types'
  */
 export async function sendEilmeldung(tradeId: string): Promise<{ ok: boolean; error?: string }> {
   try {
-    const apiKey = process.env.MAILCHIMP_API_KEY
+    const apiKey = process.env.MAILCHIMP_API_KEY?.trim()
     if (!apiKey) return { ok: false, error: 'MAILCHIMP_API_KEY nicht konfiguriert' }
 
-    const audienceId = process.env.MAILCHIMP_AUDIENCE_ID
+    const audienceId = process.env.MAILCHIMP_AUDIENCE_ID?.trim()
     if (!audienceId) return { ok: false, error: 'MAILCHIMP_AUDIENCE_ID nicht konfiguriert' }
 
-    const dc = apiKey.split('-').pop()
+    const dc = apiKey.split('-').pop()?.trim()
     const baseUrl = `https://${dc}.api.mailchimp.com/3.0`
     const headers = {
       'Content-Type': 'application/json',
