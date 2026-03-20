@@ -67,7 +67,7 @@ export function buildEilmeldungHtml(trade: Trade): string {
       </h1>
       <p style="margin:4px 0 0;font-size:13px;color:#71717a;">
         ${tvUrl
-          ? `<a href="${tvUrl}" style="color:#3b82f6;text-decoration:none;font-weight:600;">${esc(tvDisplayLabel)}</a>`
+          ? `<a href="${tvUrl}" target="_blank" rel="noopener noreferrer" style="color:#3b82f6;text-decoration:none;font-weight:600;">${esc(tvDisplayLabel)}</a>`
           : esc(tvDisplayLabel)
         }
         ${trade.aktueller_kurs ? ` · Kurs aktuell: <strong style="color:#000;">${formatPrice(trade.aktueller_kurs)}</strong> (${timeStr})` : ''}
