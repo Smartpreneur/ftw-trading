@@ -155,6 +155,17 @@ export function buildEilmeldungHtml(trade: Trade): string {
     </td>
   </tr>` : ''}
 
+  <!-- HINWEIS — directly after Bemerkungen -->
+  <tr>
+    <td style="padding:8px 24px 16px;">
+      <div style="background:#eff6ff;border-left:3px solid #3b82f6;padding:10px 14px;border-radius:0 4px 4px 0;">
+        <p style="margin:0;font-size:13px;color:#1e40af;">
+          <strong>Hinweis:</strong> Dieses Setup stellt keine Anlageberatung dar. Jeder Trader handelt auf eigenes Risiko.
+        </p>
+      </div>
+    </td>
+  </tr>
+
   <!-- CHART IMAGE (embedded full width) -->
   ${trade.chart_bild_url ? `
   <tr>
@@ -170,17 +181,6 @@ export function buildEilmeldungHtml(trade: Trade): string {
       ${trade.analyse_text}
     </td>
   </tr>` : ''}
-
-  <!-- HINWEIS -->
-  <tr>
-    <td style="padding:8px 24px 16px;">
-      <div style="background:#eff6ff;border-left:3px solid #3b82f6;padding:10px 14px;border-radius:0 4px 4px 0;">
-        <p style="margin:0;font-size:13px;color:#1e40af;">
-          <strong>Hinweis:</strong> Dieses Setup stellt keine Anlageberatung dar. Jeder Trader handelt auf eigenes Risiko.
-        </p>
-      </div>
-    </td>
-  </tr>
 
   <!-- FOOTER -->
   <tr>

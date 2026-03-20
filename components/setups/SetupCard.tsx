@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/formatters'
 import { deleteTrade, updateTrade, deleteChartImage } from '@/lib/actions'
 import { sendEilmeldung } from '@/lib/email/send-alert'
+import { updateAssetPrice } from '@/lib/price-actions'
 import { SetupDialog } from './SetupDialog'
 import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2, Play, Check, Mail } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
@@ -40,6 +41,8 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
         toast.success('Eilmeldung versendet')
       }
       await updateTrade(setup.id, { status: 'Aktiv' })
+      // Fetch current price immediately so it shows in active trades
+      await updateAssetPrice(setup.id, setup.asset).catch(() => {})
       toast.success('Trade veröffentlicht')
       router.refresh()
     } catch (err: any) {

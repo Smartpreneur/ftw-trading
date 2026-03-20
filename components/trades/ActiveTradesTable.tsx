@@ -301,10 +301,11 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
 function BemerkungCell({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false)
   const isHtml = text.includes('<')
-  const plainLength = text.replace(/<[^>]*>/g, '').length
-  const needsClamp = plainLength > 200 || text.split('\n').length > 3
+  const plainText = text.replace(/<[^>]*>/g, '').trim()
+  // Short text (< 80 chars, single line) → no clamp needed
+  const isShort = plainText.length < 80 && !plainText.includes('\n')
 
-  if (!needsClamp) {
+  if (isShort) {
     return isHtml ? (
       <div className="text-sm text-muted-foreground prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: text }} />
     ) : (
@@ -316,7 +317,7 @@ function BemerkungCell({ text }: { text: string }) {
     <div>
       {isHtml ? (
         <div
-          className={cn("text-sm text-muted-foreground prose prose-sm max-w-none", !expanded && "line-clamp-3")}
+          className={cn("text-sm text-muted-foreground prose prose-sm max-w-none overflow-hidden", !expanded && "line-clamp-3")}
           dangerouslySetInnerHTML={{ __html: text }}
         />
       ) : (
