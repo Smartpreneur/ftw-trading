@@ -44,6 +44,14 @@ export function buildEilmeldungHtml(trade: Trade): string {
 <body style="margin:0;padding:0;background:#f4f4f4;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;color:#000;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:20px 0;">
 <tr><td align="center">
+<!-- Browser view link -->
+<table width="600" cellpadding="0" cellspacing="0">
+  <tr>
+    <td align="right" style="padding:0 0 8px;">
+      <a href="*|ARCHIVE|*" style="font-size:11px;color:#a1a1aa;text-decoration:none;">E-Mail im Browser öffnen</a>
+    </td>
+  </tr>
+</table>
 <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:4px;overflow:hidden;">
 
   <!-- HEADER -->
@@ -184,7 +192,42 @@ export function buildEilmeldungHtml(trade: Trade): string {
 
   <!-- FOOTER (includes Mailchimp required merge tags) -->
   <tr>
-    <td style="padding:16px 24px;background:#f4f4f4;border-top:1px solid #d0d0d0;">
+    <td style="padding:20px 24px;background:#f4f4f4;border-top:1px solid #d0d0d0;">
+      <!-- Social Media Icons: YouTube, X, Instagram, Facebook -->
+      <table cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 12px;">
+        <tr>
+          <td style="padding:0 8px;">
+            <a href="https://youtube.com/user/FinanzmarktWelt" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+              <img src="https://cdn-images.mailchimp.com/icons/social-block-v3/block-v3-youtube-48.png" alt="YouTube" width="24" height="24" style="display:block;" />
+            </a>
+          </td>
+          <td style="padding:0 8px;">
+            <a href="https://x.com/finanzmarktwelt" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+              <img src="https://cdn-images.mailchimp.com/icons/social-block-v3/block-v3-x-48.png" alt="X" width="24" height="24" style="display:block;" />
+            </a>
+          </td>
+          <td style="padding:0 8px;">
+            <a href="https://instagram.com/finanzmarktwelt/" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+              <img src="https://cdn-images.mailchimp.com/icons/social-block-v3/block-v3-instagram-48.png" alt="Instagram" width="24" height="24" style="display:block;" />
+            </a>
+          </td>
+          <td style="padding:0 8px;">
+            <a href="https://facebook.com/finanzmarktweltde-691614924190379/" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+              <img src="https://cdn-images.mailchimp.com/icons/social-block-v3/block-v3-facebook-48.png" alt="Facebook" width="24" height="24" style="display:block;" />
+            </a>
+          </td>
+        </tr>
+      </table>
+      <!-- FMW Logo -->
+      <table cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 12px;">
+        <tr>
+          <td>
+            <a href="https://finanzmarktwelt.de" target="_blank" rel="noopener noreferrer">
+              <img src="https://ftw.finanzmarktwelt.de/fmw-logo.svg" alt="Finanzmarktwelt" height="28" style="display:block;" />
+            </a>
+          </td>
+        </tr>
+      </table>
       <p style="margin:0;font-size:12px;color:#71717a;text-align:center;line-height:1.6;">
         <strong>Fugmanns Trading Woche</strong><br>
         *|LIST:COMPANY|* · *|LIST:ADDRESS|*<br>
