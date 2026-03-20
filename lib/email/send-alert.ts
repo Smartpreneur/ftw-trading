@@ -2,26 +2,31 @@
 
 import { createAdminClient } from '@/lib/supabase/server'
 import { buildEilmeldungHtml } from './template'
+import { TRADER_NAMES } from '@/lib/constants'
 import type { Trade } from '@/lib/types'
 
 /**
- * Send a trade alert email for the given trade.
- * Phase 1: sends to EILMELDUNG_TEST_EMAIL (single test recipient).
- * Phase 2: will be replaced with Mailchimp campaign send.
+ * Send a trade alert via Mailchimp Campaign to the configured audience.
+ * Creates a campaign, sets the HTML content, and sends it immediately.
  */
 export async function sendEilmeldung(tradeId: string): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) throw new Error('RESEND_API_KEY nicht konfiguriert')
+  const apiKey = process.env.MAILCHIMP_API_KEY
+  if (!apiKey) throw new Error('MAILCHIMP_API_KEY nicht konfiguriert')
 
-  const testEmail = process.env.EILMELDUNG_TEST_EMAIL
-  if (!testEmail) throw new Error('EILMELDUNG_TEST_EMAIL nicht konfiguriert')
+  const audienceId = process.env.MAILCHIMP_AUDIENCE_ID
+  if (!audienceId) throw new Error('MAILCHIMP_AUDIENCE_ID nicht konfiguriert')
 
-  const { Resend } = await import('resend')
-  const resend = new Resend(apiKey)
+  // Extract datacenter from API key (e.g. "xxx-us10" → "us10")
+  const dc = apiKey.split('-').pop()
+  const baseUrl = `https://${dc}.api.mailchimp.com/3.0`
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Basic ${Buffer.from(`anystring:${apiKey}`).toString('base64')}`,
+  }
 
   const supabase = createAdminClient()
 
-  // Fetch fresh trade data with entries
+  // Fetch fresh trade data
   const { data: trade, error } = await supabase
     .from('trades')
     .select('*, closes:trade_closes(*), notes:trade_notes(*), entries:trade_entries(*)')
@@ -32,18 +37,55 @@ export async function sendEilmeldung(tradeId: string): Promise<void> {
 
   const html = buildEilmeldungHtml(trade as Trade)
   const dirLabel = trade.richtung === 'SHORT' ? 'SHORT' : 'LONG'
-  const { TRADER_NAMES } = await import('@/lib/constants')
   const traderName = TRADER_NAMES[trade.profil] ?? trade.profil
   const subject = `Eilmeldung von ${traderName} – ${trade.asset_name || trade.asset} ${dirLabel}`
 
-  const { error: sendError } = await resend.emails.send({
-    from: process.env.EMAIL_FROM || 'FTW Trading <onboarding@resend.dev>',
-    to: testEmail,
-    subject,
-    html,
+  // 1. Create campaign
+  const createRes = await fetch(`${baseUrl}/campaigns`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      type: 'regular',
+      recipients: { list_id: audienceId },
+      settings: {
+        subject_line: subject,
+        from_name: process.env.MAILCHIMP_FROM_NAME || 'Fugmanns Trading Woche',
+        reply_to: process.env.MAILCHIMP_REPLY_TO || 'premium@finanzmarktwelt.de',
+        title: `Eilmeldung ${trade.asset_name || trade.asset} ${dirLabel} – ${new Date().toISOString().split('T')[0]}`,
+      },
+    }),
   })
 
-  if (sendError) throw new Error(`E-Mail-Versand fehlgeschlagen: ${sendError.message}`)
+  if (!createRes.ok) {
+    const err = await createRes.json()
+    throw new Error(`Mailchimp Kampagne erstellen fehlgeschlagen: ${err.detail || err.title || createRes.status}`)
+  }
+
+  const campaign = await createRes.json()
+  const campaignId = campaign.id
+
+  // 2. Set campaign content (HTML)
+  const contentRes = await fetch(`${baseUrl}/campaigns/${campaignId}/content`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ html }),
+  })
+
+  if (!contentRes.ok) {
+    const err = await contentRes.json()
+    throw new Error(`Mailchimp Content setzen fehlgeschlagen: ${err.detail || err.title || contentRes.status}`)
+  }
+
+  // 3. Send campaign
+  const sendRes = await fetch(`${baseUrl}/campaigns/${campaignId}/actions/send`, {
+    method: 'POST',
+    headers,
+  })
+
+  if (!sendRes.ok) {
+    const err = await sendRes.json()
+    throw new Error(`Mailchimp Versand fehlgeschlagen: ${err.detail || err.title || sendRes.status}`)
+  }
 
   // Mark as sent (only for active trades, not for test sends from Entwurf)
   if (trade.status !== 'Entwurf') {
