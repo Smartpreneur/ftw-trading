@@ -75,7 +75,20 @@ export async function sendEilmeldung(tradeId: string): Promise<{ ok: boolean; er
       return { ok: false, error: `Content setzen: ${err.detail || err.title || contentRes.status}` }
     }
 
-    // 3. Send campaign
+    // 3. Check readiness before sending
+    const checkRes = await fetch(`${baseUrl}/campaigns/${campaignId}/send-checklist`, { headers })
+    if (checkRes.ok) {
+      const checklist = await checkRes.json()
+      if (!checklist.is_ready) {
+        const issues = checklist.items
+          ?.filter((i: { type: string }) => i.type === 'error')
+          ?.map((i: { heading: string; details: string }) => `${i.heading}: ${i.details}`)
+          ?.join('; ')
+        return { ok: false, error: `Kampagne nicht versandbereit: ${issues || 'Unbekannt'}` }
+      }
+    }
+
+    // 4. Send campaign
     const sendRes = await fetch(`${baseUrl}/campaigns/${campaignId}/actions/send`, {
       method: 'POST',
       headers,
