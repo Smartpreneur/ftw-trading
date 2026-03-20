@@ -182,13 +182,18 @@ export function buildEilmeldungHtml(trade: Trade): string {
     </td>
   </tr>` : ''}
 
-  <!-- FOOTER -->
+  <!-- FOOTER (includes Mailchimp required merge tags) -->
   <tr>
     <td style="padding:16px 24px;background:#f4f4f4;border-top:1px solid #d0d0d0;">
       <p style="margin:0;font-size:12px;color:#71717a;text-align:center;line-height:1.6;">
         <strong>Fugmanns Trading Woche</strong><br>
-        Know How Pool GmbH · Hans-Henny-Jahnn-Weg 53 · 22085 Hamburg<br>
+        *|LIST:COMPANY|* · *|LIST:ADDRESS|*<br>
         <a href="mailto:premium@finanzmarktwelt.de" style="color:#71717a;">premium@finanzmarktwelt.de</a>
+      </p>
+      <p style="margin:8px 0 0;font-size:11px;color:#a1a1aa;text-align:center;">
+        <a href="*|UNSUB|*" style="color:#a1a1aa;text-decoration:underline;">Abmelden</a>
+        &nbsp;·&nbsp;
+        <a href="*|UPDATE_PROFILE|*" style="color:#a1a1aa;text-decoration:underline;">Einstellungen ändern</a>
       </p>
     </td>
   </tr>
