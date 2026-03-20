@@ -15,10 +15,13 @@ export async function GET(request: NextRequest) {
   const tradeId = searchParams.get('trade_id')
   const isLocal = request.nextUrl.hostname === 'localhost'
 
-  // Simple auth: only localhost or bearer token
+  // Auth: localhost, bearer token, or admin cookie
   if (!isLocal) {
     const auth = request.headers.get('authorization')
-    if (auth !== `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`) {
+    const adminCookie = request.cookies.get('ftw_admin')?.value
+    const isAdmin = adminCookie === process.env.ADMIN_PASSWORD
+    const hasToken = auth === `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+    if (!isAdmin && !hasToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
   }
