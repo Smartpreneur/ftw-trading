@@ -37,7 +37,12 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
     setIsConverting(true)
     try {
       if (sendEmail) {
-        await sendEilmeldung(setup.id)
+        const result = await sendEilmeldung(setup.id)
+        if (!result.ok) {
+          toast.error(result.error ?? 'E-Mail-Versand fehlgeschlagen')
+          setIsConverting(false)
+          return
+        }
         toast.success('Eilmeldung versendet')
       }
       await updateTrade(setup.id, { status: 'Aktiv' })
@@ -56,8 +61,12 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
   async function handleTestEmail() {
     setIsSendingTest(true)
     try {
-      await sendEilmeldung(setup.id)
-      toast.success('Test-Mail versendet')
+      const result = await sendEilmeldung(setup.id)
+      if (result.ok) {
+        toast.success('Test-Mail versendet')
+      } else {
+        toast.error(result.error ?? 'Fehler beim Versenden')
+      }
     } catch (err: any) {
       toast.error(err?.message ?? 'Fehler beim Versenden')
     } finally {
