@@ -9,14 +9,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { SetupForm } from './SetupForm'
+import { SetupReadOnly } from './SetupReadOnly'
 import type { Trade } from '@/lib/types'
 
 interface SetupDialogProps {
   setup?: Trade
   trigger: React.ReactNode
+  readOnly?: boolean
 }
 
-export function SetupDialog({ setup, trigger }: SetupDialogProps) {
+export function SetupDialog({ setup, trigger, readOnly = false }: SetupDialogProps) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -24,9 +26,15 @@ export function SetupDialog({ setup, trigger }: SetupDialogProps) {
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{setup ? 'Setup bearbeiten' : 'Neues Setup'}</DialogTitle>
+          <DialogTitle>
+            {readOnly ? 'Setup-Details' : setup ? 'Setup bearbeiten' : 'Neues Setup'}
+          </DialogTitle>
         </DialogHeader>
-        <SetupForm setup={setup} onSuccess={() => setOpen(false)} />
+        {readOnly && setup ? (
+          <SetupReadOnly setup={setup} />
+        ) : (
+          <SetupForm setup={setup} onSuccess={() => setOpen(false)} />
+        )}
       </DialogContent>
     </Dialog>
   )

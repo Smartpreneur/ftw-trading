@@ -1,6 +1,7 @@
 import { getCachedTrades } from '@/lib/actions'
 import { SetupGrid } from '@/components/setups/SetupGrid'
 import { SetupDialog } from '@/components/setups/SetupDialog'
+import { PublishedSetups } from '@/components/setups/PublishedSetups'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import { checkAdmin } from '@/lib/auth'
@@ -22,6 +23,7 @@ export default async function SetupsPage({
   const selectedProfiles = profilesParam?.split(',') as TradingProfile[] | undefined
 
   let setups: Trade[] = []
+  let publishedSetups: Trade[] = []
   let error: string | null = null
 
   try {
@@ -29,15 +31,23 @@ export default async function SetupsPage({
     setups = allTrades.filter((t) =>
       (SETUP_STATUSES as readonly string[]).includes(t.status)
     )
+    // Published setups: trades that have setup-specific fields (were once a setup)
+    // and are no longer in Entwurf status
+    publishedSetups = allTrades.filter((t) =>
+      t.status !== 'Entwurf' &&
+      (t.chart_bild_url || t.zeiteinheit || t.aktueller_kurs != null || t.analyse_text)
+    ).sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+
     if (selectedProfiles && selectedProfiles.length > 0) {
       setups = setups.filter((t) => selectedProfiles.includes(t.profil))
+      publishedSetups = publishedSetups.filter((t) => selectedProfiles.includes(t.profil))
     }
   } catch (e: any) {
     error = e?.message ?? 'Fehler beim Laden der Setups'
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Trade-Setups</h1>
@@ -64,6 +74,11 @@ export default async function SetupsPage({
       )}
 
       <SetupGrid setups={setups} isAdmin={isAdmin} devMode={devMode} />
+
+      {/* Published setups history */}
+      {publishedSetups.length > 0 && (
+        <PublishedSetups trades={publishedSetups} />
+      )}
     </div>
   )
 }
