@@ -509,19 +509,6 @@ async function checkAndUpdateEntries(
 
   if (!changed) return false
 
-  // Check if this is the first triggered entry → activate the trade
-  const anyTriggeredBefore = entries.some(e => e.erreicht_am && !pending.some(p => p.id === e.id && p.erreicht_am))
-  const hasTriggered = entries.some(e => e.erreicht_am)
-
-  if (hasTriggered && trade.status === 'Entwurf') {
-    // Conditional update to avoid race conditions
-    await supabase
-      .from('trades')
-      .update({ status: 'Aktiv' })
-      .eq('id', trade.id)
-      .eq('status', 'Entwurf')
-  }
-
   // Recalculate blended einstiegspreis from triggered entries
   const triggered = entries.filter(e => e.erreicht_am)
   const totalAnteil = triggered.reduce((s, e) => s + e.anteil, 0)
@@ -547,11 +534,11 @@ async function checkAndUpdateEntries(
 export async function updateAllActiveTradePrices(): Promise<{ updated: number; errors: number; failedAssets: string[] }> {
   const supabase = createAdminClient()
 
-  // Get active trades + Entwurf trades (for entry-point detection)
+  // Get active trades only — Entwurf trades are NOT monitored
   const { data: activeTrades, error: tradesError } = await supabase
     .from('trades')
     .select('id, asset, status, datum_eroeffnung, created_at, einstiegspreis, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, tp1_gewichtung, tp2_gewichtung, tp3_gewichtung, tp4_gewichtung, manuell_getrackt, entries:trade_entries(id, nummer, preis, anteil, erreicht_am)')
-    .in('status', ['Aktiv', 'Entwurf'])
+    .eq('status', 'Aktiv')
 
   if (tradesError || !activeTrades) {
     console.error('Error fetching active trades:', tradesError)
@@ -602,16 +589,12 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
 
     for (const trade of assetTrades) {
       const tradeEntries = (trade as any).entries ?? []
-      const isEntwurf = trade.status === 'Entwurf'
 
-      // Check entry-point triggers for setups with entries
+      // Check entry-point triggers for active trades with entries
       if (!trade.manuell_getrackt && tradeEntries.length > 0 && ohlcData.length > 0) {
         const entryChanged = await checkAndUpdateEntries(trade, tradeEntries, ohlcData)
         if (entryChanged) tpSlChanged = true
       }
-
-      // Skip price tracking for Entwurf trades (not yet in the market)
-      if (isEntwurf) continue
 
       if (price !== null) {
         // Update current price in DB
