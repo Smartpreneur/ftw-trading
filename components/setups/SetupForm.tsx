@@ -125,7 +125,9 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           asset: setup.asset,
           asset_klasse: setup.asset_klasse,
           datum_eroeffnung: setup.datum_eroeffnung,
-          aktueller_kurs: setup.aktueller_kurs ?? undefined,
+          aktueller_kurs: setup.aktueller_kurs != null
+            ? Math.round(setup.aktueller_kurs * (Math.abs(setup.aktueller_kurs) < 10 ? 10000 : 100)) / (Math.abs(setup.aktueller_kurs) < 10 ? 10000 : 100)
+            : undefined,
           richtung: setup.richtung ?? 'LONG',
           einstiegspreis: setup.einstiegspreis ?? undefined,
           stop_loss: setup.stop_loss ?? undefined,
@@ -344,7 +346,9 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
               try {
                 const price = await fetchInstrumentPrice(instrument.api, instrument.type)
                 if (price !== null) {
-                  setValue('aktueller_kurs', price)
+                  // Round: 2 decimals for prices >= 10, 4 for FX/small values
+                  const decimals = Math.abs(price) < 10 ? 4 : 2
+                  setValue('aktueller_kurs', Math.round(price * 10 ** decimals) / 10 ** decimals)
                 }
               } catch {
                 // silently ignore
