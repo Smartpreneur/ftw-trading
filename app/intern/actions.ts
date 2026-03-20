@@ -25,6 +25,7 @@ type OrderRow = {
   order_id: string; ordered_at: string; is_new_order: string; amount: number;
   campaign_id: string | null; plan_name: string | null; country_code: string | null;
   payment_method: string | null; cancelled_at: string | null; cancellation_type: string | null;
+  event_type: string;
 }
 
 const computeAnalytics = unstable_cache(
@@ -194,7 +195,7 @@ const computeAnalytics = unstable_cache(
     // --- Ablefy Orders ---
     const { data: orders } = await supabase
       .from('ablefy_orders')
-      .select('order_id, ordered_at, is_new_order, amount, campaign_id, plan_name, country_code, payment_method, cancelled_at, cancellation_type')
+      .select('order_id, ordered_at, is_new_order, amount, campaign_id, plan_name, country_code, payment_method, cancelled_at, cancellation_type, event_type')
       .order('ordered_at', { ascending: false })
 
     const ordersByDay: Record<string, OrderRow[]> = {}

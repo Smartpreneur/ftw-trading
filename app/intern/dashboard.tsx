@@ -38,6 +38,7 @@ type OrderRow = {
   is_new_order: string
   cancelled_at: string | null
   cancellation_type: string | null
+  event_type: string
   amount: number
   campaign_id: string | null
   plan_name: string | null
