@@ -36,6 +36,8 @@ type OrderRow = {
   order_id: string
   ordered_at: string
   is_new_order: string
+  cancelled_at: string | null
+  cancellation_type: string | null
   amount: number
   campaign_id: string | null
   plan_name: string | null
@@ -758,23 +760,25 @@ export function InternDashboard() {
                   <th>Zahlung</th>
                   <th>Neu</th>
                   <th>Betrag</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredOrders.map(o => (
-                  <tr key={o.order_id}>
+                  <tr key={o.order_id} style={o.cancellation_type ? { opacity: 0.6 } : undefined}>
                     <td>{new Date(o.ordered_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })}</td>
                     <td>{o.order_id}</td>
                     <td>{o.plan_name ? shortenPlan(o.plan_name) : '–'}</td>
                     <td>{o.campaign_id || '–'}</td>
                     <td>{o.country_code || '–'}</td>
                     <td>{o.payment_method || '–'}</td>
-                    <td>{isNewOrder(o.is_new_order) ? 'Ja' : isCancellation(o.is_new_order) ? o.is_new_order : 'Nein'}</td>
+                    <td>{isNewOrder(o.is_new_order) ? 'Ja' : isCancellation(o.is_new_order) ? '–' : 'Nein'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{Number(o.amount).toFixed(2).replace('.', ',')}&nbsp;&euro;</td>
+                    <td>{o.cancellation_type ? <span style={{ color: o.cancellation_type === 'Widerruf' ? '#e67e22' : '#e74c3c' }}>{o.cancellation_type}</span> : '–'}</td>
                   </tr>
                 ))}
                 {filteredOrders.length === 0 && (
-                  <tr><td colSpan={8}>{isDayFiltered ? 'Keine Bestellungen an diesem Tag' : 'Noch keine Bestellungen'}</td></tr>
+                  <tr><td colSpan={9}>{isDayFiltered ? 'Keine Bestellungen an diesem Tag' : 'Noch keine Bestellungen'}</td></tr>
                 )}
               </tbody>
             </table>

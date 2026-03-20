@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+const WIDERRUF_DAYS = 37
+
 export async function POST(req: NextRequest) {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,6 +22,50 @@ export async function POST(req: NextRequest) {
   if (!orderId) {
     return NextResponse.json({ error: 'order_id required' }, { status: 400 })
   }
+
+  // Rohwert als Text speichern (z.B. "TRUE", "Subscription_Cancelled")
+  const rawNew = body.is_new_order ?? body.Is_New_Order ?? 'true'
+  const isNewOrder = String(rawNew)
+
+  // --- Cancellation-Logik ---
+  if (isNewOrder.toLowerCase().includes('cancelled') || isNewOrder.toLowerCase().includes('canceled')) {
+    const now = new Date()
+
+    // Bestehende Order nachschlagen
+    const { data: existing } = await supabase
+      .from('ablefy_orders')
+      .select('ordered_at')
+      .eq('order_id', orderId)
+      .single()
+
+    let cancellationType = 'Kündigung' // Default: nicht gefunden oder > 37 Tage
+    if (existing?.ordered_at) {
+      const orderedAt = new Date(existing.ordered_at)
+      const daysDiff = (now.getTime() - orderedAt.getTime()) / (1000 * 60 * 60 * 24)
+      if (daysDiff <= WIDERRUF_DAYS) {
+        cancellationType = 'Widerruf'
+      }
+    }
+
+    // Nur Cancellation-Felder updaten, originale Bestelldaten behalten
+    const { error } = await supabase
+      .from('ablefy_orders')
+      .update({
+        is_new_order: isNewOrder,
+        cancelled_at: now.toISOString(),
+        cancellation_type: cancellationType,
+        synced_at: now.toISOString(),
+      })
+      .eq('order_id', orderId)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, order_id: orderId, cancellation_type: cancellationType })
+  }
+
+  // --- Normale Bestellung ---
 
   // Datum parsen: "05.03.2026 10:53" (DE-Format, Berliner Zeit) oder ISO
   let orderedAt: string
@@ -46,10 +92,6 @@ export async function POST(req: NextRequest) {
   } else {
     orderedAt = new Date().toISOString()
   }
-
-  // Rohwert als Text speichern (z.B. "TRUE", "Subscription_Cancelled")
-  const rawNew = body.is_new_order ?? body.Is_New_Order ?? 'true'
-  const isNewOrder = String(rawNew)
 
   // Amount: kann leer sein
   const rawAmount = body.amount || body.Amount || 0
