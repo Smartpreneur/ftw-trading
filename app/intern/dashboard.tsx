@@ -99,7 +99,7 @@ export function InternDashboard() {
   const [clicksOpen, setClicksOpen] = useState(false)
   const [ordersOpen, setOrdersOpen] = useState(false)
   const [arrOpen, setArrOpen] = useState(false)
-  const [chartMode, setChartMode] = useState<'funnel' | 'orders' | 'revenue' | 'arr'>('funnel')
+  const [chartMode, setChartMode] = useState<'funnel' | 'orders' | 'revenue' | 'arr' | 'cancellations'>('funnel')
   const [customRangeOpen, setCustomRangeOpen] = useState(false)
 
   useEffect(() => {
@@ -159,6 +159,20 @@ export function InternDashboard() {
   }
   const maxOrders = Math.max(...chartDays.map(d => ordersCountByDay[d] || 0), 1)
   const maxRevenue = Math.max(...chartDays.map(d => revenueByDay[d] || 0), 1)
+
+  // Cancellations per day for chart
+  const cancellationsByDay: Record<string, { widerruf: number; kuendigung: number }> = {}
+  for (const d of chartDays) {
+    const dayCancels = (data.ordersByDay[d] || []).filter(o => o.event_type === 'cancellation')
+    cancellationsByDay[d] = {
+      widerruf: dayCancels.filter(o => o.cancellation_type === 'Widerruf').length,
+      kuendigung: dayCancels.filter(o => o.cancellation_type === 'Kündigung').length,
+    }
+  }
+  const maxCancellations = Math.max(...chartDays.map(d => {
+    const c = cancellationsByDay[d]
+    return c ? c.widerruf + c.kuendigung : 0
+  }), 1)
 
   // Per-plan breakdown for stacked bars
   function planCategory(planName: string): 'jahres' | 'quartal' | 'halbjahres' {
@@ -468,19 +482,6 @@ export function InternDashboard() {
             </div>
           )}
         </div>
-      {displayCancellationCount > 0 && (
-          <div className="funnel__step funnel__step--cancellations" style={{ borderLeft: '3px solid #e74c3c', marginLeft: 8, paddingLeft: 12, opacity: 0.85 }}>
-            <div className="funnel__step-header">
-              <span className="funnel__step-label">Cancellations</span>
-              <span className="funnel__step-value">{displayCancellationCount}</span>
-            </div>
-            <div className="funnel__step-sub">
-              {displayWiderrufe > 0 && <span style={{ color: '#e67e22' }}>{displayWiderrufe} Widerruf{displayWiderrufe !== 1 ? 'e' : ''}</span>}
-              {displayWiderrufe > 0 && displayKuendigungen > 0 && ' | '}
-              {displayKuendigungen > 0 && <span style={{ color: '#e74c3c' }}>{displayKuendigungen} Kündigung{displayKuendigungen !== 1 ? 'en' : ''}</span>}
-            </div>
-          </div>
-        )}
       </div>
       <div className="funnel__meta">{displayLabel}</div>
 
@@ -494,6 +495,7 @@ export function InternDashboard() {
               { key: 'orders' as const, label: 'Bestellungen', short: 'Bestell.' },
               { key: 'revenue' as const, label: 'Umsatz', short: 'Umsatz' },
               { key: 'arr' as const, label: 'ARR', short: 'ARR' },
+              { key: 'cancellations' as const, label: 'Cancellations', short: 'Cancel.' },
             ]).map(m => (
               <button
                 key={m.key}
@@ -524,6 +526,12 @@ export function InternDashboard() {
             <span className="chart-legend__item chart-legend__item--jahres">Jahres</span>
             <span className="chart-legend__item chart-legend__item--halbjahres">Halbjahres</span>
             <span className="chart-legend__item chart-legend__item--quartal">Quartal</span>
+          </div>
+        )}
+        {chartMode === 'cancellations' && (
+          <div className="chart-legend">
+            <span className="chart-legend__item" style={{ borderColor: '#e67e22' }}>Widerrufe</span>
+            <span className="chart-legend__item" style={{ borderColor: '#e74c3c' }}>Kündigungen</span>
           </div>
         )}
 
@@ -597,6 +605,19 @@ export function InternDashboard() {
                         {bp.quartal > 0 && <div className="bar-chart__layer bar-chart__layer--quartal" style={{ height: `${(bp.quartal / maxARR) * 100}%` }} />}
                         {bp.halbjahres > 0 && <div className="bar-chart__layer bar-chart__layer--halbjahres" style={{ height: `${(bp.halbjahres / maxARR) * 100}%` }} />}
                         {bp.jahres > 0 && <div className="bar-chart__layer bar-chart__layer--jahres" style={{ height: `${(bp.jahres / maxARR) * 100}%` }} />}
+                      </div>
+                    </>
+                  )
+                })()}
+                {chartMode === 'cancellations' && (() => {
+                  const c = cancellationsByDay[day] || { widerruf: 0, kuendigung: 0 }
+                  const total = c.widerruf + c.kuendigung
+                  return (
+                    <>
+                      <div className="bar-chart__count">{total > 0 ? total : ''}</div>
+                      <div className="bar-chart__stack bar-chart__stack--stacked">
+                        {c.kuendigung > 0 && <div style={{ height: `${(c.kuendigung / maxCancellations) * 100}%`, background: '#e74c3c', borderRadius: '3px 3px 0 0', width: '70%', margin: '0 auto' }} />}
+                        {c.widerruf > 0 && <div style={{ height: `${(c.widerruf / maxCancellations) * 100}%`, background: '#e67e22', borderRadius: c.kuendigung > 0 ? '0' : '3px 3px 0 0', width: '70%', margin: '0 auto' }} />}
                       </div>
                     </>
                   )

@@ -954,10 +954,17 @@
   border-radius: 10px;
   padding: 4px;
   border: 1px solid var(--border-accent);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.detail-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .detail-tabs__btn {
-  flex: 1;
+  flex: 0 0 auto;
   background: none;
   border: none;
   color: var(--text-muted);
@@ -967,6 +974,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: color 0.2s, background 0.2s;
+  white-space: nowrap;
 }
 
 .detail-tabs__btn:hover {
@@ -1053,13 +1061,19 @@
 
   .chart-mode-toggle {
     width: 100%;
-    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .chart-mode-toggle::-webkit-scrollbar {
+    display: none;
   }
 
   .chart-mode-toggle__btn {
-    flex: 1;
+    flex: 0 0 auto;
     text-align: center;
-    padding: 4px 6px;
+    padding: 4px 8px;
     font-size: 0.7rem;
     min-width: 0;
     white-space: nowrap;
