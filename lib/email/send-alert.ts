@@ -43,9 +43,11 @@ export async function sendEilmeldung(tradeId: string): Promise<void> {
 
   if (sendError) throw new Error(`E-Mail-Versand fehlgeschlagen: ${sendError.message}`)
 
-  // Mark as sent
-  await supabase
-    .from('trades')
-    .update({ eilmeldung_sent_at: new Date().toISOString() })
-    .eq('id', tradeId)
+  // Mark as sent (only for active trades, not for test sends from Entwurf)
+  if (trade.status !== 'Entwurf') {
+    await supabase
+      .from('trades')
+      .update({ eilmeldung_sent_at: new Date().toISOString() })
+      .eq('id', tradeId)
+  }
 }

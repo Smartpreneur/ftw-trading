@@ -52,6 +52,19 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
     }
   }
 
+  const [isSendingTest, setIsSendingTest] = useState(false)
+  async function handleTestEmail() {
+    setIsSendingTest(true)
+    try {
+      await sendEilmeldung(setup.id)
+      toast.success('Test-Mail versendet')
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Fehler beim Versenden')
+    } finally {
+      setIsSendingTest(false)
+    }
+  }
+
   async function handleDelete() {
     setIsDeleting(true)
     try {
@@ -309,28 +322,40 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
         {isAdmin && setup.status === 'Entwurf' && (
           <div className="space-y-3 mt-3 pt-3 border-t">
             {devMode && (
-              <div
-                className={`flex items-center justify-between rounded-lg border px-4 py-3 cursor-pointer transition-colors ${
-                  sendEmail ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-gray-50'
-                }`}
-                onClick={() => setSendEmail(!sendEmail)}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Mail className={`h-4 w-4 ${sendEmail ? 'text-blue-600' : 'text-muted-foreground'}`} />
-                  <div>
-                    <p className={`text-sm font-medium ${sendEmail ? 'text-blue-900' : 'text-foreground'}`}>
-                      Als E-Mail versenden
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {sendEmail ? 'Eilmeldung wird beim Veröffentlichen gesendet' : 'Eilmeldung an Abonnenten senden'}
-                    </p>
+              <>
+                <div
+                  className={`flex items-center justify-between rounded-lg border px-4 py-3 cursor-pointer transition-colors ${
+                    sendEmail ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                  }`}
+                  onClick={() => setSendEmail(!sendEmail)}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Mail className={`h-4 w-4 ${sendEmail ? 'text-blue-600' : 'text-muted-foreground'}`} />
+                    <div>
+                      <p className={`text-sm font-medium ${sendEmail ? 'text-blue-900' : 'text-foreground'}`}>
+                        Als E-Mail versenden
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {sendEmail ? 'Eilmeldung wird beim Veröffentlichen gesendet' : 'Eilmeldung an Abonnenten senden'}
+                      </p>
+                    </div>
                   </div>
+                  <Switch
+                    checked={sendEmail}
+                    onCheckedChange={setSendEmail}
+                  />
                 </div>
-                <Switch
-                  checked={sendEmail}
-                  onCheckedChange={setSendEmail}
-                />
-              </div>
+                <Button
+                  onClick={handleTestEmail}
+                  disabled={isSendingTest}
+                  variant="outline"
+                  className="w-full"
+                  size="sm"
+                >
+                  <Mail className="h-3.5 w-3.5 mr-1.5" />
+                  {isSendingTest ? 'Wird gesendet...' : 'Nur Test-Mail senden'}
+                </Button>
+              </>
             )}
             <Button
               onClick={handleConvertToTrade}
