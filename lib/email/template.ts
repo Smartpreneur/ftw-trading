@@ -93,7 +93,7 @@ export function buildEilmeldungContent(trade: Trade): string {
         <td>
           <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
             ${tps.map((tp, i) => {
-              const perRow = tps.length <= 2 ? tps.length : 2
+              const perRow = tps.length <= 3 ? tps.length : 2
               const isRowStart = i % perRow === 0
               const isRowEnd = i % perRow === perRow - 1 || i === tps.length - 1
               const tdWidth = Math.floor(100 / perRow)
