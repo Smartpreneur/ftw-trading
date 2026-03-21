@@ -65,7 +65,7 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
   async function handlePreview() {
     setIsLoadingPreview(true)
     try {
-      const res = await fetch(`/api/email-preview?trade_id=${setup.trade_id}`)
+      const res = await fetch(`/api/email-preview?trade_id=${setup.trade_id}`, { credentials: 'include' })
       if (res.ok) {
         const html = await res.text()
         setPreviewHtml(html)
