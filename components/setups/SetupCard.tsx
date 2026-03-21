@@ -47,7 +47,7 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
         }
         toast.success('Eilmeldung versendet')
       }
-      await updateTrade(setup.id, { status: 'Aktiv' })
+      await updateTrade(setup.id, { status: 'Aktiv', published_at: new Date().toISOString() })
       // Fetch current price immediately so it shows in active trades
       await updateAssetPrice(setup.id, setup.asset).catch(() => {})
       toast.success('Trade veröffentlicht')

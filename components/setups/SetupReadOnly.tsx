@@ -21,8 +21,11 @@ export function SetupReadOnly({ setup }: SetupReadOnlyProps) {
   ].filter(tp => tp.level != null)
 
   const createdDate = new Date(setup.created_at)
-  const updatedDate = new Date(setup.updated_at)
-  const formatDT = (d: Date) => `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}.${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+  const publishedDate = setup.published_at ? new Date(setup.published_at) : null
+  const formatDT = (d: Date) => {
+    const berlin = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }).format(d)
+    return berlin
+  }
 
   return (
     <div className="space-y-4">
@@ -158,10 +161,10 @@ export function SetupReadOnly({ setup }: SetupReadOnlyProps) {
             <Clock className="h-3.5 w-3.5" />
             <span>Erstellt: {formatDT(createdDate)}</span>
           </div>
-          {setup.status !== 'Entwurf' && (
+          {setup.status !== 'Entwurf' && publishedDate && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Check className="h-3.5 w-3.5 text-emerald-600" />
-              <span>Veröffentlicht: {formatDT(updatedDate)}</span>
+              <span>Veröffentlicht: {formatDT(publishedDate)}</span>
             </div>
           )}
           {setup.eilmeldung_sent_at && (

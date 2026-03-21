@@ -100,6 +100,7 @@ export interface Trade {
   analyse_text: string | null
   tradingview_symbol: string | null
   eilmeldung_sent_at: string | null
+  published_at: string | null
   closes: TradeClose[]
   notes: TradeNote[]
   entries: TradeEntry[]
