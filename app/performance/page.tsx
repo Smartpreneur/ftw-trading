@@ -381,15 +381,15 @@ export default async function DashboardPage({
         token={params.token}
       />
 
-      <footer className="text-center text-xs text-muted-foreground pt-4 pb-2">
+      <footer className="text-center text-sm text-muted-foreground pt-6 pb-3">
         Dashboard provided by{' '}
         <a
           href="https://kuehn.it"
           target="_blank"
           rel="noopener noreferrer"
-          className="underline hover:text-foreground transition-colors"
+          className="font-semibold hover:opacity-80 transition-opacity"
         >
-          Kuehn.IT
+          <span className="text-foreground">Kuehn</span><span style={{ color: '#0071e3' }}>.IT</span>
         </a>
       </footer>
     </div>
