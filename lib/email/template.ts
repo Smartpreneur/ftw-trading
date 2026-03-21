@@ -11,16 +11,33 @@ export function buildEilmeldungContent(trade: Trade): string {
   const { dirColor, dirLabel, dirArrow, tps, entries, crvText, timeStr, tvUrl, tvDisplayLabel } = buildTradeData(trade)
 
   return `
+  <!-- MOBILE RESPONSIVE STYLES -->
+  <style type="text/css">
+    @media only screen and (max-width: 480px) {
+      .ftw-header-text { font-size: 24px !important; }
+      .ftw-signal-dir { font-size: 13px !important; }
+      .ftw-signal-asset { font-size: 13px !important; }
+      .ftw-signal-badge { font-size: 11px !important; }
+      .ftw-tp-tile { padding: 6px 4px !important; }
+      .ftw-tp-label { font-size: 10px !important; }
+      .ftw-tp-price { font-size: 13px !important; }
+      .ftw-tp-weight { font-size: 11px !important; }
+      .ftw-asset-title { font-size: 18px !important; }
+      .ftw-label-col { width: 90px !important; font-size: 10px !important; }
+      .ftw-entry-price { font-size: 14px !important; }
+    }
+  </style>
+
   <!-- SIGNAL HEADER -->
   <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
   <tr>
     <td style="background:${dirColor};padding:14px 24px;border-radius:8px 8px 0 0;">
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>
         <td>
-          <span style="color:#fff;font-size:14px;font-weight:700;letter-spacing:0.5px;">${dirArrow} ${dirLabel}</span>
-          <span style="color:rgba(255,255,255,0.85);font-size:14px;font-weight:500;margin-left:6px;">${esc(trade.asset_name || trade.asset)}</span>
+          <span class="ftw-signal-dir" style="color:#fff;font-size:14px;font-weight:700;letter-spacing:0.5px;">${dirArrow} ${dirLabel}</span>
+          <span class="ftw-signal-asset" style="color:rgba(255,255,255,0.85);font-size:14px;font-weight:500;margin-left:6px;">${esc(trade.asset_name || trade.asset)}</span>
         </td>
-        <td align="right"><span style="color:#fff;font-size:12px;font-weight:600;letter-spacing:0.5px;">EILMELDUNG ${esc(TRADER_NAMES[trade.profil] ?? trade.profil)}</span></td>
+        <td align="right"><span class="ftw-signal-badge" style="color:#fff;font-size:12px;font-weight:600;letter-spacing:0.5px;">EILMELDUNG<br>${esc(TRADER_NAMES[trade.profil] ?? trade.profil)}</span></td>
       </tr></table>
     </td>
   </tr>
@@ -28,7 +45,7 @@ export function buildEilmeldungContent(trade: Trade): string {
   <!-- ASSET + TICKER + KURS -->
   <tr>
     <td style="padding:20px 24px 4px;background:#fff;">
-      <h1 style="margin:0;font-size:22px;font-weight:700;color:#000;">
+      <h1 class="ftw-asset-title" style="margin:0;font-size:22px;font-weight:700;color:#000;">
         ${esc(trade.asset_name || trade.asset)}
       </h1>
       <p style="margin:4px 0 0;font-size:13px;color:#71717a;">
@@ -49,7 +66,7 @@ export function buildEilmeldungContent(trade: Trade): string {
       ${dataRow(`${dirLabel}-EINSTIEG`,
         entries.length > 1
           ? entries.map(e =>
-              `<strong style="font-size:16px;">${formatPrice(e.preis)}</strong> <span style="color:#71717a;font-size:13px;">(${Math.round(e.anteil * 100)}%)</span>`
+              `<strong class="ftw-entry-price" style="font-size:16px;">${formatPrice(e.preis)}</strong> <span style="color:#71717a;font-size:13px;">(${Math.round(e.anteil * 100)}%)</span>`
             ).join(' &nbsp;/&nbsp; ') +
             `<br><span style="color:#71717a;font-size:13px;">= ${formatPrice(trade.einstiegspreis)} (Mischkurs)</span>`
           : `<strong style="font-size:18px;">${formatPrice(trade.einstiegspreis)}</strong>`
@@ -77,10 +94,10 @@ export function buildEilmeldungContent(trade: Trade): string {
           <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr>
             ${tps.map((tp, i) => `
             <td width="${Math.floor(100 / tps.length)}%" style="padding:0 ${i < tps.length - 1 ? '3' : '0'}px 0 ${i > 0 ? '3' : '0'}px;vertical-align:top;">
-              <div style="background:#ecfdf5;border-radius:6px;padding:8px 10px;text-align:center;">
-                <div style="font-size:11px;font-weight:700;color:#059669;">${tp.label}</div>
-                <div style="font-family:monospace;font-size:15px;font-weight:700;color:#000;margin:3px 0;">${formatPrice(tp.level)}</div>
-                ${tp.weight != null ? `<div style="font-size:12px;font-weight:600;color:#4d4d4d;">(${Math.round(tp.weight * 100)}%)</div>` : ''}
+              <div class="ftw-tp-tile" style="background:#ecfdf5;border-radius:6px;padding:8px 10px;text-align:center;">
+                <div class="ftw-tp-label" style="font-size:11px;font-weight:700;color:#059669;">${tp.label}</div>
+                <div class="ftw-tp-price" style="font-family:monospace;font-size:15px;font-weight:700;color:#000;margin:3px 0;white-space:nowrap;">${formatPrice(tp.level)}</div>
+                ${tp.weight != null ? `<div class="ftw-tp-weight" style="font-size:12px;font-weight:600;color:#4d4d4d;">(${Math.round(tp.weight * 100)}%)</div>` : ''}
               </div>
             </td>`).join('')}
           </tr></table>
@@ -253,7 +270,7 @@ function buildTradeData(trade: Trade) {
 
 function dataRow(label: string, value: string): string {
   return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>
-    <td width="120" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:4px;">${label}</td>
+    <td class="ftw-label-col" width="120" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:4px;">${label}</td>
     <td>${value}</td>
   </tr></table>`
 }
