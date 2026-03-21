@@ -357,24 +357,30 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
             <DialogHeader className="px-6 pt-6 pb-2">
               <DialogTitle>E-Mail Vorschau</DialogTitle>
             </DialogHeader>
-            <div className="px-6 pb-4 flex gap-2">
+            <div className="px-6 pb-4 flex items-center gap-3">
+              <label className="flex items-center gap-1.5 text-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={sendEmail}
+                  onChange={(e) => setSendEmail(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                E-Mail versenden
+              </label>
               <Button
                 onClick={() => {
                   setShowPreview(false)
-                  handleTestEmail()
+                  handleConvertToTrade()
                 }}
-                disabled={isSendingTest}
+                disabled={isConverting}
                 size="sm"
               >
-                <Mail className="h-3.5 w-3.5 mr-1.5" />
-                Test-Mail senden
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowPreview(false)}
-              >
-                Schließen
+                <Play className="h-3.5 w-3.5 mr-1.5" />
+                {isConverting
+                  ? 'Wird veröffentlicht...'
+                  : sendEmail
+                    ? 'Veröffentlichen & E-Mail senden'
+                    : 'Trade veröffentlichen'}
               </Button>
             </div>
             {previewHtml && (
