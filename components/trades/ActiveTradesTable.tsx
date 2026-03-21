@@ -13,10 +13,13 @@ import { DirectionBadge } from './DirectionBadge'
 import { formatDate, formatPrice } from '@/lib/formatters'
 import { getCurrencySymbol, getApiSymbol, getExchangeLabel } from '@/lib/asset-mapping'
 import { cn } from '@/lib/utils'
-import { Check, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hand } from 'lucide-react'
+import { Check, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hand, Trash2 } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { TradeDialog } from './TradeDialog'
 import { Button } from '@/components/ui/button'
+import { updateTrade } from '@/lib/actions'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 import type { TradeWithPerformance, ActiveTradePrice } from '@/lib/types'
 
 type SortKey = 'datum' | 'asset' | 'richtung' | null
@@ -280,14 +283,17 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
               </TableCell>
               {isAdmin && (
                 <TableCell className="pr-6">
-                  <TradeDialog
-                    trade={trade}
-                    trigger={
-                      <Button variant="ghost" size="icon" className="h-7 w-7">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    }
-                  />
+                  <div className="flex gap-0.5">
+                    <TradeDialog
+                      trade={trade}
+                      trigger={
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      }
+                    />
+                    <SoftDeleteButton tradeId={trade.id} tradeName={trade.asset_name || trade.asset} />
+                  </div>
                 </TableCell>
               )}
             </TableRow>
@@ -329,5 +335,59 @@ function BemerkungCell({ text }: { text: string }) {
         {expanded ? 'Weniger' : 'Mehr anzeigen'}
       </button>
     </div>
+  )
+}
+
+function SoftDeleteButton({ tradeId, tradeName }: { tradeId: string; tradeName: string }) {
+  const [open, setOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const router = useRouter()
+
+  async function handleSoftDelete() {
+    setIsDeleting(true)
+    try {
+      await updateTrade(tradeId, { status: 'Gelöscht' as any })
+      toast.success(`${tradeName} gelöscht`)
+      setOpen(false)
+      router.refresh()
+    } catch {
+      toast.error('Fehler beim Löschen')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-3" side="bottom" align="end">
+        <p className="text-sm font-medium mb-1">Trade löschen?</p>
+        <p className="text-xs text-muted-foreground mb-3">{tradeName} wird aus der Ansicht entfernt.</p>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="destructive"
+            className="flex-1 h-7 text-xs"
+            onClick={handleSoftDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Löscht...' : 'Löschen'}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 h-7 text-xs"
+            onClick={() => setOpen(false)}
+            disabled={isDeleting}
+          >
+            Abbrechen
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }

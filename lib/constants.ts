@@ -17,6 +17,7 @@ export const TRADE_STATUSES: TradeStatus[] = [
   'Geschlossen',
   'Ausgestoppt',
   'Ungültig',
+  'Gelöscht',
 ]
 
 /** Statuses shown in the trade list filter — excludes setup/pre-active statuses */
@@ -33,6 +34,7 @@ export const STATUS_COLORS: Record<TradeStatus, string> = {
   Geschlossen: 'bg-emerald-100 text-emerald-800',
   Ausgestoppt: 'bg-red-100 text-red-800',
   'Ungültig': 'bg-gray-100 text-gray-600',
+  'Gelöscht': 'bg-gray-100 text-gray-400',
 }
 
 export const DIRECTION_COLORS: Record<TradeDirection, string> = {

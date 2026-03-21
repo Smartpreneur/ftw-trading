@@ -35,6 +35,7 @@ export default async function SetupsPage({
     // and are no longer in Entwurf status
     publishedSetups = allTrades.filter((t) =>
       t.status !== 'Entwurf' &&
+      t.status !== 'Gelöscht' &&
       (t.chart_bild_url || t.zeiteinheit || t.aktueller_kurs != null || t.analyse_text)
     ).sort((a, b) => b.updated_at.localeCompare(a.updated_at))
 
