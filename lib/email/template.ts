@@ -236,7 +236,8 @@ function buildTradeData(trade: Trade) {
     : trade.risiko_reward_min != null ? trade.risiko_reward_min.toFixed(1) : '–'
 
   const now = new Date()
-  const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} Uhr`
+  const berlinTime = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }).format(now)
+  const timeStr = `${berlinTime} Uhr`
 
   const ticker = trade.asset ?? ''
   const tvSymbol = trade.tradingview_symbol
