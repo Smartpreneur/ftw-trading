@@ -148,6 +148,13 @@ export function buildEilmeldungContent(trade: Trade): string {
     </td>
   </tr>` : ''}
 
+  <!-- MITGLIEDERBEREICH LINK -->
+  <tr>
+    <td style="padding:16px 24px 20px;background:#fff;text-align:center;">
+      <a href="https://premium.finanzmarktwelt.de/s/finanzmarktwelt/sign_in" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 24px;background:#00748D;color:#fff;font-size:14px;font-weight:600;text-decoration:none;border-radius:6px;">Zum Mitgliederbereich</a>
+    </td>
+  </tr>
+
   </table>`
 }
 
