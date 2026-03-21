@@ -174,6 +174,9 @@ export function SetupReadOnly({ setup }: SetupReadOnlyProps) {
             </div>
           )}
         </div>
+        <div className="text-xs text-muted-foreground pt-1">
+          Trade-ID: {setup.trade_id}
+        </div>
       </div>
     </div>
   )
