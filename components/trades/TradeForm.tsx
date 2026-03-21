@@ -297,7 +297,7 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {TRADE_STATUSES.map((s) => (
+              {TRADE_STATUSES.filter((s) => s !== 'Gelöscht').map((s) => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>
               ))}
             </SelectContent>
