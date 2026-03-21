@@ -23,7 +23,7 @@ export function buildEilmeldungContent(trade: Trade): string {
       .ftw-tp-price { font-size: 13px !important; }
       .ftw-tp-weight { font-size: 11px !important; }
       .ftw-asset-title { font-size: 18px !important; }
-      .ftw-label-col { width: 90px !important; font-size: 10px !important; }
+      .ftw-label-col { width: 65px !important; font-size: 10px !important; }
       .ftw-entry-price { font-size: 14px !important; }
     }
   </style>
@@ -63,7 +63,7 @@ export function buildEilmeldungContent(trade: Trade): string {
   <!-- EINSTIEG -->
   <tr>
     <td style="padding:16px 24px 8px;background:#fff;">
-      ${dataRow(`${dirLabel}-EINSTIEG`,
+      ${dataRow(`${dirLabel}-<br>EINSTIEG`,
         entries.length > 1
           ? entries.map(e =>
               `<strong class="ftw-entry-price" style="font-size:16px;">${formatPrice(e.preis)}</strong> <span style="color:#71717a;font-size:13px;">(${Math.round(e.anteil * 100)}%)</span>`
@@ -78,7 +78,7 @@ export function buildEilmeldungContent(trade: Trade): string {
   ${trade.stop_loss != null ? `
   <tr>
     <td style="padding:8px 24px;background:#fff;">
-      ${dataRow('STOP-LOSS',
+      ${dataRow('STOP-<br>LOSS',
         `<span style="display:inline-block;background:#fef2f2;color:#dc2626;font-weight:700;font-size:16px;padding:3px 10px;border-radius:4px;">${formatPrice(trade.stop_loss)}</span>`
       )}
     </td>
@@ -89,7 +89,7 @@ export function buildEilmeldungContent(trade: Trade): string {
   <tr>
     <td style="padding:8px 24px;background:#fff;">
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>
-        <td class="ftw-label-col" width="120" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:6px;">Take Profit</td>
+        <td class="ftw-label-col" width="80" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:6px;">Take<br>Profit</td>
         <td>
           <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
             ${tps.map((tp, i) => {
@@ -276,7 +276,7 @@ function buildTradeData(trade: Trade) {
 
 function dataRow(label: string, value: string): string {
   return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>
-    <td class="ftw-label-col" width="120" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:4px;">${label}</td>
+    <td class="ftw-label-col" width="80" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:4px;">${label}</td>
     <td>${value}</td>
   </tr></table>`
 }
