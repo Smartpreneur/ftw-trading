@@ -359,16 +359,26 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
             <DialogHeader className="px-6 pt-6 pb-2">
               <DialogTitle>E-Mail Vorschau</DialogTitle>
             </DialogHeader>
-            <div className="px-6 pb-4 flex items-center gap-3">
-              <label className="flex items-center gap-1.5 text-sm cursor-pointer select-none">
-                <input
-                  type="checkbox"
+            <div className="px-6 pb-4 flex items-center gap-4">
+              <div
+                className={`flex items-center gap-2.5 cursor-pointer select-none rounded-lg border px-3 py-2 transition-colors ${
+                  sendEmail ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                }`}
+                onClick={() => setSendEmail(!sendEmail)}
+              >
+                <div>
+                  <p className={`text-sm font-medium leading-tight ${sendEmail ? 'text-blue-900' : 'text-foreground'}`}>
+                    E-Mail versenden
+                  </p>
+                  <p className="text-[11px] text-muted-foreground leading-tight">
+                    {sendEmail ? 'Eilmeldung wird gesendet' : 'Eilmeldung an Abonnenten'}
+                  </p>
+                </div>
+                <Switch
                   checked={sendEmail}
-                  onChange={(e) => setSendEmail(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300"
+                  onCheckedChange={setSendEmail}
                 />
-                E-Mail versenden
-              </label>
+              </div>
               <Button
                 onClick={() => {
                   setShowPreview(false)
