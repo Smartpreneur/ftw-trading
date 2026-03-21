@@ -151,6 +151,7 @@ export type TradeFormData = {
   zeiteinheit?: string | null
   dauer_erwartung?: string | null
   chart_bild_url?: string | null
+  published_at?: string | null
 }
 
 export type TradeCloseFormData = {

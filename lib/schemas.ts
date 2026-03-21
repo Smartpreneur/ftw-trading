@@ -18,6 +18,7 @@ export const tradeSchema = z.object({
     'Geschlossen',
     'Ausgestoppt',
     'Ungültig',
+    'Gelöscht',
   ]),
   bemerkungen: z.string().nullable().optional(),
   analyse_text: z.string().nullable().optional(),
