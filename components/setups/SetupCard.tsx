@@ -312,9 +312,10 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
 
         {/* Bemerkungen */}
         {setup.bemerkungen && (
-          <p className="text-xs text-muted-foreground pt-2 border-t">
-            {setup.bemerkungen}
-          </p>
+          <div
+            className="text-xs text-muted-foreground pt-2 border-t [&_p]:mb-1 last:[&_p]:mb-0"
+            dangerouslySetInnerHTML={{ __html: setup.bemerkungen }}
+          />
         )}
 
         {/* Date */}
