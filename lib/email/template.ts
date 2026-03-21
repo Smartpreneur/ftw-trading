@@ -89,18 +89,24 @@ export function buildEilmeldungContent(trade: Trade): string {
   <tr>
     <td style="padding:8px 24px;background:#fff;">
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>
-        <td width="120" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:6px;">Take Profit</td>
+        <td class="ftw-label-col" width="120" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:6px;">Take Profit</td>
         <td>
-          <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr>
-            ${tps.map((tp, i) => `
-            <td width="${Math.floor(100 / tps.length)}%" style="padding:0 ${i < tps.length - 1 ? '3' : '0'}px 0 ${i > 0 ? '3' : '0'}px;vertical-align:top;">
+          <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
+            ${tps.map((tp, i) => {
+              const perRow = tps.length <= 2 ? tps.length : 2
+              const isRowStart = i % perRow === 0
+              const isRowEnd = i % perRow === perRow - 1 || i === tps.length - 1
+              const tdWidth = Math.floor(100 / perRow)
+              return `${isRowStart ? '<tr>' : ''}
+            <td width="${tdWidth}%" style="padding:0 ${isRowEnd ? '0' : '3'}px ${i < tps.length - perRow ? '6px' : '0'} ${isRowStart ? '0' : '3'}px;vertical-align:top;">
               <div class="ftw-tp-tile" style="background:#ecfdf5;border-radius:6px;padding:8px 10px;text-align:center;">
                 <div class="ftw-tp-label" style="font-size:11px;font-weight:700;color:#059669;">${tp.label}</div>
-                <div class="ftw-tp-price" style="font-family:monospace;font-size:15px;font-weight:700;color:#000;margin:3px 0;white-space:nowrap;">${formatPrice(tp.level)}</div>
+                <div class="ftw-tp-price" style="font-family:monospace;font-size:15px;font-weight:700;color:#000;margin:3px 0;white-space:nowrap;">${formatPrice(tp.level!)}</div>
                 ${tp.weight != null ? `<div class="ftw-tp-weight" style="font-size:12px;font-weight:600;color:#4d4d4d;">(${Math.round(tp.weight * 100)}%)</div>` : ''}
               </div>
-            </td>`).join('')}
-          </tr></table>
+            </td>${isRowEnd ? '</tr>' : ''}`
+            }).join('')}
+          </table>
         </td>
       </tr></table>
     </td>
