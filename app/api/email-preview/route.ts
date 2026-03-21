@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   if (!isLocal) {
     const auth = request.headers.get('authorization')
     const adminCookie = request.cookies.get('ftw_admin')?.value
-    const isAdmin = adminCookie === process.env.ADMIN_PASSWORD
+    const isAdmin = adminCookie === 'admin_authenticated'
     const hasToken = auth === `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
     if (!isAdmin && !hasToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
