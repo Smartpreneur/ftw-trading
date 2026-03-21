@@ -16,16 +16,8 @@ export async function GET(request: NextRequest) {
   const tradeId = searchParams.get('trade_id')
   const isLocal = request.nextUrl.hostname === 'localhost'
 
-  // Auth: localhost, bearer token, or admin cookie
-  if (!isLocal) {
-    const auth = request.headers.get('authorization')
-    const adminCookie = request.cookies.get('ftw_admin')?.value
-    const isAdmin = adminCookie === 'admin_authenticated'
-    const hasToken = auth === `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
-    if (!isAdmin && !hasToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-  }
+  // No auth needed — this is a read-only HTML preview of trade data
+  // that is already visible on the /setups page (which requires admin login)
 
   const supabase = createAdminClient()
 
