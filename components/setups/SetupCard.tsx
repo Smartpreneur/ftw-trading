@@ -11,6 +11,7 @@ import { SetupDialog } from './SetupDialog'
 import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2, Play, Check, Mail, Eye } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -151,15 +152,42 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
                     </Button>
                   }
                 />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  disabled={isDeleting}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                <Popover open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                      disabled={isDeleting}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-3" side="bottom" align="end">
+                    <p className="text-sm font-medium mb-1">Setup löschen?</p>
+                    <p className="text-xs text-muted-foreground mb-3">Kann nicht rückgängig gemacht werden.</p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="flex-1 h-7 text-xs"
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? 'Löscht...' : 'Löschen'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-7 text-xs"
+                        onClick={() => setShowDeleteConfirm(false)}
+                        disabled={isDeleting}
+                      >
+                        Abbrechen
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             )}
           </div>
@@ -323,33 +351,7 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
           {formattedDate}
         </p>
 
-        {/* Delete confirmation */}
-        {showDeleteConfirm && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
-            <p className="text-sm font-medium text-destructive">Setup wirklich löschen?</p>
-            <p className="text-xs text-muted-foreground">Dieser Vorgang kann nicht rückgängig gemacht werden.</p>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="destructive"
-                className="flex-1"
-                onClick={handleDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Wird gelöscht...' : 'Löschen'}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1"
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={isDeleting}
-              >
-                Abbrechen
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* Delete confirmation is now in the Popover next to the trash icon */}
 
         {/* E-Mail Preview Modal */}
         <Dialog open={showPreview} onOpenChange={setShowPreview}>
