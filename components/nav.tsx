@@ -88,7 +88,7 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
               <SheetHeader>
                 <SheetTitle>Menü</SheetTitle>
               </SheetHeader>
-              <div className="flex flex-col gap-6 mt-6">
+              <div className="flex flex-col justify-between mt-6" style={{ minHeight: 'calc(100vh - 120px)' }}>
                 {/* Navigation Links */}
                 <nav className="flex flex-col gap-2">
                   {links.map(({ href, label, icon: Icon }) => (
@@ -108,6 +108,17 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
                     </Link>
                   ))}
                 </nav>
+                <div className="text-center text-sm text-muted-foreground pb-4">
+                  Dashboard provided by{' '}
+                  <a
+                    href="https://kuehn.it"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold hover:opacity-80 transition-opacity"
+                  >
+                    <span className="text-foreground">Kuehn</span><span style={{ color: '#0071e3' }}>.IT</span>
+                  </a>
+                </div>
               </div>
             </SheetContent>
           </Sheet>
