@@ -67,7 +67,7 @@ export function RecentTradesSection({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-6 w-16">ID</TableHead>
+                  {isAdmin && <TableHead className="pl-6 w-16">ID</TableHead>}
                   <TableHead>Basiswert</TableHead>
                   <TableHead className="w-14 text-right">Gew.</TableHead>
                   <TableHead>L/S</TableHead>
@@ -84,9 +84,11 @@ export function RecentTradesSection({
               <TableBody>
                 {visible.map((trade) => (
                   <TableRow key={trade.id}>
+                    {isAdmin && (
                     <TableCell className="pl-6 font-mono text-xs text-muted-foreground whitespace-nowrap">
                       {trade.trade_id}
                     </TableCell>
+                    )}
                     <TableCell>
                       <div>
                         <span className="font-medium" title={trade.asset}>{trade.asset_name || trade.asset}</span>

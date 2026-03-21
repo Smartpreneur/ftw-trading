@@ -338,6 +338,7 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
         <Table>
           <TableHeader>
             <TableRow>
+              {isAdmin && (
               <TableHead className="w-20">
                 <button
                   onClick={() => toggleSort('id')}
@@ -347,6 +348,7 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
                   <SortIcon field="id" />
                 </button>
               </TableHead>
+              )}
               <TableHead>
                 <button
                   onClick={() => toggleSort('eroeffnung')}
@@ -423,7 +425,7 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
           <TableBody>
             {sortedRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 14 : 13} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={isAdmin ? 14 : 12} className="h-24 text-center text-muted-foreground">
                   {hasFilters ? 'Keine Trades für diese Filter' : 'Noch keine Trades vorhanden'}
                 </TableCell>
               </TableRow>
@@ -436,9 +438,11 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
 
                 return (
                   <TableRow key={row.key} className="group">
+                    {isAdmin && (
                     <TableCell className="font-mono text-xs text-muted-foreground">
                       {trade.trade_id}
                     </TableCell>
+                    )}
                     <TableCell className="text-sm whitespace-nowrap">
                       {formatDate(trade.datum_eroeffnung)}
                     </TableCell>
