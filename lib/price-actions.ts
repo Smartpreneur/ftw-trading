@@ -285,7 +285,8 @@ async function checkAndUpdateTPSL(
     tp3_gewichtung: number | null
     tp4_gewichtung: number | null
   },
-  ohlcData: DailyOHLC[]
+  ohlcData: DailyOHLC[],
+  currentPrice?: number
 ): Promise<boolean> {
   if (!trade.richtung || ohlcData.length === 0) return false
 
@@ -296,6 +297,7 @@ async function checkAndUpdateTPSL(
   // The day the trade was actually created in our system — on this day we can't
   // use daily high/low because we don't know if the price hit was before or after creation.
   const createdDate = trade.created_at.split('T')[0]
+  const today = new Date().toISOString().split('T')[0]
   const updates: Record<string, string> = {}
 
   // Track which TPs are newly hit (for auto-close creation)
@@ -306,16 +308,21 @@ async function checkAndUpdateTPSL(
     // Skip days before the trade was opened
     if (day.date < openDate) continue
 
-    // Skip the reference day itself (entry day or TP/SL modification day)
-    // because we don't know the exact intraday timing
-    if (day.date <= referenceDate) continue
+    // For the reference day (entry or TP/SL modification day), we can't use
+    // OHLC high/low because we don't know the exact intraday timing.
+    // However, if it's TODAY and we have a live current price, we CAN check
+    // because the current price is definitively after the trade was created/modified.
+    const isReferenceDay = day.date <= referenceDate
+    const isCreationDay = day.date === createdDate && createdDate > openDate
+    const isTodayWithLivePrice = day.date === today && currentPrice != null
 
-    // Skip the creation day if it's after datum_eroeffnung — on that day
-    // we don't know if TP/SL was hit before or after the trade was entered
-    if (day.date === createdDate && createdDate > openDate) continue
+    if ((isReferenceDay || isCreationDay) && !isTodayWithLivePrice) continue
 
     // Use 16:00 UTC as approximate market close time for the timestamp
     const hitTimestamp = `${day.date}T16:00:00+00:00`
+    // For today's live price checks, use current price instead of OHLC high/low
+    const effectiveHigh = isTodayWithLivePrice ? Math.max(day.high, currentPrice) : day.high
+    const effectiveLow = isTodayWithLivePrice ? Math.min(day.low, currentPrice) : day.low
 
     // Check TPs: LONG → high >= TP, SHORT → low <= TP
     const tpChecks = [
@@ -329,8 +336,8 @@ async function checkAndUpdateTPSL(
       if (!tp.level || tp.alreadyHit || updates[tp.key]) continue
 
       const hit = trade.richtung === 'LONG'
-        ? day.high >= tp.level
-        : day.low <= tp.level
+        ? effectiveHigh >= tp.level
+        : effectiveLow <= tp.level
 
       if (hit) {
         updates[tp.key] = hitTimestamp
@@ -341,8 +348,8 @@ async function checkAndUpdateTPSL(
     // Check SL: LONG → low <= SL, SHORT → high >= SL
     if (trade.stop_loss && !trade.sl_erreicht_am && !updates.sl_erreicht_am) {
       const slHit = trade.richtung === 'LONG'
-        ? day.low <= trade.stop_loss
-        : day.high >= trade.stop_loss
+        ? effectiveLow <= trade.stop_loss
+        : effectiveHigh >= trade.stop_loss
 
       if (slHit) {
         updates.sl_erreicht_am = hitTimestamp
@@ -624,7 +631,7 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
 
       // Check TP/SL with daily High/Low data (skip manually tracked, only for active trades)
       if (!trade.manuell_getrackt && ohlcData.length > 0) {
-        const changed = await checkAndUpdateTPSL(trade, ohlcData)
+        const changed = await checkAndUpdateTPSL(trade, ohlcData, price ?? undefined)
         if (changed) tpSlChanged = true
       }
     }
