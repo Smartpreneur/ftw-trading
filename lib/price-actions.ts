@@ -200,12 +200,13 @@ async function fetchCoinGeckoOHLC(coinId: string, days: number = OHLC_LOOKBACK_D
 }
 
 // Fetch OHLC data based on API type
-// ── Intraday 15-min candles for same-day TP/SL detection ──────
+// ── Intraday candles for same-day TP/SL detection ──────
 // Only used on the reference day (trade creation or TP/SL modification day)
 // to determine if TP/SL was hit AFTER the trade was created/modified.
-async function fetchIntradayCandles(yahooSymbol: string): Promise<IntradayCandle[]> {
+
+async function fetchYahooIntradayCandles(symbol: string): Promise<IntradayCandle[]> {
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=15m&range=1d`
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=15m&range=1d`
     const response = await fetch(url)
     const data = await response.json()
 
@@ -222,12 +223,63 @@ async function fetchIntradayCandles(yahooSymbol: string): Promise<IntradayCandle
         candles.push({ timestamp: timestamps[i], high: highs[i]!, low: lows[i]! })
       }
     }
-
     return candles.sort((a, b) => a.timestamp - b.timestamp)
   } catch (error) {
-    console.error(`Error fetching intraday candles for ${yahooSymbol}:`, error)
+    console.error(`Error fetching Yahoo intraday for ${symbol}:`, error)
     return []
   }
+}
+
+async function fetchTwelveDataIntradayCandles(symbol: string): Promise<IntradayCandle[]> {
+  if (!TWELVE_DATA_API_KEY) return []
+  try {
+    const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=15min&outputsize=30&apikey=${TWELVE_DATA_API_KEY}`
+    const response = await fetch(url)
+    const data = await response.json()
+
+    if (!data.values || !Array.isArray(data.values)) return []
+
+    return data.values
+      .map((v: { datetime: string; high: string; low: string }) => ({
+        timestamp: Math.floor(new Date(v.datetime).getTime() / 1000),
+        high: parseFloat(v.high),
+        low: parseFloat(v.low),
+      }))
+      .filter((c: IntradayCandle) => !isNaN(c.high) && !isNaN(c.low))
+      .sort((a: IntradayCandle, b: IntradayCandle) => a.timestamp - b.timestamp)
+  } catch (error) {
+    console.error(`Error fetching Twelve Data intraday for ${symbol}:`, error)
+    return []
+  }
+}
+
+async function fetchCoinGeckoIntradayCandles(coinId: string): Promise<IntradayCandle[]> {
+  try {
+    // CoinGecko with days=1 returns 30-min OHLC candles
+    const url = `https://api.coingecko.com/api/v3/coins/${coinId}/ohlc?vs_currency=usd&days=1`
+    const response = await fetch(url)
+    const data = await response.json()
+
+    if (!Array.isArray(data)) return []
+
+    return data
+      .map((c: [number, number, number, number, number]) => ({
+        timestamp: Math.floor(c[0] / 1000),
+        high: c[2],
+        low: c[3],
+      }))
+      .sort((a: IntradayCandle, b: IntradayCandle) => a.timestamp - b.timestamp)
+  } catch (error) {
+    console.error(`Error fetching CoinGecko intraday for ${coinId}:`, error)
+    return []
+  }
+}
+
+async function fetchIntradayCandles(mapping: { api: string; type: 'twelve' | 'coingecko' | 'yahoo' }): Promise<IntradayCandle[]> {
+  if (mapping.type === 'yahoo') return fetchYahooIntradayCandles(mapping.api)
+  if (mapping.type === 'twelve') return fetchTwelveDataIntradayCandles(mapping.api)
+  if (mapping.type === 'coingecko') return fetchCoinGeckoIntradayCandles(mapping.api)
+  return []
 }
 
 // Calculate high/low from intraday candles that occurred AFTER a given timestamp
@@ -356,8 +408,8 @@ async function checkAndUpdateTPSL(
 
   if (referenceDayNeedsIntraday && referenceDate === today && trade.asset) {
     const mapping = getApiSymbol(trade.asset)
-    if (mapping?.type === 'yahoo') {
-      const candles = await fetchIntradayCandles(mapping.api)
+    if (mapping) {
+      const candles = await fetchIntradayCandles(mapping)
       intradayHighLow = getIntradayHighLowAfter(candles, referenceUnix)
     }
   }
