@@ -41,6 +41,12 @@ interface DailyOHLC {
   low: number
 }
 
+interface IntradayCandle {
+  timestamp: number // Unix seconds
+  high: number
+  low: number
+}
+
 // ── Current price fetchers ──────────────────────────────────────
 
 interface PriceResult {
@@ -194,6 +200,50 @@ async function fetchCoinGeckoOHLC(coinId: string, days: number = OHLC_LOOKBACK_D
 }
 
 // Fetch OHLC data based on API type
+// ── Intraday 15-min candles for same-day TP/SL detection ──────
+// Only used on the reference day (trade creation or TP/SL modification day)
+// to determine if TP/SL was hit AFTER the trade was created/modified.
+async function fetchIntradayCandles(yahooSymbol: string): Promise<IntradayCandle[]> {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=15m&range=1d`
+    const response = await fetch(url)
+    const data = await response.json()
+
+    const result = data?.chart?.result?.[0]
+    if (!result?.timestamp) return []
+
+    const timestamps: number[] = result.timestamp
+    const highs: (number | null)[] = result.indicators?.quote?.[0]?.high || []
+    const lows: (number | null)[] = result.indicators?.quote?.[0]?.low || []
+
+    const candles: IntradayCandle[] = []
+    for (let i = 0; i < timestamps.length; i++) {
+      if (highs[i] != null && lows[i] != null) {
+        candles.push({ timestamp: timestamps[i], high: highs[i]!, low: lows[i]! })
+      }
+    }
+
+    return candles.sort((a, b) => a.timestamp - b.timestamp)
+  } catch (error) {
+    console.error(`Error fetching intraday candles for ${yahooSymbol}:`, error)
+    return []
+  }
+}
+
+// Calculate high/low from intraday candles that occurred AFTER a given timestamp
+function getIntradayHighLowAfter(
+  candles: IntradayCandle[],
+  afterTimestamp: number
+): { high: number; low: number } | null {
+  const filtered = candles.filter(c => c.timestamp > afterTimestamp)
+  if (filtered.length === 0) return null
+
+  return {
+    high: Math.max(...filtered.map(c => c.high)),
+    low: Math.min(...filtered.map(c => c.low)),
+  }
+}
+
 async function fetchOHLCData(mapping: { api: string; type: 'twelve' | 'coingecko' | 'yahoo' }): Promise<DailyOHLC[]> {
   if (mapping.type === 'yahoo') return fetchYahooFinanceOHLC(mapping.api)
   if (mapping.type === 'twelve') return fetchTwelveDataOHLC(mapping.api)
@@ -255,13 +305,12 @@ export async function updateAssetPrice(tradeId: string, asset: string): Promise<
 // Finds the FIRST day a level was breached and records that date.
 //
 // Reference-date logic:
-// - If tp_sl_geaendert_am is set (TP/SL were modified after entry), only check
-//   OHLC data from AFTER that date (the modification day itself is skipped,
-//   because we don't know the exact time of the change vs. the daily high/low).
-// - If tp_sl_geaendert_am is null, fall back to datum_eroeffnung.
-// - The reference day itself is always skipped to avoid false positives
-//   (on entry day: we don't know if the extreme happened before or after entry;
-//   on modification day: same reasoning for TP/SL changes).
+// - For days AFTER the reference date: use daily OHLC high/low directly.
+// - For the reference day itself (creation or TP/SL modification day):
+//   fetch 15-min intraday candles and only check candles AFTER the exact
+//   time of creation/modification. This prevents false triggers from price
+//   movements that happened BEFORE the trade was set up.
+// - If no intraday data is available, fall back to the live current price.
 async function checkAndUpdateTPSL(
   trade: {
     id: string
@@ -284,21 +333,34 @@ async function checkAndUpdateTPSL(
     tp2_gewichtung: number | null
     tp3_gewichtung: number | null
     tp4_gewichtung: number | null
+    asset?: string
   },
   ohlcData: DailyOHLC[],
   currentPrice?: number
 ): Promise<boolean> {
   if (!trade.richtung || ohlcData.length === 0) return false
 
-  // Determine the reference date: use TP/SL modification date if available,
-  // otherwise fall back to trade entry date
-  const referenceDate = (trade.tp_sl_geaendert_am ?? trade.datum_eroeffnung).split('T')[0]
+  // Determine the reference date and full timestamp
+  const referenceTimestamp = trade.tp_sl_geaendert_am ?? trade.created_at
+  const referenceDate = referenceTimestamp.split('T')[0]
+  const referenceUnix = Math.floor(new Date(referenceTimestamp).getTime() / 1000)
   const openDate = trade.datum_eroeffnung.split('T')[0]
-  // The day the trade was actually created in our system — on this day we can't
-  // use daily high/low because we don't know if the price hit was before or after creation.
   const createdDate = trade.created_at.split('T')[0]
   const today = new Date().toISOString().split('T')[0]
   const updates: Record<string, string> = {}
+
+  // For the reference day (if it's today), fetch intraday candles to get
+  // accurate high/low AFTER the trade creation/modification time
+  let intradayHighLow: { high: number; low: number } | null = null
+  const referenceDayNeedsIntraday = ohlcData.some(d => d.date === referenceDate)
+
+  if (referenceDayNeedsIntraday && referenceDate === today && trade.asset) {
+    const mapping = getApiSymbol(trade.asset)
+    if (mapping?.type === 'yahoo') {
+      const candles = await fetchIntradayCandles(mapping.api)
+      intradayHighLow = getIntradayHighLowAfter(candles, referenceUnix)
+    }
+  }
 
   // Track which TPs are newly hit (for auto-close creation)
   const newlyHitTPs: { typ: 'TP1' | 'TP2' | 'TP3' | 'TP4'; level: number; datum: string; gewichtung: number | null; nummer: number }[] = []
@@ -308,21 +370,43 @@ async function checkAndUpdateTPSL(
     // Skip days before the trade was opened
     if (day.date < openDate) continue
 
-    // For the reference day (entry or TP/SL modification day), we can't use
-    // OHLC high/low because we don't know the exact intraday timing.
-    // However, if it's TODAY and we have a live current price, we CAN check
-    // because the current price is definitively after the trade was created/modified.
+    // Determine if this day needs special handling
     const isReferenceDay = day.date <= referenceDate
     const isCreationDay = day.date === createdDate && createdDate > openDate
-    const isTodayWithLivePrice = day.date === today && currentPrice != null
 
-    if ((isReferenceDay || isCreationDay) && !isTodayWithLivePrice) continue
+    if (isReferenceDay || isCreationDay) {
+      // For the reference/creation day: only proceed if we have intraday data
+      // or a live current price to check against
+      if (day.date === today && intradayHighLow) {
+        // Use intraday high/low filtered to AFTER the reference time — this is the most accurate
+      } else if (day.date === today && currentPrice != null) {
+        // Fallback: use live price (less accurate, misses intraday spikes)
+      } else {
+        // Historical reference day with no intraday data — skip entirely
+        continue
+      }
+    }
 
     // Use 16:00 UTC as approximate market close time for the timestamp
     const hitTimestamp = `${day.date}T16:00:00+00:00`
-    // For today's live price checks, use current price instead of OHLC high/low
-    const effectiveHigh = isTodayWithLivePrice ? Math.max(day.high, currentPrice) : day.high
-    const effectiveLow = isTodayWithLivePrice ? Math.min(day.low, currentPrice) : day.low
+
+    // Determine effective high/low for this day
+    let effectiveHigh: number
+    let effectiveLow: number
+
+    if ((isReferenceDay || isCreationDay) && day.date === today && intradayHighLow) {
+      // Best case: intraday data after the reference timestamp
+      effectiveHigh = intradayHighLow.high
+      effectiveLow = intradayHighLow.low
+    } else if ((isReferenceDay || isCreationDay) && day.date === today && currentPrice != null) {
+      // Fallback: only the current live price (can miss intermediate spikes)
+      effectiveHigh = currentPrice
+      effectiveLow = currentPrice
+    } else {
+      // Normal day: use full daily OHLC
+      effectiveHigh = day.high
+      effectiveLow = day.low
+    }
 
     // Check TPs: LONG → high >= TP, SHORT → low <= TP
     const tpChecks = [
