@@ -874,7 +874,7 @@ export function InternDashboard() {
                   <tr key={`${o.order_id}-cancel`}>
                     <td>{o.cancelled_at ? new Date(o.cancelled_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }) : '–'}</td>
                     <td>{o.order_id}</td>
-                    <td>{new Date(o.ordered_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'Europe/Berlin' })}</td>
+                    <td>{o.ordered_at && o.ordered_at !== o.cancelled_at ? new Date(o.ordered_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'Europe/Berlin' }) : '–'}</td>
                     <td>{o.plan_name ? shortenPlan(o.plan_name) : '–'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{Number(o.amount).toFixed(2).replace('.', ',')}&nbsp;&euro;</td>
                     <td>{o.campaign_id || '–'}</td>
