@@ -49,3 +49,10 @@ export const ASSET_CLASS_COLORS: Record<AssetClass, string> = {
   Aktie: '#10b981',
   FX: '#3b82f6',
 }
+
+/** Known data delay per API source (in minutes). */
+export const PRICE_API_DATA_DELAY_MINUTES: Record<'yahoo' | 'twelve' | 'coingecko', number> = {
+  yahoo: 15,
+  twelve: 0,
+  coingecko: 2,
+}

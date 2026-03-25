@@ -9,17 +9,6 @@ const TWELVE_DATA_API_KEY = process.env.TWELVE_DATA_API_KEY || ''
 const PRICE_CACHE_MINUTES = 15 // Only update if older than 15 minutes
 const OHLC_LOOKBACK_DAYS = 14 // How many days back to check for TP/SL hits
 
-/**
- * Known data delay per API source (in minutes).
- * This is the lag between the real-time market price and what the API returns.
- * Used to display "Kursstand von HH:MM Uhr" — the time the price data actually represents,
- * not when our fetch job ran.
- */
-export const PRICE_API_DATA_DELAY_MINUTES: Record<'yahoo' | 'twelve' | 'coingecko', number> = {
-  yahoo: 15,    // Yahoo Finance: 15-minute delayed quotes (exchange standard)
-  twelve: 0,    // Twelve Data: real-time on paid tier
-  coingecko: 2, // CoinGecko free tier: ~1-2 minute latency
-}
 
 /** Calculate weighted performance from all closes of a trade */
 async function calcPerformanceFromCloses(
