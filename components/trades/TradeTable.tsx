@@ -418,6 +418,7 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
               )}
               <TableHead className="text-right">Einstieg</TableHead>
               <TableHead className="text-right">Ausstieg</TableHead>
+              {!isClosesView && <TableHead>Kommentar</TableHead>}
               <TableHead>Trader</TableHead>
               {isAdmin && <TableHead className="text-right">Aktionen</TableHead>}
             </TableRow>
@@ -425,7 +426,7 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
           <TableBody>
             {sortedRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 14 : 12} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={isAdmin ? 15 : 13} className="h-24 text-center text-muted-foreground">
                   {hasFilters ? 'Keine Trades für diese Filter' : 'Noch keine Trades vorhanden'}
                 </TableCell>
               </TableRow>
@@ -515,6 +516,20 @@ export function TradeTable({ trades, initialProfiles, availableProfiles, isAdmin
                     <TableCell className="text-right font-mono text-sm">
                       {formatPrice(exitPrice)}
                     </TableCell>
+                    {!isClosesView && (
+                      <TableCell className="text-sm text-muted-foreground max-w-[260px]">
+                        {trade.bemerkungen ? (
+                          <span
+                            className="block truncate"
+                            title={trade.bemerkungen}
+                          >
+                            {trade.bemerkungen.split('\n')[0]}
+                          </span>
+                        ) : (
+                          <span>–</span>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                       {TRADER_NAMES[trade.profil] ?? trade.profil}
                     </TableCell>
