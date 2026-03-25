@@ -20,12 +20,16 @@ export function RefreshPricesButton({ lastUpdatedAt }: RefreshPricesButtonProps)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [justRefreshed, setJustRefreshed] = useState(false)
 
-  // Hide button if prices are already fresh (from page load or after manual refresh)
+  const timeLabel = lastUpdatedAt
+    ? new Date(lastUpdatedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr'
+    : null
+
   if (isFresh || justRefreshed) {
     return (
       <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Check className="h-3.5 w-3.5 text-emerald-500" />
         Kurse aktuell
+        {timeLabel && <span className="text-muted-foreground/60">({timeLabel})</span>}
       </span>
     )
   }
@@ -51,15 +55,22 @@ export function RefreshPricesButton({ lastUpdatedAt }: RefreshPricesButtonProps)
   }
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={handleRefresh}
-      disabled={isRefreshing}
-      className="gap-1.5"
-    >
-      <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-      {isRefreshing ? 'Aktualisiere...' : 'Kurse aktualisieren'}
-    </Button>
+    <div className="flex items-center gap-3">
+      {timeLabel && (
+        <span className="text-xs text-muted-foreground/60">
+          Zuletzt: {timeLabel}
+        </span>
+      )}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleRefresh}
+        disabled={isRefreshing}
+        className="gap-1.5"
+      >
+        <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+        {isRefreshing ? 'Aktualisiere...' : 'Kurse aktualisieren'}
+      </Button>
+    </div>
   )
 }
