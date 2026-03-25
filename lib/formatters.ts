@@ -1,6 +1,5 @@
 import { format, parseISO } from 'date-fns'
 import { de } from 'date-fns/locale'
-import type { AssetClass } from './types'
 
 export function formatPercent(value: number | null | undefined, showSign = true): string {
   if (value === null || value === undefined) return '–'
@@ -8,13 +7,11 @@ export function formatPercent(value: number | null | undefined, showSign = true)
   return `${sign}${value.toFixed(2)} %`
 }
 
-export function formatPrice(value: number | null | undefined, assetKlasse?: AssetClass): string {
+export function formatPrice(value: number | null | undefined): string {
   if (value === null || value === undefined) return '–'
-  // FX (EUR/USD 1.0850) → always 4 decimal places
-  // Non-FX (Aktie, Index, Krypto, Rohstoff) → always 2 decimal places
-  // Unknown (no asset class passed) → legacy magnitude heuristic (< 10 → 4)
-  const abs = Math.abs(value)
-  const decimals = assetKlasse === 'FX' ? 4 : assetKlasse !== undefined ? 2 : abs < 10 ? 4 : 2
+  // < 2 (e.g. EUR/USD 1.0850, small crypto) → 4 decimal places
+  // ≥ 2 (stocks, indices, gold, BTC, etc.) → 2 decimal places
+  const decimals = Math.abs(value) < 2 ? 4 : 2
   return new Intl.NumberFormat('de-DE', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
