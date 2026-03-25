@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { differenceInCalendarDays, parseISO } from 'date-fns'
 import type { Trade, TradeClose, TradeCloseFormData, TradeFormData, TradeNote, TradeWithPerformance, TradingProfile } from './types'
+import { refreshActiveTrade } from './price-actions'
 
 function enrichTrade(trade: Trade): TradeWithPerformance {
   let performance_pct: number | null = null
@@ -159,6 +160,12 @@ export async function createTrade(formData: TradeFormData): Promise<string> {
   revalidatePath('/performance')
   revalidatePath('/trades')
   revalidatePath('/setups')
+  // Immediately fetch price + run TP/SL detection for newly active trades
+  if (formData.status === 'Aktiv') {
+    await refreshActiveTrade(data.id).catch(err =>
+      console.error('refreshActiveTrade failed after createTrade:', err)
+    )
+  }
   return data.id
 }
 

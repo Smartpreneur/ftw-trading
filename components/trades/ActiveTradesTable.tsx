@@ -192,14 +192,14 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
               <TableCell className="text-right">
                 <span className="font-mono text-sm">
                   {entryPrice
-                    ? `${getCurrencySymbol(trade.asset, trade.asset_klasse, tradeCurrency)}${formatPrice(entryPrice)}`
+                    ? `${getCurrencySymbol(trade.asset, trade.asset_klasse, tradeCurrency)}${formatPrice(entryPrice, trade.asset_klasse)}`
                     : '—'}
                 </span>
               </TableCell>
               <TableCell className="text-right">
                 <span className="font-mono text-sm">
                   {currentPrice
-                    ? `${getCurrencySymbol(trade.asset, trade.asset_klasse, tradeCurrency)}${formatPrice(currentPrice)}`
+                    ? `${getCurrencySymbol(trade.asset, trade.asset_klasse, tradeCurrency)}${formatPrice(currentPrice, trade.asset_klasse)}`
                     : '—'}
                 </span>
               </TableCell>
@@ -228,11 +228,11 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
                     trade.sl_erreicht_am
                       ? `SL erreicht am ${formatDate(trade.sl_erreicht_am)}`
                       : trade.stop_loss_vorher
-                      ? `Angepasst am ${formatDate(trade.tp_sl_geaendert_am)}: von ${formatPrice(trade.stop_loss_vorher)} auf ${formatPrice(trade.stop_loss)}`
+                      ? `Angepasst am ${formatDate(trade.tp_sl_geaendert_am)}: von ${formatPrice(trade.stop_loss_vorher, trade.asset_klasse)} auf ${formatPrice(trade.stop_loss, trade.asset_klasse)}`
                       : undefined
                   }
                 >
-                  {trade.stop_loss ? formatPrice(trade.stop_loss) : '—'}
+                  {trade.stop_loss ? formatPrice(trade.stop_loss, trade.asset_klasse) : '—'}
                   {trade.sl_erreicht_am && <AlertTriangle className="h-3 w-3" />}
                 </span>
               </TableCell>
@@ -253,11 +253,11 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
                       tp.hit
                         ? `${tp.label} erreicht am ${formatDate(tp.hit)}`
                         : tp.vorher
-                        ? `Angepasst am ${formatDate(trade.tp_sl_geaendert_am)}: von ${formatPrice(tp.vorher)} auf ${formatPrice(tp.level)}`
+                        ? `Angepasst am ${formatDate(trade.tp_sl_geaendert_am)}: von ${formatPrice(tp.vorher, trade.asset_klasse)} auf ${formatPrice(tp.level, trade.asset_klasse)}`
                         : undefined
                     }
                   >
-                    {tp.level ? formatPrice(tp.level) : '—'}
+                    {tp.level ? formatPrice(tp.level, trade.asset_klasse) : '—'}
                     {tp.hit && <Check className="h-3 w-3" />}
                   </span>
                 </TableCell>

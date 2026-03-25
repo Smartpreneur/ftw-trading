@@ -787,6 +787,63 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
   return { updated, errors, failedAssets }
 }
 
+/**
+ * Immediately fetches price + runs TP/SL detection for a single active trade.
+ * Called right after creating or activating a trade so the price shows up instantly.
+ */
+export async function refreshActiveTrade(tradeId: string): Promise<void> {
+  const supabase = createAdminClient()
+
+  const { data: trade } = await supabase
+    .from('trades')
+    .select('id, asset, status, datum_eroeffnung, created_at, einstiegspreis, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, tp1_gewichtung, tp2_gewichtung, tp3_gewichtung, tp4_gewichtung, manuell_getrackt, entries:trade_entries(id, nummer, preis, anteil, erreicht_am)')
+    .eq('id', tradeId)
+    .eq('status', 'Aktiv')
+    .single()
+
+  if (!trade) return
+
+  const mapping = getApiSymbol(trade.asset)
+  if (!mapping) {
+    console.warn(`refreshActiveTrade: no API mapping for asset "${trade.asset}"`)
+    return
+  }
+
+  // Fetch current price
+  let priceResult: PriceResult = { price: null, currency: null }
+  if (mapping.type === 'twelve') priceResult = await fetchTwelveDataPrice(mapping.api)
+  else if (mapping.type === 'coingecko') priceResult = await fetchCoinGeckoPrice(mapping.api)
+  else if (mapping.type === 'yahoo') priceResult = await fetchYahooFinancePrice(mapping.api)
+
+  const { price, currency } = priceResult
+
+  if (price !== null) {
+    await supabase.from('active_trade_prices').upsert({
+      trade_id: trade.id,
+      asset: trade.asset,
+      current_price: price,
+      ...(currency ? { currency } : {}),
+    }, { onConflict: 'trade_id' })
+    if (currency) {
+      await supabase.from('trades').update({ currency }).eq('id', trade.id)
+    }
+    revalidateTag('prices', 'max')
+  }
+
+  // Run TP/SL + entry detection with OHLC history
+  if (!trade.manuell_getrackt) {
+    const ohlcData = await fetchOHLCData(mapping)
+    if (ohlcData.length > 0) {
+      const tradeEntries = (trade as any).entries ?? []
+      if (tradeEntries.length > 0) {
+        await checkAndUpdateEntries(trade, tradeEntries, ohlcData)
+      }
+      const changed = await checkAndUpdateTPSL(trade, ohlcData, price ?? undefined)
+      if (changed) revalidateTag('trades', 'max')
+    }
+  }
+}
+
 // Get current prices for active trades (only fetch if cache is stale)
 export async function getActiveTradePrices(): Promise<ActiveTradePrice[]> {
   const supabase = createAdminClient()
@@ -827,18 +884,29 @@ export async function triggerPriceRefreshIfStale(): Promise<void> {
   const supabase = createAdminClient()
   const threshold = new Date(Date.now() - PRICE_CACHE_MINUTES * 60 * 1000).toISOString()
 
-  // Check for stale entries OR empty table (both need a refresh)
+  // Check for stale entries
   const { data: stale } = await supabase
     .from('active_trade_prices')
     .select('id')
     .lt('updated_at', threshold)
     .limit(1)
 
-  const { count } = await supabase
-    .from('active_trade_prices')
-    .select('id', { count: 'exact', head: true })
+  const hasStale = stale && stale.length > 0
 
-  if ((!stale || stale.length === 0) && (count ?? 0) > 0) return
+  // Check for active trades that have no price entry at all (e.g. newly created trades)
+  const { data: activeTrades } = await supabase
+    .from('trades')
+    .select('id')
+    .eq('status', 'Aktiv')
+
+  const { data: existingPrices } = await supabase
+    .from('active_trade_prices')
+    .select('trade_id')
+
+  const priceIds = new Set((existingPrices ?? []).map(p => p.trade_id))
+  const hasOrphan = (activeTrades ?? []).some(t => !priceIds.has(t.id))
+
+  if (!hasStale && !hasOrphan) return
 
   await updateAllActiveTradePrices()
 }
