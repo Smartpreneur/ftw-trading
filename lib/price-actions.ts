@@ -846,11 +846,23 @@ export async function refreshActiveTrade(tradeId: string): Promise<void> {
   if (!trade.manuell_getrackt) {
     const ohlcData = await fetchOHLCData(mapping)
     if (ohlcData.length > 0) {
+      // For retroactively entered trades (opening date is before creation date),
+      // override created_at with datum_eroeffnung so the TP/SL check scans OHLC data
+      // from the actual opening day — not just from today.
+      // Without this, checkAndUpdateTPSL treats all days up to created_at as the
+      // "reference period" and skips them, missing any hits between open and now.
+      const openDateStr = trade.datum_eroeffnung.split('T')[0]
+      const createdDateStr = trade.created_at.split('T')[0]
+      const isRetroactive = openDateStr < createdDateStr
+      const tradeForCheck = isRetroactive
+        ? { ...trade, created_at: trade.datum_eroeffnung + 'T00:00:00.000Z', tp_sl_geaendert_am: null }
+        : trade
+
       const tradeEntries = (trade as any).entries ?? []
       if (tradeEntries.length > 0) {
-        await checkAndUpdateEntries(trade, tradeEntries, ohlcData)
+        await checkAndUpdateEntries(tradeForCheck as typeof trade, tradeEntries, ohlcData)
       }
-      const changed = await checkAndUpdateTPSL(trade, ohlcData, price ?? undefined)
+      const changed = await checkAndUpdateTPSL(tradeForCheck as typeof trade, ohlcData, price ?? undefined)
       if (changed) revalidateTag('trades', 'max')
     }
   }
