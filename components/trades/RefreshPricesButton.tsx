@@ -9,10 +9,11 @@ import { toast } from 'sonner'
 const PRICE_CACHE_MINUTES = 15
 
 interface RefreshPricesButtonProps {
-  lastUpdatedAt?: string | null
+  lastUpdatedAt?: string | null  // when our fetch job ran (for freshness check)
+  lastDataAt?: string | null     // when the price data is actually from (after subtracting API delays)
 }
 
-export function RefreshPricesButton({ lastUpdatedAt }: RefreshPricesButtonProps) {
+export function RefreshPricesButton({ lastUpdatedAt, lastDataAt }: RefreshPricesButtonProps) {
   const isFresh = lastUpdatedAt
     ? (Date.now() - new Date(lastUpdatedAt).getTime()) < PRICE_CACHE_MINUTES * 60 * 1000
     : false
@@ -20,16 +21,17 @@ export function RefreshPricesButton({ lastUpdatedAt }: RefreshPricesButtonProps)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [justRefreshed, setJustRefreshed] = useState(false)
 
-  const timeLabel = lastUpdatedAt
-    ? new Date(lastUpdatedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr'
+  // Display the time the price DATA is from, not when we fetched it
+  const displayTime = lastDataAt ?? lastUpdatedAt
+  const timeLabel = displayTime
+    ? new Date(displayTime).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr'
     : null
 
   if (isFresh || justRefreshed) {
     return (
       <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Check className="h-3.5 w-3.5 text-emerald-500" />
-        Kurse aktuell
-        {timeLabel && <span className="text-muted-foreground/60">({timeLabel})</span>}
+        Kursstand von {timeLabel ?? '–'}
       </span>
     )
   }
@@ -58,7 +60,7 @@ export function RefreshPricesButton({ lastUpdatedAt }: RefreshPricesButtonProps)
     <div className="flex items-center gap-3">
       {timeLabel && (
         <span className="text-xs text-muted-foreground/60">
-          Zuletzt: {timeLabel}
+          Kursstand von {timeLabel}
         </span>
       )}
       <Button

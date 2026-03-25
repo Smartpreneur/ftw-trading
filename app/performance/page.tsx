@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { after } from 'next/server'
 import { getCachedTrades } from '@/lib/actions'
-import { getCachedActivePrices, triggerPriceRefreshIfStale } from '@/lib/price-actions'
+import { getCachedActivePrices, triggerPriceRefreshIfStale, PRICE_API_DATA_DELAY_MINUTES } from '@/lib/price-actions'
+import { getApiSymbol } from '@/lib/asset-mapping'
 import { checkAdmin, checkAuth } from '@/lib/auth'
 import { PasswordGate } from '@/components/password-gate'
 import {
@@ -80,9 +81,26 @@ export default async function DashboardPage({
     return true
   })
 
-  // Find the most recent price update timestamp for the refresh button
+  // Find the most recent fetch timestamp (used for freshness / button visibility)
   const latestPriceUpdate = activePrices.length > 0
     ? activePrices.reduce((latest, p) => p.updated_at > latest ? p.updated_at : latest, activePrices[0].updated_at)
+    : null
+
+  // Compute the oldest effective data time across all active trade prices.
+  // Each API introduces a known delay between real market price and what we receive.
+  // We show the MINIMUM (oldest) effective data time so the user knows how old
+  // the least-current price in the table is (conservative, accurate for Yahoo assets).
+  const latestPriceDataAt = activePrices.length > 0
+    ? (() => {
+        let oldest: number | null = null
+        for (const p of activePrices) {
+          const mapping = getApiSymbol(p.asset)
+          const delay = mapping ? PRICE_API_DATA_DELAY_MINUTES[mapping.type] : 0
+          const dataTime = new Date(p.updated_at).getTime() - delay * 60 * 1000
+          if (oldest === null || dataTime < oldest) oldest = dataTime
+        }
+        return oldest !== null ? new Date(oldest).toISOString() : null
+      })()
     : null
 
   // Aggregate unrealized P&L across active trades with known prices
@@ -360,7 +378,7 @@ export default async function DashboardPage({
                 </p>
               )}
             </div>
-            <RefreshPricesButton lastUpdatedAt={latestPriceUpdate} />
+            <RefreshPricesButton lastUpdatedAt={latestPriceUpdate} lastDataAt={latestPriceDataAt} />
           </CardHeader>
           <CardContent className="px-0">
             <ActiveTradesTable
