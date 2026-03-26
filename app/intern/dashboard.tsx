@@ -274,6 +274,11 @@ export function InternDashboard() {
   const displayCancellationCount = filteredCancellations.length
   const displayWiderrufe = filteredCancellations.filter(o => o.cancellation_type === 'Widerruf').length
   const displayKuendigungen = filteredCancellations.filter(o => o.cancellation_type === 'Kündigung').length
+  const displayWiderrufRevenue = filteredCancellations
+    .filter(o => o.cancellation_type === 'Widerruf')
+    .reduce((s, o) => s + (Number(o.amount) || 0), 0)
+  const displayWiderrufsquote = displayOrderCount > 0 ? ((displayWiderrufe / displayOrderCount) * 100) : 0
+  const displayWiderrufsquoteRev = displayRevenue > 0 ? ((displayWiderrufRevenue / displayRevenue) * 100) : 0
 
   const displayOrdersByCampaign: Record<string, { count: number; revenue: number; newOrders: number }> = {}
   const displayOrdersByPlan: Record<string, { count: number; revenue: number; unitPrice: number; arr: number; multiplier: number }> = {}
@@ -850,6 +855,16 @@ export function InternDashboard() {
                 <div style={{ fontSize: 13, color: '#e74c3c' }}>Kündigungen</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: '#e74c3c' }}>{displayKuendigungen}</div>
                 <div style={{ fontSize: 12, color: '#5a6a7a' }}>nach 37 Tagen</div>
+              </div>
+              <div style={{ borderLeft: '2px solid #e5e7eb', paddingLeft: 24 }}>
+                <div style={{ fontSize: 13, color: '#5a6a7a' }}>Widerrufsquote</div>
+                <div style={{ fontSize: 24, fontWeight: 700 }}>{displayWiderrufsquote.toFixed(1)}&nbsp;%</div>
+                <div style={{ fontSize: 12, color: '#5a6a7a' }}>{displayWiderrufe} von {displayOrderCount} Bestellungen</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 13, color: '#5a6a7a' }}>Widerrufsvolumen</div>
+                <div style={{ fontSize: 24, fontWeight: 700 }}>{displayWiderrufRevenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}&nbsp;&euro;</div>
+                <div style={{ fontSize: 12, color: '#5a6a7a' }}>{displayWiderrufsquoteRev.toFixed(1)}&nbsp;% des Umsatzes</div>
               </div>
             </div>
           </CollapsibleSection>
