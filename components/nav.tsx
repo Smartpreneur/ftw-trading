@@ -124,7 +124,7 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
                     </Link>
                   ))}
                 </nav>
-                <div className="text-center text-sm text-muted-foreground pb-4">
+                <div className="text-center text-base text-muted-foreground pb-4">
                   Solution provided by{' '}
                   <a
                     href="https://kuehn.it"

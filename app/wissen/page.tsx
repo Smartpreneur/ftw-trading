@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-// no extra imports needed
+import { SolutionFooter } from '@/components/solution-footer'
 
 // ---------------------------------------------------------------------------
 // Data
@@ -394,6 +394,8 @@ export default function WissenPage() {
           ))}
         </div>
       )}
+
+      <SolutionFooter />
     </div>
   )
 }

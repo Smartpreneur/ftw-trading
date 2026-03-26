@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { SolutionFooter } from '@/components/solution-footer'
 
 // FMW Brand Colors
 const FMW = {
@@ -283,6 +284,8 @@ export default function StartPage() {
           </svg>
         </Link>
       </div>
+
+      <SolutionFooter />
     </div>
   )
 }

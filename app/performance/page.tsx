@@ -23,6 +23,7 @@ import { Suspense } from 'react'
 import { ProfileTabs } from '@/components/performance/ProfileTabs'
 import { resolveTab } from '@/lib/profile-tabs'
 import { PageTracker } from '@/components/page-tracker'
+import { SolutionFooter } from '@/components/solution-footer'
 
 export const metadata: Metadata = {
   title: 'Performance-Übersicht | FTW Trading',
@@ -400,17 +401,7 @@ export default async function DashboardPage({
         token={params.token}
       />
 
-      <footer className="text-center text-sm text-muted-foreground pt-6 pb-3">
-        Dashboard provided by{' '}
-        <a
-          href="https://kuehn.it"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-semibold hover:opacity-80 transition-opacity"
-        >
-          <span className="text-foreground">Kuehn</span><span style={{ color: '#0071e3' }}>.IT</span>
-        </a>
-      </footer>
+      <SolutionFooter />
     </div>
   )
 }
