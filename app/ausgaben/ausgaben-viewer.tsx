@@ -147,7 +147,7 @@ function PdfViewer({
   const [fullscreen, setFullscreen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const pdfUrl = `${url}#navpanes=0&toolbar=0`
+  const pdfUrl = `${url}#navpanes=0`
 
   function toggleFullscreen() {
     if (!containerRef.current) return
