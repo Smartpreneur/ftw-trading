@@ -8,6 +8,7 @@ export interface Ausgabe {
   nummer: number
   datum: string
   pdf_url: string
+  thumbnail_url: string | null
   created_at: string
 }
 
@@ -36,6 +37,7 @@ export async function getAusgaben(): Promise<Ausgabe[]> {
 
 /**
  * Admin-only: Upload a PDF and create a new newsletter issue.
+ * Accepts optional 'thumbnail' (WebP blob) in FormData.
  */
 export async function uploadAusgabe(formData: FormData): Promise<Ausgabe> {
   const file = formData.get('file') as File
@@ -46,32 +48,49 @@ export async function uploadAusgabe(formData: FormData): Promise<Ausgabe> {
 
   const supabase = createAdminClient()
 
-  // Upload PDF to Supabase Storage
   const random = Math.random().toString(36).slice(2, 8)
-  const fileName = `${datum}-${random}.pdf`
 
+  // Upload PDF to Supabase Storage
+  const pdfName = `${datum}-${random}.pdf`
   const { error: uploadError } = await supabase.storage
     .from('ausgaben')
-    .upload(fileName, file, { contentType: 'application/pdf', upsert: false })
+    .upload(pdfName, file, { contentType: 'application/pdf', upsert: false })
 
   if (uploadError) throw new Error(`Upload fehlgeschlagen: ${uploadError.message}`)
 
-  const { data: urlData } = supabase.storage
+  const { data: pdfUrlData } = supabase.storage
     .from('ausgaben')
-    .getPublicUrl(fileName)
+    .getPublicUrl(pdfName)
+  const pdfUrl = pdfUrlData.publicUrl
 
-  const pdfUrl = urlData.publicUrl
+  // Upload thumbnail if provided
+  let thumbnailUrl: string | null = null
+  const thumbnail = formData.get('thumbnail') as File | null
+  if (thumbnail && thumbnail.size > 0) {
+    const thumbName = `thumbnails/${datum}-${random}.webp`
+    const { error: thumbError } = await supabase.storage
+      .from('ausgaben')
+      .upload(thumbName, thumbnail, { contentType: 'image/webp', upsert: false })
+    if (!thumbError) {
+      const { data: thumbUrlData } = supabase.storage
+        .from('ausgaben')
+        .getPublicUrl(thumbName)
+      thumbnailUrl = thumbUrlData.publicUrl
+    }
+  }
 
   // Insert row into ausgaben table
   const { data, error: insertError } = await supabase
     .from('ausgaben')
-    .insert([{ datum, pdf_url: pdfUrl }])
+    .insert([{ datum, pdf_url: pdfUrl, thumbnail_url: thumbnailUrl }])
     .select('*')
     .single()
 
   if (insertError) {
-    // Clean up uploaded file on insert failure
-    await supabase.storage.from('ausgaben').remove([fileName])
+    // Clean up uploaded files on insert failure
+    const filesToRemove = [pdfName]
+    if (thumbnailUrl) filesToRemove.push(`thumbnails/${datum}-${random}.webp`)
+    await supabase.storage.from('ausgaben').remove(filesToRemove)
     throw new Error(`Speichern fehlgeschlagen: ${insertError.message}`)
   }
 
@@ -80,18 +99,26 @@ export async function uploadAusgabe(formData: FormData): Promise<Ausgabe> {
 }
 
 /**
- * Admin-only: Delete a newsletter issue (storage + DB).
+ * Admin-only: Delete a newsletter issue (PDF + thumbnail + DB).
  */
-export async function deleteAusgabe(id: string, pdfUrl: string): Promise<void> {
+export async function deleteAusgabe(id: string, pdfUrl: string, thumbnailUrl?: string | null): Promise<void> {
   const supabase = createAdminClient()
 
-  // Extract file path from URL
-  const match = pdfUrl.match(/ausgaben\/(.+)$/)
-  if (match) {
-    const { error } = await supabase.storage
-      .from('ausgaben')
-      .remove([match[1]])
-    if (error) console.error('Failed to delete PDF:', error.message)
+  const filesToRemove: string[] = []
+
+  // Extract PDF path from URL
+  const pdfMatch = pdfUrl.match(/ausgaben\/(.+)$/)
+  if (pdfMatch) filesToRemove.push(pdfMatch[1])
+
+  // Extract thumbnail path from URL
+  if (thumbnailUrl) {
+    const thumbMatch = thumbnailUrl.match(/ausgaben\/(.+)$/)
+    if (thumbMatch) filesToRemove.push(thumbMatch[1])
+  }
+
+  if (filesToRemove.length > 0) {
+    const { error } = await supabase.storage.from('ausgaben').remove(filesToRemove)
+    if (error) console.error('Failed to delete files:', error.message)
   }
 
   // Delete DB row
