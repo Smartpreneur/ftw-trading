@@ -4,7 +4,7 @@ import { useState, useRef, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 import { de } from 'date-fns/locale'
-import { FileText, Trash2, Upload, Loader2, Maximize2, Minimize2 } from 'lucide-react'
+import { Trash2, Upload, Loader2, Maximize2, Minimize2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { uploadAusgabe, deleteAusgabe } from '@/lib/ausgaben-actions'
@@ -29,26 +29,67 @@ export function AusgabenViewer({
   const searchParams = useSearchParams()
   const nrParam = searchParams.get('nr')
 
-  // Determine which issue to show
   const selectedNr = nrParam ? parseInt(nrParam, 10) : null
-  const activeIssue = selectedNr
-    ? ausgaben.find((a) => a.nummer === selectedNr) ?? ausgaben[0]
-    : ausgaben[0]
+  const activeIndex = selectedNr
+    ? ausgaben.findIndex((a) => a.nummer === selectedNr)
+    : 0
+  const currentIndex = activeIndex >= 0 ? activeIndex : 0
+  const activeIssue = ausgaben[currentIndex]
 
-  const archiveIssues = ausgaben.filter((a) => a.id !== activeIssue?.id)
+  const hasPrev = currentIndex > 0
+  const hasNext = currentIndex < ausgaben.length - 1
+
+  function navigateTo(index: number) {
+    const target = ausgaben[index]
+    if (!target) return
+    const url = new URL(window.location.href)
+    url.searchParams.set('nr', String(target.nummer))
+    router.push(url.pathname + url.search)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   return (
     <div className="space-y-6">
-      {/* Admin upload form */}
       {isAdmin && <UploadForm />}
 
-      {/* Main viewer */}
       {activeIssue ? (
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold">
-            FTW vom {formatDatum(activeIssue.datum)}
-          </h2>
-          <PdfViewer url={activeIssue.pdf_url} />
+          {/* Header with navigation */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">
+              FTW vom {formatDatum(activeIssue.datum)}
+            </h2>
+            {ausgaben.length > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigateTo(currentIndex + 1)}
+                  disabled={!hasNext}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border text-sm text-muted-foreground hover:bg-muted/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                  <span className="hidden sm:inline">Älter</span>
+                </button>
+                <span className="text-xs text-muted-foreground tabular-nums">{currentIndex + 1} / {ausgaben.length}</span>
+                <button
+                  onClick={() => navigateTo(currentIndex - 1)}
+                  disabled={!hasPrev}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border text-sm text-muted-foreground hover:bg-muted/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <span className="hidden sm:inline">Neuer</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
+          <PdfViewer
+            key={activeIssue.id}
+            url={activeIssue.pdf_url}
+            thumbnailUrl={activeIssue.thumbnail_url}
+          />
         </div>
       ) : (
         <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">
@@ -56,7 +97,6 @@ export function AusgabenViewer({
         </div>
       )}
 
-      {/* Chronological list of all issues */}
       {ausgaben.length > 1 && (
         <div className="space-y-2">
           <h3 className="text-sm font-semibold text-muted-foreground">
@@ -83,9 +123,7 @@ export function AusgabenViewer({
                     <span>FTW vom {formatDatum(ausgabe.datum)}</span>
                     {isCurrent && <span className="text-xs text-muted-foreground">(angezeigt)</span>}
                   </button>
-                  {isAdmin && (
-                    <DeleteButton ausgabe={ausgabe} />
-                  )}
+                  {isAdmin && <DeleteButton ausgabe={ausgabe} />}
                 </div>
               )
             })}
@@ -96,14 +134,19 @@ export function AusgabenViewer({
   )
 }
 
-// ── PDF Viewer ──────────────────────────────────────────────────
+// ── PDF Viewer with thumbnail preload ──────────────────────────
 
-function PdfViewer({ url }: { url: string }) {
-  const [loading, setLoading] = useState(true)
+function PdfViewer({
+  url,
+  thumbnailUrl,
+}: {
+  url: string
+  thumbnailUrl?: string | null
+}) {
+  const [pdfReady, setPdfReady] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // navpanes=0 hides sidebar by default, toolbar=0 removes Chrome's toolbar (incl. Google Drive button)
   const pdfUrl = `${url}#navpanes=0&toolbar=0`
 
   function toggleFullscreen() {
@@ -117,13 +160,48 @@ function PdfViewer({ url }: { url: string }) {
     }
   }
 
+  const height = fullscreen ? '100vh' : '70vh'
+
   return (
-    <div ref={containerRef} className="relative rounded-lg border bg-muted/30 overflow-hidden group">
-      {loading && (
+    <div
+      ref={containerRef}
+      className="relative rounded-lg border bg-muted/30 overflow-hidden group"
+      style={{ height, borderRadius: fullscreen ? 0 : undefined }}
+    >
+      {/* Thumbnail: shows instantly, fades out when PDF is ready */}
+      {thumbnailUrl && (
+        <img
+          src={thumbnailUrl}
+          alt="Vorschau Seite 1"
+          className={`absolute inset-0 w-full h-full object-contain object-top z-[1] transition-opacity duration-300 ${
+            pdfReady ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
+        />
+      )}
+
+      {/* Loading spinner: only when no thumbnail available */}
+      {!thumbnailUrl && !pdfReady && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       )}
+
+      {/* Subtle loading indicator while thumbnail is visible */}
+      {thumbnailUrl && !pdfReady && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-background/80 backdrop-blur px-3 py-1.5 rounded-full border text-xs text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Vollständige Ausgabe wird geladen…
+        </div>
+      )}
+
+      {/* PDF iframe: loads in background, always mounted */}
+      <iframe
+        src={pdfUrl}
+        className="absolute inset-0 w-full h-full"
+        onLoad={() => setPdfReady(true)}
+        title="PDF Viewer"
+      />
+
       {/* Fullscreen toggle */}
       <button
         onClick={toggleFullscreen}
@@ -136,15 +214,40 @@ function PdfViewer({ url }: { url: string }) {
           <Maximize2 className="h-4 w-4" />
         )}
       </button>
-      <iframe
-        src={pdfUrl}
-        className="w-full"
-        style={{ height: fullscreen ? '100vh' : '70vh', borderRadius: fullscreen ? 0 : undefined }}
-        onLoad={() => setLoading(false)}
-        title="PDF Viewer"
-      />
     </div>
   )
+}
+
+// ── Thumbnail generation (client-side, admin only) ─────────────
+
+async function generateThumbnail(file: File): Promise<Blob> {
+  const pdfjsLib = await import('pdfjs-dist')
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+
+  const arrayBuffer = await file.arrayBuffer()
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+  const page = await pdf.getPage(1)
+
+  const viewport = page.getViewport({ scale: 1 })
+  const scale = 800 / viewport.width
+  const scaledViewport = page.getViewport({ scale })
+
+  const canvas = document.createElement('canvas')
+  canvas.width = scaledViewport.width
+  canvas.height = scaledViewport.height
+
+  const ctx = canvas.getContext('2d')!
+  await page.render({ canvas, canvasContext: ctx, viewport: scaledViewport }).promise
+  await pdf.destroy()
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('Thumbnail-Erstellung fehlgeschlagen'))),
+      'image/webp',
+      0.85,
+    )
+  })
 }
 
 // ── Delete Button (Admin only) ──────────────────────────────────
@@ -159,7 +262,7 @@ function DeleteButton({ ausgabe }: { ausgabe: Ausgabe }) {
     if (!confirm(`Ausgabe ${ausgabe.nummer} wirklich löschen?`)) return
     setDeleting(true)
     try {
-      await deleteAusgabe(ausgabe.id, ausgabe.pdf_url)
+      await deleteAusgabe(ausgabe.id, ausgabe.pdf_url, ausgabe.thumbnail_url)
       startTransition(() => router.refresh())
     } catch (err) {
       console.error('Delete failed:', err)
@@ -192,6 +295,7 @@ function UploadForm() {
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -214,6 +318,17 @@ function UploadForm() {
 
     setUploading(true)
     try {
+      // Generate thumbnail from first page
+      setUploadStatus('Vorschau wird erstellt…')
+      try {
+        const thumbnailBlob = await generateThumbnail(file)
+        formData.set('thumbnail', thumbnailBlob, 'thumbnail.webp')
+      } catch (err) {
+        console.warn('Thumbnail generation failed, uploading without:', err)
+      }
+
+      // Upload PDF + thumbnail
+      setUploadStatus('Wird hochgeladen…')
       await uploadAusgabe(formData)
       form.reset()
       if (fileRef.current) fileRef.current.value = ''
@@ -222,6 +337,7 @@ function UploadForm() {
       setError(err instanceof Error ? err.message : 'Upload fehlgeschlagen')
     } finally {
       setUploading(false)
+      setUploadStatus(null)
     }
   }
 
@@ -265,7 +381,7 @@ function UploadForm() {
           {uploading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Wird hochgeladen...
+              {uploadStatus}
             </>
           ) : (
             <>
