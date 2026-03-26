@@ -57,7 +57,7 @@ export function AusgabenViewer({
           {/* Header with navigation */}
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">
-              FTW vom {formatDatum(activeIssue.datum)}
+              Ausgabe vom {formatDatum(activeIssue.datum)}
             </h2>
             {ausgaben.length > 1 && (
               <div className="flex items-center gap-2">
@@ -120,7 +120,7 @@ export function AusgabenViewer({
                         : 'hover:bg-muted/50 text-muted-foreground'
                     }`}
                   >
-                    <span>FTW vom {formatDatum(ausgabe.datum)}</span>
+                    <span>Ausgabe vom {formatDatum(ausgabe.datum)}</span>
                     {isCurrent && <span className="text-xs text-muted-foreground">(angezeigt)</span>}
                   </button>
                   {isAdmin && <DeleteButton ausgabe={ausgabe} />}
