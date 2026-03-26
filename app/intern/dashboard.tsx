@@ -270,15 +270,28 @@ export function InternDashboard() {
   const displayRevenue = filteredOrders.reduce((s, o) => s + (Number(o.amount) || 0), 0)
   const displayNewOrders = filteredOrders.filter(o => isNewOrder(o.is_new_order)).length
 
-  // Cancellation KPIs
+  // Cancellation KPIs (filtered by cancellation date — for the chart/list)
   const displayCancellationCount = filteredCancellations.length
   const displayWiderrufe = filteredCancellations.filter(o => o.cancellation_type === 'Widerruf').length
   const displayKuendigungen = filteredCancellations.filter(o => o.cancellation_type === 'Kündigung').length
-  const displayWiderrufRevenue = filteredCancellations
-    .filter(o => o.cancellation_type === 'Widerruf')
-    .reduce((s, o) => s + (Number(o.amount) || 0), 0)
-  const displayWiderrufsquote = displayOrderCount > 0 ? ((displayWiderrufe / displayOrderCount) * 100) : 0
+
+  // Widerrufsquote: cohort-based — of all ORDERS in the time range, how many were withdrawn?
+  // This cross-references orders with ALL cancellations (regardless of cancellation date)
+  const allCancellations = (data.orders || []).filter(o => o.event_type === 'cancellation')
+  const widerrufOrderIds = new Set(
+    allCancellations.filter(o => o.cancellation_type === 'Widerruf').map(o => o.order_id)
+  )
+  const ordersWithWiderruf = filteredOrders.filter(o => widerrufOrderIds.has(o.order_id))
+  const displayWiderrufsquote = displayOrderCount > 0 ? ((ordersWithWiderruf.length / displayOrderCount) * 100) : 0
+  const displayWiderrufRevenue = ordersWithWiderruf.reduce((s, o) => s + (Number(o.amount) || 0), 0)
   const displayWiderrufsquoteRev = displayRevenue > 0 ? ((displayWiderrufRevenue / displayRevenue) * 100) : 0
+  // Check if cohort is "settled" (all orders are older than 37 days)
+  const now = new Date()
+  const oldestUnsettledOrder = filteredOrders.find(o => {
+    const orderDate = new Date(o.ordered_at || '')
+    return (now.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24) < 37
+  })
+  const cohortSettled = !oldestUnsettledOrder
 
   const displayOrdersByCampaign: Record<string, { count: number; revenue: number; newOrders: number }> = {}
   const displayOrdersByPlan: Record<string, { count: number; revenue: number; unitPrice: number; arr: number; multiplier: number }> = {}
@@ -859,7 +872,7 @@ export function InternDashboard() {
               <div style={{ borderLeft: '2px solid #e5e7eb', paddingLeft: 24 }}>
                 <div style={{ fontSize: 13, color: '#5a6a7a' }}>Widerrufsquote</div>
                 <div style={{ fontSize: 24, fontWeight: 700 }}>{displayWiderrufsquote.toFixed(1)}&nbsp;%</div>
-                <div style={{ fontSize: 12, color: '#5a6a7a' }}>{displayWiderrufe} von {displayOrderCount} Bestellungen</div>
+                <div style={{ fontSize: 12, color: '#5a6a7a' }}>{ordersWithWiderruf.length} von {displayOrderCount} Bestellungen{!cohortSettled && ' *'}</div>
               </div>
               <div>
                 <div style={{ fontSize: 13, color: '#5a6a7a' }}>Widerrufsvolumen</div>
@@ -867,6 +880,11 @@ export function InternDashboard() {
                 <div style={{ fontSize: 12, color: '#5a6a7a' }}>{displayWiderrufsquoteRev.toFixed(1)}&nbsp;% des Umsatzes</div>
               </div>
             </div>
+            {!cohortSettled && (
+              <div style={{ fontSize: 12, color: '#5a6a7a', fontStyle: 'italic', marginTop: 4 }}>
+                * Widerrufsquote kann noch steigen — einige Bestellungen sind jünger als 37 Tage.
+              </div>
+            )}
           </CollapsibleSection>
 
           <CollapsibleSection title="Einzelne Cancellations" filterTag={isDayFiltered ? displayLabel : undefined}>
