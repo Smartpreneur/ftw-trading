@@ -18,6 +18,13 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+/** Convert Supabase storage URL to cached proxy URL */
+function proxyUrl(supabaseUrl: string): string {
+  const match = supabaseUrl.match(/\/ausgaben\/(.+\.pdf)$/)
+  if (!match) return supabaseUrl
+  return `/api/pdf?file=${encodeURIComponent(match[1])}`
+}
+
 export function AusgabenViewer({
   ausgaben,
   isAdmin,
@@ -87,7 +94,7 @@ export function AusgabenViewer({
           </div>
           <PdfViewer
             key={activeIssue.id}
-            url={activeIssue.pdf_url}
+            url={proxyUrl(activeIssue.pdf_url)}
             thumbnailUrl={activeIssue.thumbnail_url}
           />
         </div>
