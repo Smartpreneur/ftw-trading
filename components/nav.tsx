@@ -125,7 +125,7 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
                   ))}
                 </nav>
                 <div className="text-center text-sm text-muted-foreground pb-4">
-                  Dashboard provided by{' '}
+                  Solution provided by{' '}
                   <a
                     href="https://kuehn.it"
                     target="_blank"
