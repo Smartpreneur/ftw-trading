@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { BookOpen, LayoutDashboard, TrendingUp, Menu } from 'lucide-react'
+import { BookOpen, LayoutDashboard, TrendingUp, Menu, Rocket, Library, FileText } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import {
@@ -19,13 +19,22 @@ const allLinks = [
   { href: '/performance', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/trades', label: 'Trades', icon: BookOpen },
   { href: '/setups', label: 'Trade-Setups', icon: TrendingUp, adminOnly: true },
+  { href: '/start', label: 'So startest du', icon: Rocket, previewOnly: true },
+  { href: '/wissen', label: 'Wissensdatenbank', icon: Library, previewOnly: true },
+  { href: '/ausgaben', label: 'Ausgaben', icon: FileText, previewOnly: true },
 ]
 
 export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [open, setOpen] = useState(false)
-  const links = allLinks.filter((l) => !l.adminOnly || isAdmin)
+  // Preview mode: show upcoming features with ?preview=1
+  const preview = searchParams.get('preview') === '1'
+  const links = allLinks.filter((l) => {
+    if (l.adminOnly && !isAdmin) return false
+    if (l.previewOnly && !preview) return false
+    return true
+  })
 
   // Preserve embed token and performance tab across navigation
   const token = searchParams.get('token')
@@ -38,7 +47,14 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
         url = `/performance?tab=${savedTab}`
       }
     }
-    return token ? `${url}${url.includes('?') ? '&' : '?'}token=${token}` : url
+    // Append token and preview params
+    const params: string[] = []
+    if (token) params.push(`token=${token}`)
+    if (preview) params.push('preview=1')
+    if (params.length > 0) {
+      url += (url.includes('?') ? '&' : '?') + params.join('&')
+    }
+    return url
   }
 
   return (
