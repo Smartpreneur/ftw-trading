@@ -41,7 +41,7 @@ function enrichTrade(trade: Trade): TradeWithPerformance {
     performance_pct = Math.round(raw * 100) / 100
   } else if (trade.bemerkungen) {
     // Last resort: parse from bemerkungen text
-    const perfMatch = trade.bemerkungen.match(/Performance:\s*([+-]?[\d,]+)\s*%/)
+    const perfMatch = trade.bemerkungen.match(/Performance:\s*([+-]?[\d.,]+)\s*%/)
     if (perfMatch) {
       const perfValue = parseFloat(perfMatch[1].replace(',', '.'))
       if (!isNaN(perfValue)) {

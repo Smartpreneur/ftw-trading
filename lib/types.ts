@@ -167,6 +167,8 @@ export type TradeCloseFormData = {
 export interface PerformanceKPIs {
   total_trades: number
   closed_trades: number
+  wins: number
+  losses: number
   win_rate: number
   avg_win_pct: number
   avg_loss_pct: number

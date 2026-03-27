@@ -10,8 +10,8 @@ interface WinRateGaugeProps {
 export function WinRateGauge({ kpis }: WinRateGaugeProps) {
   const winRate = kpis.win_rate
   const closed = kpis.closed_trades
-  const wins = Math.round((winRate / 100) * closed)
-  const losses = closed - wins
+  const wins = kpis.wins
+  const losses = kpis.losses
 
   // SVG circle gauge
   const radius = 42

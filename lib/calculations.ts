@@ -8,15 +8,14 @@ import type {
 import { getMonthLabel } from './formatters'
 
 export function calculateKPIs(trades: TradeWithPerformance[]): PerformanceKPIs {
-  const closed = trades.filter(
-    (t) =>
-      t.status !== 'Aktiv' &&
-      t.performance_pct !== null
-  )
-  const winners = closed.filter((t) => (t.performance_pct ?? 0) > 0)
-  const losers = closed.filter((t) => (t.performance_pct ?? 0) < 0)
+  // All non-active trades count as closed (for display)
+  const closed = trades.filter((t) => t.status !== 'Aktiv')
+  // Only trades with performance data for rate calculations
+  const evaluated = closed.filter((t) => t.performance_pct !== null)
+  const winners = evaluated.filter((t) => (t.performance_pct ?? 0) > 0)
+  const losers = evaluated.filter((t) => (t.performance_pct ?? 0) < 0)
 
-  const winRate = closed.length > 0 ? (winners.length / closed.length) * 100 : 0
+  const winRate = evaluated.length > 0 ? (winners.length / evaluated.length) * 100 : 0
 
   const totalWinWeight = winners.reduce((s, t) => s + (t.gewichtung ?? 1), 0)
   const avgWin =
@@ -30,11 +29,13 @@ export function calculateKPIs(trades: TradeWithPerformance[]): PerformanceKPIs {
       ? Math.abs(losers.reduce((s, t) => s + (t.performance_pct ?? 0) * (t.gewichtung ?? 1), 0) / totalLossWeight)
       : 0
 
-  const perfValues = closed.map((t) => t.performance_pct ?? 0)
+  const perfValues = evaluated.map((t) => t.performance_pct ?? 0)
 
   return {
     total_trades: trades.length,
     closed_trades: closed.length,
+    wins: winners.length,
+    losses: losers.length,
     win_rate: Math.round(winRate * 10) / 10,
     avg_win_pct: Math.round(avgWin * 100) / 100,
     avg_loss_pct: Math.round(avgLoss * 100) / 100,
@@ -43,8 +44,8 @@ export function calculateKPIs(trades: TradeWithPerformance[]): PerformanceKPIs {
     best_trade_pct: perfValues.length > 0 ? Math.max(...perfValues) : 0,
     worst_trade_pct: perfValues.length > 0 ? Math.min(...perfValues) : 0,
     avg_holding_days:
-      closed.length > 0
-        ? Math.round(closed.reduce((s, t) => s + (t.haltedauer_tage ?? 0), 0) / closed.length)
+      evaluated.length > 0
+        ? Math.round(evaluated.reduce((s, t) => s + (t.haltedauer_tage ?? 0), 0) / evaluated.length)
         : 0,
   }
 }
