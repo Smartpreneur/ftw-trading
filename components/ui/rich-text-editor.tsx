@@ -42,12 +42,34 @@ export function RichTextEditor({ content, onChange, placeholder, compact = false
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
     },
+    onSelectionUpdate: ({ editor }) => {
+      if (compact) return
+      if (editor.isActive('link')) {
+        const attrs = editor.getAttributes('link')
+        const { from, to } = editor.state.selection
+        const text = editor.state.doc.textBetween(from, to, '')
+        setLinkUrl(attrs.href || '')
+        setLinkText(text)
+        setShowLinkForm(true)
+      } else if (showLinkForm) {
+        setShowLinkForm(false)
+      }
+    },
     editorProps: {
       attributes: {
         class: cn(
           'prose prose-sm max-w-none px-3 py-2 focus:outline-none',
           compact ? 'min-h-[60px]' : 'min-h-[250px]'
         ),
+      },
+      handleClick: (_view, _pos, event) => {
+        // Intercept clicks on links: prevent navigation, let onSelectionUpdate handle it
+        const target = event.target as HTMLElement
+        if (target.closest('a')) {
+          event.preventDefault()
+          return true
+        }
+        return false
       },
     },
   })
