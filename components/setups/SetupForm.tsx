@@ -197,9 +197,11 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       const risk = Math.abs(entry - sl)
       if (risk <= 0) return
 
+      const isLong = watchRichtung === 'LONG'
       const crvValues = [watchTp1, watchTp2, watchTp3, watchTp4]
         .map((v) => parseFloat(String(v ?? '')))
         .filter((tp) => !isNaN(tp) && tp > 0)
+        .filter((tp) => isLong ? tp > entry : tp < entry)
         .map((tp) => {
           const reward = Math.abs(tp - entry)
           return reward > 0 ? Math.round((reward / risk) * 100) / 100 : null
