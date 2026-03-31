@@ -56,7 +56,7 @@ export function buildEilmeldungContent(trade: Trade): string {
           ? `<a href="${tvUrl}" target="_blank" rel="noopener noreferrer" style="color:#3b82f6;text-decoration:none;font-weight:600;">${esc(tvDisplayLabel)}</a>`
           : esc(tvDisplayLabel)
         }
-        ${trade.aktueller_kurs ? ` · Kurs aktuell: <strong style="color:#000;">${formatPrice(trade.aktueller_kurs)}</strong> (${timeStr})` : ''}
+        ${trade.aktueller_kurs ? ` · Kurs aktuell: <strong style="color:#000;">${formatPrice(trade.aktueller_kurs)}${ccy ? ` ${esc(ccy)}` : ''}</strong> (${timeStr})` : ''}
       </p>
     </td>
   </tr>
@@ -72,10 +72,10 @@ export function buildEilmeldungContent(trade: Trade): string {
           : `${dirLabel}-<br class="ftw-mobile-br">EINSTIEG`,
         entries.length > 1
           ? entries.map(e =>
-              `<strong class="ftw-entry-price" style="font-size:16px;">${formatPrice(e.preis)}</strong> <span style="color:#71717a;font-size:13px;">(${Math.round(e.anteil * 100)}%)</span>`
+              `<strong class="ftw-entry-price" style="font-size:16px;">${formatPrice(e.preis)}${ccy ? `<span style="font-weight:500;font-size:12px;color:#71717a;"> ${esc(ccy)}</span>` : ''}</strong> <span style="color:#71717a;font-size:13px;">(${Math.round(e.anteil * 100)}%)</span>`
             ).join(' &nbsp;/&nbsp; ') +
-            `<br><span style="color:#71717a;font-size:13px;">= ${formatPrice(trade.einstiegspreis)} (Mischkurs)</span>`
-          : `<strong style="font-size:18px;">${formatPrice(trade.einstiegspreis)}</strong>`
+            `<br><span style="color:#71717a;font-size:13px;">= ${formatPrice(trade.einstiegspreis)}${ccy ? ` ${esc(ccy)}` : ''} (Mischkurs)</span>`
+          : `<strong style="font-size:18px;">${formatPrice(trade.einstiegspreis)}${ccy ? `<span style="font-weight:500;font-size:13px;color:#71717a;"> ${esc(ccy)}</span>` : ''}</strong>`
       )}
     </td>
   </tr>
@@ -289,12 +289,13 @@ function dataRow(label: string, value: string): string {
   </tr></table>`
 }
 
-/** Convert WYSIWYG HTML for email: ensure empty paragraphs create visible spacing */
+/** Convert WYSIWYG HTML for email: ensure empty paragraphs create visible spacing and links are styled */
 function formatAnalyseHtml(html: string): string {
   return html
     .replace(/<p><\/p>/g, '<p style="margin:0;line-height:1.2;">&nbsp;</p>')
     .replace(/<p>/g, '<p style="margin:0 0 12px;">')
     .replace(/<p style="margin:0 0 12px;"> style="margin:0;line-height:1.2;">/g, '<p style="margin:0;line-height:1.2;">')
+    .replace(/<a /g, '<a style="color:#2563eb;text-decoration:underline;" ')
 }
 
 function esc(text: string): string {

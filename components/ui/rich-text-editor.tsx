@@ -3,7 +3,7 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
-import { Bold, Italic, List, ListOrdered, Undo, Redo, Link as LinkIcon, Unlink, X } from 'lucide-react'
+import { Bold, Italic, List, ListOrdered, Undo, Redo, Link as LinkIcon, Unlink, X, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState, useRef, useEffect, useCallback } from 'react'
 
@@ -54,10 +54,17 @@ export function RichTextEditor({ content, onChange, placeholder, compact = false
 
   const openLinkForm = useCallback(() => {
     if (!editor) return
+
+    // If cursor is on an existing link, pre-fill URL for editing
     if (editor.isActive('link')) {
-      editor.chain().focus().unsetLink().run()
+      const attrs = editor.getAttributes('link')
+      setLinkUrl(attrs.href || '')
+      const { from, to } = editor.state.selection
+      setLinkText(editor.state.doc.textBetween(from, to, '') || '')
+      setShowLinkForm(true)
       return
     }
+
     // Pre-fill with selected text
     const { from, to } = editor.state.selection
     const selectedText = editor.state.doc.textBetween(from, to, '')
@@ -65,6 +72,14 @@ export function RichTextEditor({ content, onChange, placeholder, compact = false
     setLinkUrl('')
     setShowLinkForm(true)
   }, [editor])
+
+  function handleRemoveLink() {
+    if (!editor) return
+    editor.chain().focus().extendMarkRange('link').unsetLink().run()
+    setShowLinkForm(false)
+    setLinkUrl('')
+    setLinkText('')
+  }
 
   useEffect(() => {
     if (showLinkForm && urlInputRef.current) {
@@ -77,10 +92,22 @@ export function RichTextEditor({ content, onChange, placeholder, compact = false
     const url = linkUrl.trim().startsWith('http') ? linkUrl.trim() : `https://${linkUrl.trim()}`
 
     if (linkText.trim()) {
-      // If link text differs from selection or nothing was selected, insert new text with link
       const { from, to } = editor.state.selection
       const currentText = editor.state.doc.textBetween(from, to, '')
-      if (currentText !== linkText.trim()) {
+
+      if (editor.isActive('link')) {
+        // Editing existing link — update URL, optionally update text
+        if (currentText !== linkText.trim()) {
+          editor.chain().focus()
+            .extendMarkRange('link')
+            .deleteSelection()
+            .insertContent(`<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText.trim()}</a>`)
+            .run()
+        } else {
+          editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+        }
+      } else if (currentText !== linkText.trim()) {
+        // New link with custom text
         editor.chain().focus()
           .deleteSelection()
           .insertContent(`<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText.trim()}</a>`)
@@ -101,6 +128,19 @@ export function RichTextEditor({ content, onChange, placeholder, compact = false
 
   return (
     <div className="rounded-md border border-input overflow-hidden">
+      {/* Link styles for editor content */}
+      <style>{`
+        .ProseMirror a {
+          color: #2563eb;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+          cursor: text;
+        }
+        .ProseMirror a:hover {
+          color: #1d4ed8;
+        }
+      `}</style>
+
       {/* Toolbar */}
       <div className="flex items-center gap-0.5 border-b bg-muted/30 px-2 py-1">
         <ToolbarButton
@@ -138,9 +178,9 @@ export function RichTextEditor({ content, onChange, placeholder, compact = false
             <ToolbarButton
               onClick={openLinkForm}
               active={editor.isActive('link')}
-              title={editor.isActive('link') ? 'Link entfernen' : 'Link einfügen'}
+              title={editor.isActive('link') ? 'Link bearbeiten' : 'Link einfügen'}
             >
-              {editor.isActive('link') ? <Unlink className="h-4 w-4" /> : <LinkIcon className="h-4 w-4" />}
+              <LinkIcon className="h-4 w-4" />
             </ToolbarButton>
           </>
         )}
@@ -163,48 +203,67 @@ export function RichTextEditor({ content, onChange, placeholder, compact = false
 
       {/* Link Form */}
       {showLinkForm && (
-        <div className="border-b bg-muted/20 px-3 py-2.5 flex items-end gap-2">
-          <div className="flex-1 space-y-1.5">
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Link-Text</label>
-                <input
-                  type="text"
-                  value={linkText}
-                  onChange={(e) => setLinkText(e.target.value)}
-                  placeholder="z.B. Hier klicken"
-                  className="w-full mt-0.5 px-2 py-1 text-sm rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">URL</label>
-                <input
-                  ref={urlInputRef}
-                  type="url"
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleLinkSubmit() } }}
-                  placeholder="https://..."
-                  className="w-full mt-0.5 px-2 py-1 text-sm rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-                />
-              </div>
+        <div className="border-b bg-muted/20 px-3 py-2.5 space-y-2">
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Link-Text</label>
+              <input
+                type="text"
+                value={linkText}
+                onChange={(e) => setLinkText(e.target.value)}
+                placeholder="z.B. Hier klicken"
+                className="w-full mt-0.5 px-2 py-1 text-sm rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">URL</label>
+              <input
+                ref={urlInputRef}
+                type="url"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleLinkSubmit() } if (e.key === 'Escape') { setShowLinkForm(false); editor.chain().focus().run() } }}
+                placeholder="https://..."
+                className="w-full mt-0.5 px-2 py-1 text-sm rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              />
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleLinkSubmit}
-            disabled={!linkUrl.trim()}
-            className="px-3 py-1 text-xs font-medium rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:pointer-events-none"
-          >
-            Einfügen
-          </button>
-          <button
-            type="button"
-            onClick={() => { setShowLinkForm(false); editor.chain().focus().run() }}
-            className="p-1 text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleLinkSubmit}
+              disabled={!linkUrl.trim()}
+              className="px-3 py-1 text-xs font-medium rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:pointer-events-none"
+            >
+              {editor.isActive('link') ? 'Aktualisieren' : 'Einfügen'}
+            </button>
+            {editor.isActive('link') && (
+              <button
+                type="button"
+                onClick={handleRemoveLink}
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded text-destructive hover:bg-destructive/10"
+              >
+                <Unlink className="h-3 w-3" /> Link entfernen
+              </button>
+            )}
+            {linkUrl && (
+              <a
+                href={linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground ml-auto"
+              >
+                <ExternalLink className="h-3 w-3" /> Vorschau
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => { setShowLinkForm(false); editor.chain().focus().run() }}
+              className="p-1 text-muted-foreground hover:text-foreground ml-auto"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
