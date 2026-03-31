@@ -187,27 +187,30 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
   const watchSL = watch('stop_loss')
   const watchRichtung = watch('richtung')
 
-  // Auto-calculate CRV from entry, SL and TP targets
+  // Auto-calculate CRV from entry, SL and TP targets (debounced to avoid mid-typing noise)
   useEffect(() => {
-    const entry = parseFloat(String(watchEinstieg ?? ''))
-    const sl = parseFloat(String(watchSL ?? ''))
-    if (!entry || !sl || isNaN(entry) || isNaN(sl)) return
+    const timer = setTimeout(() => {
+      const entry = parseFloat(String(watchEinstieg ?? ''))
+      const sl = parseFloat(String(watchSL ?? ''))
+      if (!entry || !sl || isNaN(entry) || isNaN(sl)) return
 
-    const risk = Math.abs(entry - sl)
-    if (risk <= 0) return
+      const risk = Math.abs(entry - sl)
+      if (risk <= 0) return
 
-    const crvValues = [watchTp1, watchTp2, watchTp3, watchTp4]
-      .map((v) => parseFloat(String(v ?? '')))
-      .filter((tp) => !isNaN(tp) && tp > 0)
-      .map((tp) => {
-        const reward = Math.abs(tp - entry)
-        return reward > 0 ? Math.round((reward / risk) * 100) / 100 : null
-      })
-      .filter((v): v is number => v !== null)
+      const crvValues = [watchTp1, watchTp2, watchTp3, watchTp4]
+        .map((v) => parseFloat(String(v ?? '')))
+        .filter((tp) => !isNaN(tp) && tp > 0)
+        .map((tp) => {
+          const reward = Math.abs(tp - entry)
+          return reward > 0 ? Math.round((reward / risk) * 100) / 100 : null
+        })
+        .filter((v): v is number => v !== null)
 
-    if (crvValues.length === 0) return
-    setValue('risiko_reward_min', Math.min(...crvValues), { shouldDirty: true })
-    setValue('risiko_reward_max', Math.max(...crvValues), { shouldDirty: true })
+      if (crvValues.length === 0) return
+      setValue('risiko_reward_min', Math.min(...crvValues), { shouldDirty: true })
+      setValue('risiko_reward_max', Math.max(...crvValues), { shouldDirty: true })
+    }, 600)
+    return () => clearTimeout(timer)
   }, [watchEinstieg, watchSL, watchRichtung, watchTp1, watchTp2, watchTp3, watchTp4, setValue])
 
   const hasTp = (v: unknown) => v !== null && v !== undefined && !isNaN(Number(v)) && Number(v) > 0
