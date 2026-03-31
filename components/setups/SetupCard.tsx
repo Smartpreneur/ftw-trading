@@ -356,7 +356,7 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
 
         {/* E-Mail Preview Modal */}
         <Dialog open={showPreview} onOpenChange={setShowPreview}>
-          <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden p-0">
+          <DialogContent className={`max-h-[85vh] overflow-hidden p-0 transition-all duration-200 ${previewMode === 'desktop' ? 'max-w-4xl' : 'max-w-xl'}`}>
             <DialogHeader className="px-6 pt-6 pb-2">
               <DialogTitle>E-Mail Vorschau</DialogTitle>
             </DialogHeader>
