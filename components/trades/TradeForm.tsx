@@ -122,9 +122,9 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
           status: 'Aktiv',
           richtung: 'LONG',
           asset_klasse: 'Index',
+          profil: undefined as unknown as 'MB' | 'SJ',
           datum_eroeffnung: new Date().toISOString().split('T')[0],
           gewichtung: 1,
-          profil: 'SJ' as const,
         },
   })
 
@@ -240,11 +240,11 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
         </Field>
         <Field label="Profil *" error={errors.profil?.message}>
           <Select
-            defaultValue={trade?.profil ?? 'SJ'}
+            defaultValue={trade?.profil}
             onValueChange={(v) => setValue('profil', v as any)}
           >
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Wählen..." />
             </SelectTrigger>
             <SelectContent>
               {TRADING_PROFILES.map((p) => (

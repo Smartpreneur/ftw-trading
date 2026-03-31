@@ -601,7 +601,9 @@ async function checkAndUpdateTPSL(
 }
 
 // Check entry-point levels: detect when planned entry prices are reached.
-// Mirrors the TP/SL detection logic but for entries (buy triggers).
+// Mirrors the TP/SL detection logic including intraday candle checks.
+// Each entry uses its own created_at as the reference timestamp, so entries
+// added to an existing trade are only triggered by price moves AFTER they were created.
 async function checkAndUpdateEntries(
   trade: {
     id: string
@@ -609,9 +611,11 @@ async function checkAndUpdateEntries(
     datum_eroeffnung: string
     created_at: string
     status: string
+    asset?: string
   },
-  entries: Array<{ id: string; nummer: number; preis: number; anteil: number; erreicht_am: string | null }>,
-  ohlcData: DailyOHLC[]
+  entries: Array<{ id: string; nummer: number; preis: number; anteil: number; erreicht_am: string | null; created_at?: string }>,
+  ohlcData: DailyOHLC[],
+  currentPrice?: number
 ): Promise<boolean> {
   if (!trade.richtung || ohlcData.length === 0) return false
 
@@ -619,27 +623,75 @@ async function checkAndUpdateEntries(
   if (pending.length === 0) return false
 
   const openDate = trade.datum_eroeffnung.split('T')[0]
-  const createdDate = trade.created_at.split('T')[0]
+  const today = new Date().toISOString().split('T')[0]
   const supabase = createAdminClient()
   let changed = false
 
-  for (const day of ohlcData) {
-    if (day.date < openDate) continue
-    if (day.date <= openDate) continue // skip entry day itself
-    if (day.date === createdDate && createdDate > openDate) continue
+  // Pre-fetch intraday candles once if any pending entry was created today
+  let intradayCandles: IntradayCandle[] | null = null
+  const needsIntraday = pending.some(e => {
+    const entryCreatedDate = (e.created_at ?? trade.created_at).split('T')[0]
+    return entryCreatedDate === today
+  })
+  if (needsIntraday && trade.asset) {
+    const mapping = getApiSymbol(trade.asset)
+    if (mapping) {
+      intradayCandles = await fetchIntradayCandles(mapping)
+    }
+  }
 
-    const hitTimestamp = `${day.date}T16:00:00+00:00`
+  for (const entry of pending) {
+    if (entry.erreicht_am) continue
 
-    for (const entry of pending) {
-      if (entry.erreicht_am) continue
+    // Each entry has its own reference date (when it was created)
+    const entryRefTimestamp = entry.created_at ?? trade.created_at
+    const entryRefDate = entryRefTimestamp.split('T')[0]
+    const entryRefUnix = Math.floor(new Date(entryRefTimestamp).getTime() / 1000)
+
+    for (const day of ohlcData) {
+      if (day.date < openDate) continue
+      if (day.date <= openDate) continue // skip trade opening day itself
+
+      // Determine if this day is the entry's reference day (creation day)
+      const isEntryRefDay = day.date <= entryRefDate
+
+      if (isEntryRefDay) {
+        // For the entry's creation day: only proceed with intraday data or live price
+        if (day.date === today && intradayCandles && intradayCandles.length > 0) {
+          // Use intraday candles filtered to AFTER entry creation
+        } else if (day.date === today && currentPrice != null) {
+          // Fallback: use live price
+        } else {
+          // Historical reference day with no intraday data — skip
+          continue
+        }
+      }
+
+      // Determine effective high/low
+      let effectiveHigh: number
+      let effectiveLow: number
+
+      if (isEntryRefDay && day.date === today && intradayCandles && intradayCandles.length > 0) {
+        const filtered = getIntradayHighLowAfter(intradayCandles, entryRefUnix)
+        if (!filtered) continue // no candles after entry creation
+        effectiveHigh = filtered.high
+        effectiveLow = filtered.low
+      } else if (isEntryRefDay && day.date === today && currentPrice != null) {
+        effectiveHigh = currentPrice
+        effectiveLow = currentPrice
+      } else {
+        effectiveHigh = day.high
+        effectiveLow = day.low
+      }
 
       // LONG: buy triggered when price dips to or below entry level
       // SHORT: sell triggered when price rises to or above entry level
       const hit = trade.richtung === 'LONG'
-        ? day.low <= entry.preis
-        : day.high >= entry.preis
+        ? effectiveLow <= entry.preis
+        : effectiveHigh >= entry.preis
 
       if (hit) {
+        const hitTimestamp = `${day.date}T16:00:00+00:00`
         await supabase
           .from('trade_entries')
           .update({ erreicht_am: hitTimestamp, datum: day.date })
@@ -647,6 +699,7 @@ async function checkAndUpdateEntries(
 
         entry.erreicht_am = hitTimestamp
         changed = true
+        break // entry is hit, move to next entry
       }
     }
   }
@@ -681,7 +734,7 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
   // Get active trades only — Entwurf trades are NOT monitored
   const { data: activeTrades, error: tradesError } = await supabase
     .from('trades')
-    .select('id, asset, status, datum_eroeffnung, created_at, einstiegspreis, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, tp1_gewichtung, tp2_gewichtung, tp3_gewichtung, tp4_gewichtung, manuell_getrackt, entries:trade_entries(id, nummer, preis, anteil, erreicht_am)')
+    .select('id, asset, status, datum_eroeffnung, created_at, einstiegspreis, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, tp1_gewichtung, tp2_gewichtung, tp3_gewichtung, tp4_gewichtung, manuell_getrackt, entries:trade_entries(id, nummer, preis, anteil, erreicht_am, created_at)')
     .eq('status', 'Aktiv')
 
   if (tradesError || !activeTrades) {
@@ -736,7 +789,7 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
 
       // Check entry-point triggers for active trades with entries
       if (!trade.manuell_getrackt && tradeEntries.length > 0 && ohlcData.length > 0) {
-        const entryChanged = await checkAndUpdateEntries(trade, tradeEntries, ohlcData)
+        const entryChanged = await checkAndUpdateEntries(trade, tradeEntries, ohlcData, price ?? undefined)
         if (entryChanged) tpSlChanged = true
       }
 
@@ -797,7 +850,7 @@ export async function refreshActiveTrade(tradeId: string): Promise<void> {
 
   const { data: trade } = await supabase
     .from('trades')
-    .select('id, asset, status, datum_eroeffnung, created_at, einstiegspreis, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, tp1_gewichtung, tp2_gewichtung, tp3_gewichtung, tp4_gewichtung, manuell_getrackt, entries:trade_entries(id, nummer, preis, anteil, erreicht_am)')
+    .select('id, asset, status, datum_eroeffnung, created_at, einstiegspreis, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, tp1_gewichtung, tp2_gewichtung, tp3_gewichtung, tp4_gewichtung, manuell_getrackt, entries:trade_entries(id, nummer, preis, anteil, erreicht_am, created_at)')
     .eq('id', tradeId)
     .eq('status', 'Aktiv')
     .single()
@@ -849,7 +902,7 @@ export async function refreshActiveTrade(tradeId: string): Promise<void> {
 
       const tradeEntries = (trade as any).entries ?? []
       if (tradeEntries.length > 0) {
-        await checkAndUpdateEntries(tradeForCheck as typeof trade, tradeEntries, ohlcData)
+        await checkAndUpdateEntries(tradeForCheck as typeof trade, tradeEntries, ohlcData, price ?? undefined)
       }
       const changed = await checkAndUpdateTPSL(tradeForCheck as typeof trade, ohlcData, price ?? undefined)
       if (changed) revalidateTag('trades', 'max')

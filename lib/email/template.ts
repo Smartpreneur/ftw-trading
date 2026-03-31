@@ -8,7 +8,7 @@ import { TRADER_NAMES } from '@/lib/constants'
  * No <html>, <head>, <body>, no footer, no social icons — Mailchimp template handles those.
  */
 export function buildEilmeldungContent(trade: Trade): string {
-  const { dirColor, dirLabel, dirArrow, tps, entries, crvText, timeStr, tvUrl, tvDisplayLabel } = buildTradeData(trade)
+  const { dirColor, dirLabel, dirArrow, tps, entries, crvText, timeStr, tvUrl, tvDisplayLabel, ccy } = buildTradeData(trade)
 
   return `
   <!-- MOBILE RESPONSIVE STYLES -->
@@ -65,7 +65,10 @@ export function buildEilmeldungContent(trade: Trade): string {
   <!-- EINSTIEG -->
   <tr>
     <td style="padding:16px 24px 8px;background:#fff;">
-      ${dataRow(`${dirLabel}-<br class="ftw-mobile-br">EINSTIEG`,
+      ${dataRow(
+        entries.length > 1
+          ? `LIMIT<br class="ftw-mobile-br">${dirLabel === 'LONG' ? 'BUY' : 'SELL'}`
+          : `${dirLabel}-<br class="ftw-mobile-br">EINSTIEG`,
         entries.length > 1
           ? entries.map(e =>
               `<strong class="ftw-entry-price" style="font-size:16px;">${formatPrice(e.preis)}</strong> <span style="color:#71717a;font-size:13px;">(${Math.round(e.anteil * 100)}%)</span>`
@@ -81,7 +84,7 @@ export function buildEilmeldungContent(trade: Trade): string {
   <tr>
     <td style="padding:8px 24px;background:#fff;">
       ${dataRow('STOP-<br class="ftw-mobile-br">LOSS',
-        `<span style="display:inline-block;background:#fef2f2;color:#dc2626;font-weight:700;font-size:16px;padding:3px 10px;border-radius:4px;">${formatPrice(trade.stop_loss)}</span>`
+        `<span style="display:inline-block;background:#fef2f2;color:#dc2626;font-weight:700;font-size:16px;padding:3px 10px;border-radius:4px;">${formatPrice(trade.stop_loss)}${ccy ? `<span style="font-weight:500;font-size:12px;color:#71717a;margin-left:4px;">${esc(ccy)}</span>` : ''}</span>`
       )}
     </td>
   </tr>` : ''}
@@ -103,7 +106,7 @@ export function buildEilmeldungContent(trade: Trade): string {
             <td width="${tdWidth}%" style="padding:0 ${isRowEnd ? '0' : '3'}px ${i < tps.length - perRow ? '6px' : '0'} ${isRowStart ? '0' : '3'}px;vertical-align:top;">
               <div class="ftw-tp-tile" style="background:#ecfdf5;border-radius:6px;padding:8px 10px;text-align:center;">
                 <div class="ftw-tp-label" style="font-size:11px;font-weight:700;color:#059669;">${tp.label}</div>
-                <div class="ftw-tp-price" style="font-family:monospace;font-size:15px;font-weight:700;color:#000;margin:3px 0;white-space:nowrap;">${formatPrice(tp.level!)}</div>
+                <div class="ftw-tp-price" style="font-family:monospace;font-size:15px;font-weight:700;color:#000;margin:3px 0;white-space:nowrap;">${formatPrice(tp.level!)}${ccy ? `<span style="font-weight:500;font-size:11px;color:#71717a;"> ${esc(ccy)}</span>` : ''}</div>
                 ${tp.weight != null ? `<div class="ftw-tp-weight" style="font-size:12px;font-weight:600;color:#4d4d4d;">(${Math.round(tp.weight * 100)}%)</div>` : ''}
               </div>
             </td>${isRowEnd ? '</tr>' : ''}`
@@ -162,7 +165,7 @@ export function buildEilmeldungContent(trade: Trade): string {
   ${trade.chart_bild_url ? `
   <tr>
     <td style="padding:12px 24px;background:#fff;">
-      <img src="${trade.chart_bild_url}" alt="Chart ${esc(trade.asset_name || trade.asset)}" style="width:100%;border-radius:4px;border:1px solid #d0d0d0;" />
+      <a href="${trade.chart_bild_url}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;"><img src="${trade.chart_bild_url}" alt="Chart ${esc(trade.asset_name || trade.asset)}" width="560" style="display:block;width:100%;max-width:100%;height:auto;border-radius:4px;border:1px solid #d0d0d0;cursor:pointer;" /></a>
     </td>
   </tr>` : ''}
 
@@ -272,8 +275,9 @@ function buildTradeData(trade: Trade) {
     ? `https://www.tradingview.com/symbols/${encodeURIComponent(ticker.replace('.', '-'))}/`
     : null
   const tvDisplayLabel = tvSymbol || ticker
+  const ccy = trade.currency && trade.currency !== 'N/A' ? ` ${trade.currency}` : ''
 
-  return { isLong, dirColor, dirLabel, dirArrow, tps, entries, crvText, timeStr, tvUrl, tvDisplayLabel }
+  return { isLong, dirColor, dirLabel, dirArrow, tps, entries, crvText, timeStr, tvUrl, tvDisplayLabel, ccy }
 }
 
 function dataRow(label: string, value: string): string {

@@ -275,6 +275,10 @@ export function InternDashboard() {
   const displayWiderrufe = filteredCancellations.filter(o => o.cancellation_type === 'Widerruf').length
   const displayKuendigungen = filteredCancellations.filter(o => o.cancellation_type === 'Kündigung').length
 
+  // Lookup: order_id → original order amount (for showing real amount on cancellation rows)
+  const allOrders = (data.orders || []).filter(o => o.event_type !== 'cancellation')
+  const orderAmountMap = new Map(allOrders.map(o => [o.order_id, Number(o.amount) || 0]))
+
   // Widerrufsquote: cohort-based — of all ORDERS in the time range, how many were withdrawn?
   // This cross-references orders with ALL cancellations (regardless of cancellation date)
   const allCancellations = (data.orders || []).filter(o => o.event_type === 'cancellation')
@@ -282,6 +286,7 @@ export function InternDashboard() {
     allCancellations.filter(o => o.cancellation_type === 'Widerruf').map(o => o.order_id)
   )
   const ordersWithWiderruf = filteredOrders.filter(o => widerrufOrderIds.has(o.order_id))
+  const orphanWiderrufe = displayWiderrufe - ordersWithWiderruf.length
   const displayWiderrufsquote = displayOrderCount > 0 ? ((ordersWithWiderruf.length / displayOrderCount) * 100) : 0
   const displayWiderrufRevenue = ordersWithWiderruf.reduce((s, o) => s + (Number(o.amount) || 0), 0)
   const displayWiderrufsquoteRev = displayRevenue > 0 ? ((displayWiderrufRevenue / displayRevenue) * 100) : 0
@@ -872,7 +877,7 @@ export function InternDashboard() {
               <div style={{ borderLeft: '2px solid #e5e7eb', paddingLeft: 24 }}>
                 <div style={{ fontSize: 13, color: '#5a6a7a' }}>Widerrufsquote</div>
                 <div style={{ fontSize: 24, fontWeight: 700 }}>{displayWiderrufsquote.toFixed(1)}&nbsp;%</div>
-                <div style={{ fontSize: 12, color: '#5a6a7a' }}>{ordersWithWiderruf.length} von {displayOrderCount} Bestellungen{!cohortSettled && ' *'}</div>
+                <div style={{ fontSize: 12, color: '#5a6a7a' }}>{ordersWithWiderruf.length} von {displayOrderCount} Bestellungen{orphanWiderrufe > 0 && ` **`}{!cohortSettled && ' *'}</div>
               </div>
               <div>
                 <div style={{ fontSize: 13, color: '#5a6a7a' }}>Widerrufsvolumen</div>
@@ -880,9 +885,10 @@ export function InternDashboard() {
                 <div style={{ fontSize: 12, color: '#5a6a7a' }}>{displayWiderrufsquoteRev.toFixed(1)}&nbsp;% des Umsatzes</div>
               </div>
             </div>
-            {!cohortSettled && (
+            {(!cohortSettled || orphanWiderrufe > 0) && (
               <div style={{ fontSize: 12, color: '#5a6a7a', fontStyle: 'italic', marginTop: 4 }}>
-                * Widerrufsquote kann noch steigen — einige Bestellungen sind jünger als 37 Tage.
+                {!cohortSettled && <>* Widerrufsquote kann noch steigen — einige Bestellungen sind jünger als 37 Tage.<br /></>}
+                {orphanWiderrufe > 0 && <>** {orphanWiderrufe} weitere Widerrufe ohne erfasste Bestellung (Bestellung vor Tracking-Start).</>}
               </div>
             )}
           </CollapsibleSection>
@@ -895,7 +901,7 @@ export function InternDashboard() {
                   <th>Order-ID</th>
                   <th>Bestellt am</th>
                   <th>Plan</th>
-                  <th>Betrag</th>
+                  <th>Bestellwert</th>
                   <th>Campaign</th>
                   <th>Typ</th>
                 </tr>
@@ -903,17 +909,20 @@ export function InternDashboard() {
               <tbody>
                 {filteredCancellations
                   .sort((a, b) => (b.cancelled_at || '').localeCompare(a.cancelled_at || ''))
-                  .map(o => (
-                  <tr key={`${o.order_id}-cancel`}>
+                  .map(o => {
+                  const isOrphan = !orderAmountMap.has(o.order_id)
+                  return (
+                  <tr key={`${o.order_id}-cancel`} style={isOrphan ? { opacity: 0.6 } : undefined} title={isOrphan ? 'Bestellung vor Tracking-Start — keine Bestelldaten vorhanden' : undefined}>
                     <td>{o.cancelled_at ? new Date(o.cancelled_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }) : '–'}</td>
                     <td>{o.order_id}</td>
                     <td>{o.ordered_at && o.ordered_at !== o.cancelled_at ? new Date(o.ordered_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'Europe/Berlin' }) : '–'}</td>
                     <td>{o.plan_name ? shortenPlan(o.plan_name) : '–'}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{Number(o.amount).toFixed(2).replace('.', ',')}&nbsp;&euro;</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{isOrphan ? '–' : `${orderAmountMap.get(o.order_id)!.toFixed(2).replace('.', ',')} €`}</td>
                     <td>{o.campaign_id || '–'}</td>
                     <td><span style={{ color: o.cancellation_type === 'Widerruf' ? '#e67e22' : '#e74c3c', fontWeight: 600 }}>{o.cancellation_type}</span></td>
                   </tr>
-                ))}
+                  )
+                })}
                 {filteredCancellations.length === 0 && (
                   <tr><td colSpan={7}>{isDayFiltered ? 'Keine Cancellations an diesem Tag' : 'Keine Cancellations im Zeitraum'}</td></tr>
                 )}

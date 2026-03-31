@@ -103,6 +103,13 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     }, 300)
   }
 
+  // Einstiegstyp: derive from existing data or default
+  const [einstiegsTyp, setEinstiegsTyp] = useState<'Direkteinstieg' | 'Limit'>(() => {
+    if (setup?.entries && setup.entries.length > 0) return 'Limit'
+    return 'Direkteinstieg'
+  })
+  const [maximalkurs, setMaximalkurs] = useState<string>('')
+
   const [entryPoints, setEntryPoints] = useState<Array<{ preis: string; anteil: string }>>(() => {
     if (setup?.entries && setup.entries.length > 0) {
       return setup.entries
@@ -150,7 +157,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           status: SETUP_STATUS,
           richtung: 'LONG',
           asset_klasse: 'Index',
-          profil: 'MB',
+          profil: undefined as unknown as 'MB' | 'SJ',
           datum_eroeffnung: new Date().toISOString().split('T')[0],
           zeiteinheit: '4H',
           gewichtung: 1,
@@ -276,6 +283,16 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     }
     setIsSubmitting(true)
     try {
+      // Build bemerkungen with optional Einstiegstyp/Maximalkurs prefix
+      let finalBemerkungen = bemerkungenHtml?.trim() || ''
+      const maxKurs = parseFloat(maximalkurs)
+      if (einstiegsTyp === 'Direkteinstieg' && !isNaN(maxKurs) && maxKurs > 0) {
+        const prefix = `<p><strong>Direkteinstieg</strong> — Maximalkurs: ${maxKurs}</p>`
+        // Remove old prefix if re-saving
+        finalBemerkungen = finalBemerkungen.replace(/<p><strong>Direkteinstieg<\/strong>[^<]*<\/p>\s*/, '')
+        finalBemerkungen = prefix + (finalBemerkungen ? '\n' + finalBemerkungen : '')
+      }
+
       const payload = {
         ...values,
         asset_name: assetName.trim(),
@@ -293,7 +310,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         risiko_reward_max: values.risiko_reward_max ?? null,
         zeiteinheit: values.zeiteinheit ?? null,
         dauer_erwartung: values.dauer_erwartung ?? null,
-        bemerkungen: bemerkungenHtml?.trim() || null,
+        bemerkungen: finalBemerkungen || null,
         analyse_text: analyseHtml?.trim() || null,
         tradingview_symbol: tvSymbol || null,
         chart_bild_url: imageUrl,
@@ -478,11 +495,11 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         </Field>
         <Field label="Profil *" error={errors.profil?.message}>
           <Select
-            defaultValue={setup?.profil ?? 'MB'}
+            defaultValue={setup?.profil}
             onValueChange={(v) => setValue('profil', v as any)}
           >
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Wählen..." />
             </SelectTrigger>
             <SelectContent>
               {TRADING_PROFILES.map((p) => (
@@ -493,7 +510,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         </Field>
       </div>
 
-      {/* Row 3: Datum, Aktueller Kurs, Einstiegspreis, Stop Loss */}
+      {/* Row 3: Datum, Aktueller Kurs, Einstiegstyp, Stop Loss */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Field label="Datum *" error={errors.datum_eroeffnung?.message}>
           <Input
@@ -515,15 +532,27 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
             )}
           </div>
         </Field>
-        <Field label={entryPoints.length > 0 ? 'Mischkurs (auto)' : 'Einstiegspreis *'} error={errors.einstiegspreis?.message}>
-          <Input
-            type="number"
-            step="any"
-            placeholder="0.00"
-            readOnly={entryPoints.length > 0}
-            className={entryPoints.length > 0 ? 'bg-muted text-muted-foreground cursor-default' : ''}
-            {...register('einstiegspreis', { valueAsNumber: true })}
-          />
+        <Field label="Einstiegstyp">
+          <Select
+            value={einstiegsTyp}
+            onValueChange={(v) => {
+              const typ = v as 'Direkteinstieg' | 'Limit'
+              setEinstiegsTyp(typ)
+              if (typ === 'Direkteinstieg') {
+                setEntryPoints([])
+              } else if (entryPoints.length === 0) {
+                setEntryPoints([{ preis: '', anteil: '50' }, { preis: '', anteil: '50' }])
+              }
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Direkteinstieg">Direkteinstieg</SelectItem>
+              <SelectItem value="Limit">Limit Order</SelectItem>
+            </SelectContent>
+          </Select>
         </Field>
         <Field label="Stop Loss" error={errors.stop_loss?.message}>
           <Input
@@ -535,11 +564,34 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         </Field>
       </div>
 
-      {/* Einstiegspunkte */}
-      {entryPoints.length > 0 && (
+      {/* Direkteinstieg: Einstiegspreis + optionaler Maximalkurs */}
+      {einstiegsTyp === 'Direkteinstieg' && (
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Einstiegspreis *" error={errors.einstiegspreis?.message}>
+            <Input
+              type="number"
+              step="any"
+              placeholder="0.00"
+              {...register('einstiegspreis', { valueAsNumber: true })}
+            />
+          </Field>
+          <Field label="Maximalkurs (optional)">
+            <Input
+              type="number"
+              step="any"
+              placeholder="Max. Kurs für Einstieg"
+              value={maximalkurs}
+              onChange={(e) => setMaximalkurs(e.target.value)}
+            />
+          </Field>
+        </div>
+      )}
+
+      {/* Limit Order: Einstiegspunkte */}
+      {einstiegsTyp === 'Limit' && (
         <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="text-sm font-semibold">Einstiegspunkte</Label>
+            <Label className="text-sm font-semibold">Limit-Einstiegspunkte</Label>
             <button
               type="button"
               onClick={() => setEntryPoints(prev => [...prev, { preis: '', anteil: '' }])}
@@ -556,7 +608,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
                 <Input
                   type="number"
                   step="any"
-                  placeholder="Kurs"
+                  placeholder="Limit-Kurs"
                   value={ep.preis}
                   onChange={(e) => setEntryPoints(prev => prev.map((p, j) => j === i ? { ...p, preis: e.target.value } : p))}
                 />
@@ -598,17 +650,17 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
               </div>
             )
           })()}
+          <Field label="Mischkurs (auto)" error={errors.einstiegspreis?.message}>
+            <Input
+              type="number"
+              step="any"
+              placeholder="Wird berechnet"
+              readOnly
+              className="bg-muted text-muted-foreground cursor-default"
+              {...register('einstiegspreis', { valueAsNumber: true })}
+            />
+          </Field>
         </div>
-      )}
-      {entryPoints.length === 0 && (
-        <button
-          type="button"
-          onClick={() => setEntryPoints([{ preis: '', anteil: '50' }, { preis: '', anteil: '50' }])}
-          className="w-full text-xs text-muted-foreground hover:text-primary border border-dashed rounded-lg py-2 transition-colors"
-        >
-          <Plus className="h-3 w-3 inline mr-1" />
-          Mehrere Einstiegspunkte definieren
-        </button>
       )}
 
       {/* Take-Profit Ziele & Gewichtung */}
