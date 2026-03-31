@@ -275,7 +275,12 @@ function buildTradeData(trade: Trade) {
     ? `https://www.tradingview.com/symbols/${encodeURIComponent(ticker.replace('.', '-'))}/`
     : null
   const tvDisplayLabel = tvSymbol || ticker
-  const ccy = trade.currency && trade.currency !== 'N/A' ? ` ${trade.currency}` : ''
+  const ccySymbolMap: Record<string, string> = {
+    USD: '$', EUR: '€', GBP: '£', JPY: '¥', CHF: 'Fr.', CAD: 'C$', AUD: 'A$',
+  }
+  const ccy = trade.currency && trade.currency !== 'N/A'
+    ? ` ${ccySymbolMap[trade.currency] ?? trade.currency}`
+    : ''
 
   return { isLong, dirColor, dirLabel, dirArrow, tps, entries, crvText, timeStr, tvUrl, tvDisplayLabel, ccy }
 }
