@@ -175,7 +175,8 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     const totalAnteil = valid.reduce((s, e) => s + e.anteil, 0)
     if (totalAnteil <= 0) return
     const blended = valid.reduce((s, e) => s + e.preis * (e.anteil / totalAnteil), 0)
-    setValue('einstiegspreis', Math.round(blended * 100) / 100)
+    const decimals = Math.abs(blended) < 10 ? 4 : 2
+    setValue('einstiegspreis', Math.round(blended * 10 ** decimals) / 10 ** decimals, { shouldDirty: true })
   }, [entryPoints, setValue])
 
   const watchTp1 = watch('tp1')
@@ -205,8 +206,8 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       .filter((v): v is number => v !== null)
 
     if (crvValues.length === 0) return
-    setValue('risiko_reward_min', Math.min(...crvValues))
-    setValue('risiko_reward_max', Math.max(...crvValues))
+    setValue('risiko_reward_min', Math.min(...crvValues), { shouldDirty: true })
+    setValue('risiko_reward_max', Math.max(...crvValues), { shouldDirty: true })
   }, [watchEinstieg, watchSL, watchRichtung, watchTp1, watchTp2, watchTp3, watchTp4, setValue])
 
   const hasTp = (v: unknown) => v !== null && v !== undefined && !isNaN(Number(v)) && Number(v) > 0
