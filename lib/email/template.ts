@@ -67,7 +67,7 @@ export function buildEilmeldungContent(trade: Trade): string {
     <td style="padding:16px 24px 8px;background:#fff;">
       ${dataRow(
         entries.length > 1
-          ? `LIMIT<br class="ftw-mobile-br">${dirLabel === 'LONG' ? 'BUY' : 'SELL'}`
+          ? `LIMIT ${dirLabel === 'LONG' ? 'BUY' : 'SELL'}`
           : `${dirLabel}-<br class="ftw-mobile-br">EINSTIEG`,
         entries.length > 1
           ? entries.map(e =>
@@ -94,7 +94,7 @@ export function buildEilmeldungContent(trade: Trade): string {
   <tr>
     <td style="padding:8px 24px;background:#fff;">
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>
-        <td class="ftw-label-col" width="120" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:6px;">Take<br class="ftw-mobile-br">Profit</td>
+        <td class="ftw-label-col" width="120" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:6px;">TAKE PROFIT</td>
         <td>
           <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
             ${tps.map((tp, i) => {
