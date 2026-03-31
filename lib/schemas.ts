@@ -26,8 +26,8 @@ export const tradeSchema = z.object({
   profil: z.enum(['MB', 'SJ'], { error: 'Bitte Profil wählen' }),
   // Setup-specific optional fields
   aktueller_kurs: z.number({ error: 'Ungültige Zahl' }).positive('Muss positiv sein').nullable().optional(),
-  risiko_reward_min: z.number({ error: 'Ungültige Zahl' }).positive().nullable().optional(),
-  risiko_reward_max: z.number({ error: 'Ungültige Zahl' }).positive().nullable().optional(),
+  risiko_reward_min: z.number({ error: 'Ungültige Zahl' }).positive('Muss positiv sein').nullable().optional(),
+  risiko_reward_max: z.number({ error: 'Ungültige Zahl' }).positive('Muss positiv sein').nullable().optional(),
   zeiteinheit: z.string().nullable().optional(),
   dauer_erwartung: z.string().nullable().optional(),
   chart_bild_url: z.string().nullable().optional(),
@@ -36,18 +36,18 @@ export const tradeSchema = z.object({
 export type TradeSchemaValues = z.infer<typeof tradeSchema>
 
 export const tradeCloseSchema = z.object({
-  typ: z.enum(['TP1', 'TP2', 'TP3', 'TP4', 'SL', 'Manuell']),
+  typ: z.enum(['TP1', 'TP2', 'TP3', 'TP4', 'SL', 'Manuell'], { error: 'Pflichtfeld' }),
   datum: z.string().min(1, 'Pflichtfeld'),
-  ausstiegspreis: z.number().positive('Muss positiv sein').nullable().optional(),
-  anteil: z.number().min(1, 'Min. 1%').max(100, 'Max. 100%'),
+  ausstiegspreis: z.number({ error: 'Ungültige Zahl' }).positive('Muss positiv sein').nullable().optional(),
+  anteil: z.number({ error: 'Pflichtfeld' }).min(1, 'Min. 1%').max(100, 'Max. 100%'),
   bemerkungen: z.string().nullable().optional(),
 })
 
 export type TradeCloseSchemaValues = z.infer<typeof tradeCloseSchema>
 
 export const tradeEntrySchema = z.object({
-  preis: z.number().positive('Muss positiv sein'),
-  anteil: z.number().min(1, 'Min. 1%').max(100, 'Max. 100%'),
+  preis: z.number({ error: 'Pflichtfeld' }).positive('Muss positiv sein'),
+  anteil: z.number({ error: 'Pflichtfeld' }).min(1, 'Min. 1%').max(100, 'Max. 100%'),
   bemerkungen: z.string().nullable().optional(),
 })
 
