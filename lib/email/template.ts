@@ -97,7 +97,7 @@ export function buildEilmeldungContent(trade: Trade): string {
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>
         <td class="ftw-label-col" width="120" style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;vertical-align:top;padding-top:6px;">TAKE PROFIT</td>
         <td>
-          <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
+          <table cellpadding="0" cellspacing="0" width="${tps.length === 1 ? '40%' : '100%'}" style="border-collapse:collapse;">
             ${tps.map((tp, i) => {
               const perRow = tps.length <= 3 ? tps.length : 2
               const isRowStart = i % perRow === 0
