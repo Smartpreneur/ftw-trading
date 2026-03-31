@@ -2,7 +2,8 @@
 
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { Bold, Italic, List, ListOrdered, Undo, Redo } from 'lucide-react'
+import Link from '@tiptap/extension-link'
+import { Bold, Italic, List, ListOrdered, Undo, Redo, Link as LinkIcon, Unlink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface RichTextEditorProps {
@@ -26,6 +27,10 @@ export function RichTextEditor({ content, onChange, placeholder, compact = false
         code: false,
         horizontalRule: false,
       } : {}),
+      ...(!compact ? [Link.configure({
+        openOnClick: false,
+        HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' },
+      })] : []),
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -77,6 +82,23 @@ export function RichTextEditor({ content, onChange, placeholder, compact = false
               title="Nummerierung"
             >
               <ListOrdered className="h-4 w-4" />
+            </ToolbarButton>
+            <div className="w-px h-5 bg-border mx-1" />
+            <ToolbarButton
+              onClick={() => {
+                if (editor.isActive('link')) {
+                  editor.chain().focus().unsetLink().run()
+                } else {
+                  const url = window.prompt('URL eingeben:')
+                  if (url) {
+                    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+                  }
+                }
+              }}
+              active={editor.isActive('link')}
+              title="Link einfügen"
+            >
+              {editor.isActive('link') ? <Unlink className="h-4 w-4" /> : <LinkIcon className="h-4 w-4" />}
             </ToolbarButton>
           </>
         )}
