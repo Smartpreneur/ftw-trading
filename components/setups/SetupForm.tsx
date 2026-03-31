@@ -60,6 +60,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(setup?.chart_bild_url ?? null)
   const [isUploading, setIsUploading] = useState(false)
   const [isFetchingPrice, setIsFetchingPrice] = useState(false)
+  const [fetchedCurrency, setFetchedCurrency] = useState<string | null>(setup?.currency ?? null)
   const [assetValue, setAssetValue] = useState(() => {
     if (!setup?.asset) return ''
     const match = INSTRUMENTS.find(
@@ -314,6 +315,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         analyse_text: analyseHtml?.trim() || null,
         tradingview_symbol: tvSymbol || null,
         chart_bild_url: imageUrl,
+        currency: fetchedCurrency,
       }
       // Parse entry points for saving
       const parsedEntries = entryPoints
@@ -362,12 +364,13 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
 
               setIsFetchingPrice(true)
               try {
-                const price = await fetchInstrumentPrice(instrument.api, instrument.type)
+                const { price, currency } = await fetchInstrumentPrice(instrument.api, instrument.type)
                 if (price !== null) {
                   // Round: 2 decimals for prices >= 10, 4 for FX/small values
                   const decimals = Math.abs(price) < 10 ? 4 : 2
                   setValue('aktueller_kurs', Math.round(price * 10 ** decimals) / 10 ** decimals)
                 }
+                if (currency) setFetchedCurrency(currency)
               } catch {
                 // silently ignore
               } finally {

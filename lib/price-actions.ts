@@ -1012,12 +1012,12 @@ export async function getCachedActivePrices(): Promise<ActiveTradePrice[]> {
 export async function fetchInstrumentPrice(
   apiSymbol: string,
   type: 'yahoo' | 'twelve' | 'coingecko'
-): Promise<number | null> {
+): Promise<{ price: number | null; currency: string | null }> {
   let result: PriceResult = { price: null, currency: null }
   if (type === 'yahoo') result = await fetchYahooFinancePrice(apiSymbol)
   else if (type === 'twelve') result = await fetchTwelveDataPrice(apiSymbol)
   else if (type === 'coingecko') result = await fetchCoinGeckoPrice(apiSymbol)
-  return result.price
+  return result
 }
 
 // ── Live instrument search via Yahoo Finance ──────────────────

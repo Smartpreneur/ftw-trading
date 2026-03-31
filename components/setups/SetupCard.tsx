@@ -8,7 +8,7 @@ import { deleteTrade, updateTrade, deleteChartImage } from '@/lib/actions'
 import { sendEilmeldung } from '@/lib/email/send-alert'
 import { updateAssetPrice } from '@/lib/price-actions'
 import { SetupDialog } from './SetupDialog'
-import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2, Play, Check, Mail, Eye } from 'lucide-react'
+import { Clock, TrendingDown, TrendingUp, BarChart3, Pencil, Trash2, Play, Check, Mail, Eye, Monitor, Smartphone } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -62,6 +62,7 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
   const [isLoadingPreview, setIsLoadingPreview] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop')
 
   async function handlePreview() {
     setIsLoadingPreview(true)
@@ -383,14 +384,38 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
                     ? 'Veröffentlichen & E-Mail senden'
                     : 'Trade veröffentlichen'}
               </Button>
+              <div className="ml-auto flex items-center rounded-md border bg-muted/30">
+                <button
+                  type="button"
+                  onClick={() => setPreviewMode('desktop')}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-l-md transition-colors ${previewMode === 'desktop' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <Monitor className="h-3.5 w-3.5" /> Desktop
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewMode('mobile')}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-r-md transition-colors ${previewMode === 'mobile' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <Smartphone className="h-3.5 w-3.5" /> Mobil
+                </button>
+              </div>
             </div>
             {previewHtml && (
-              <iframe
-                srcDoc={previewHtml}
-                className="w-full border-t"
-                style={{ height: 'calc(85vh - 120px)' }}
-                title="E-Mail Vorschau"
-              />
+              <div className="border-t flex justify-center bg-muted/20" style={{ height: 'calc(85vh - 120px)', overflow: 'auto' }}>
+                <iframe
+                  srcDoc={previewHtml}
+                  className="bg-white"
+                  style={{
+                    width: previewMode === 'mobile' ? '375px' : '100%',
+                    height: '100%',
+                    border: previewMode === 'mobile' ? '1px solid #e5e7eb' : 'none',
+                    borderRadius: previewMode === 'mobile' ? '8px' : '0',
+                    margin: previewMode === 'mobile' ? '12px 0' : '0',
+                  }}
+                  title="E-Mail Vorschau"
+                />
+              </div>
             )}
           </DialogContent>
         </Dialog>
