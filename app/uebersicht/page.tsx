@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { LayoutDashboard, BookOpen, Rocket, Library, FileText } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Rocket, Library, FileText, Zap } from 'lucide-react'
 
 const tiles = [
   {
@@ -29,6 +29,13 @@ const tiles = [
     description: 'Nachschlagewerk zu Strategien, Begriffen und Handelsansätzen.',
     icon: Library,
     color: '#b45309',
+  },
+  {
+    href: '/eilmeldungen',
+    title: 'Eilmeldungen',
+    description: 'Alle versendeten Trade-Signale mit Einstieg, SL und Take-Profit.',
+    icon: Zap,
+    color: '#e67e22',
   },
   {
     href: '/ausgaben',

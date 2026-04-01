@@ -377,7 +377,7 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
                     onChange={(e) => setDraftOnly(e.target.checked)}
                     className="rounded border-input"
                   />
-                  <span className="text-xs text-muted-foreground">Nur Entwurf</span>
+                  <span className="text-xs text-muted-foreground">Mailchimp Entwurf</span>
                 </label>
               )}
               <Button

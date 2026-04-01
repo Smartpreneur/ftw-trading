@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { BookOpen, LayoutDashboard, TrendingUp, Menu, Rocket, Library, FileText, Home } from 'lucide-react'
+import { BookOpen, LayoutDashboard, TrendingUp, Menu, Rocket, Library, FileText, Home, Zap } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,6 +21,7 @@ const allLinks = [
   { href: '/trades', label: 'Trades', icon: BookOpen },
   { href: '/setups', label: 'Trade-Setups', icon: TrendingUp, adminOnly: true },
   { href: '/start', label: 'So startest du', icon: Rocket, previewOnly: true },
+  { href: '/eilmeldungen', label: 'Eilmeldungen', icon: Zap, previewOnly: true },
   { href: '/wissen', label: 'Wissensdatenbank', icon: Library, previewOnly: true },
   { href: '/ausgaben', label: 'Ausgaben', icon: FileText, previewOnly: true },
 ]
