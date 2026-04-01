@@ -31,8 +31,10 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
   const searchParams = useSearchParams()
   const [open, setOpen] = useState(false)
   const preview = searchParams.get('preview') === '1'
+  const userView = searchParams.get('view') === 'user'
+  const effectiveAdmin = isAdmin && !userView
   const links = allLinks.filter((l) => {
-    if (l.adminOnly && !isAdmin) return false
+    if (l.adminOnly && !effectiveAdmin) return false
     if (l.previewOnly && !preview) return false
     return true
   })
@@ -48,10 +50,11 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
         url = `/performance?tab=${savedTab}`
       }
     }
-    // Append token and preview params
+    // Append token, preview and view params
     const params: string[] = []
     if (token) params.push(`token=${token}`)
     if (preview) params.push('preview=1')
+    if (userView) params.push('view=user')
     if (params.length > 0) {
       url += (url.includes('?') ? '&' : '?') + params.join('&')
     }

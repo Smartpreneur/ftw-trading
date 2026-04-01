@@ -5,11 +5,12 @@ import { getAusgaben } from '@/lib/ausgaben-actions'
 import { AusgabenViewer } from './ausgaben-viewer'
 import { Loader2 } from 'lucide-react'
 
-async function AusgabenContent() {
-  const [isAdmin, ausgaben] = await Promise.all([
+async function AusgabenContent({ userView }: { userView?: boolean }) {
+  const [rawAdmin, ausgaben] = await Promise.all([
     checkAdmin(),
     getAusgaben(),
   ])
+  const isAdmin = rawAdmin && !userView
 
   return <AusgabenViewer ausgaben={ausgaben} isAdmin={isAdmin} />
 }
@@ -39,12 +40,17 @@ function AusgabenSkeleton() {
   )
 }
 
-export default function AusgabenPage() {
+export default async function AusgabenPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>
+}) {
+  const params = await searchParams
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">Wochenausgaben</h1>
       <Suspense fallback={<AusgabenSkeleton />}>
-        <AusgabenContent />
+        <AusgabenContent userView={params.view === 'user'} />
       </Suspense>
       <SolutionFooter />
     </div>

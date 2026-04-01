@@ -11,13 +11,13 @@ import { SolutionFooter } from '@/components/solution-footer'
 export default async function TradesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ profiles?: string; token?: string }>
+  searchParams: Promise<{ profiles?: string; token?: string; view?: string }>
 }) {
   const params = await searchParams
   const isAuthed = await checkAuth(params.token)
   if (!isAuthed) return <PasswordGate />
 
-  const isAdmin = await checkAdmin()
+  const isAdmin = (await checkAdmin()) && params.view !== 'user'
 
   const profilesParam = params.profiles
   const selectedProfiles = profilesParam?.split(',') as TradingProfile[] | undefined
