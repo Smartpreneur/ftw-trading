@@ -13,11 +13,14 @@ function enrichTrade(trade: Trade): TradeWithPerformance {
 
   const closes: TradeClose[] = trade.closes ?? []
 
-  // Performance — priority: 1) trade_closes, 2) DB column, 3) legacy ausstiegspreis, 4) bemerkungen
+  // Performance — priority: 1) DB column (may include dividends), 2) trade_closes, 3) legacy ausstiegspreis, 4) bemerkungen
   const closesWithData = closes.filter(
     c => c.ausstiegspreis != null && c.anteil != null
   )
-  if (closesWithData.length > 0 && trade.einstiegspreis != null && trade.richtung != null) {
+  if (trade.performance_pct != null) {
+    // DB value takes priority — it may include manual adjustments (e.g. dividends)
+    performance_pct = trade.performance_pct
+  } else if (closesWithData.length > 0 && trade.einstiegspreis != null && trade.richtung != null) {
     const totalAnteil = closesWithData.reduce((s, c) => s + c.anteil!, 0)
     const weighted = closesWithData.reduce((sum, c) => {
       const perf =
@@ -29,9 +32,6 @@ function enrichTrade(trade: Trade): TradeWithPerformance {
     performance_pct = totalAnteil > 0
       ? Math.round((weighted / totalAnteil) * 100) / 100
       : null
-  } else if (trade.performance_pct != null) {
-    // Stored value in DB (backfilled from bemerkungen or previous calculations)
-    performance_pct = trade.performance_pct
   } else if (trade.ausstiegspreis != null && trade.einstiegspreis != null && trade.richtung != null) {
     // Fallback: legacy ausstiegspreis column (pre-migration data)
     const raw =
