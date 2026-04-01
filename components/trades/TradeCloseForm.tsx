@@ -19,11 +19,19 @@ import { toast } from 'sonner'
 import { useState, useRef } from 'react'
 import { Trash2 } from 'lucide-react'
 
-const CLOSE_TYPES = ['TP1', 'TP2', 'TP3', 'TP4', 'SL', 'Manuell'] as const
+const CLOSE_TYPES = [
+  { value: 'TP1', label: 'Take Profit 1' },
+  { value: 'TP2', label: 'Take Profit 2' },
+  { value: 'TP3', label: 'Take Profit 3' },
+  { value: 'TP4', label: 'Take Profit 4' },
+  { value: 'SL', label: 'Stop-Loss' },
+  { value: 'Manuell', label: 'Manuelle Schließung' },
+] as const
 
 interface TradeCloseFormProps {
   tradeFk: string      // UUID of the parent trade
   close?: TradeClose   // undefined = create mode
+  manuellGetrackt?: boolean
   onSuccess: () => void
 }
 
@@ -45,7 +53,7 @@ function Field({
   )
 }
 
-export function TradeCloseForm({ tradeFk, close, onSuccess }: TradeCloseFormProps) {
+export function TradeCloseForm({ tradeFk, close, manuellGetrackt, onSuccess }: TradeCloseFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const submittingRef = useRef(false)
@@ -59,14 +67,14 @@ export function TradeCloseForm({ tradeFk, close, onSuccess }: TradeCloseFormProp
     resolver: zodResolver(tradeCloseSchema),
     defaultValues: close
       ? {
-          typ: close.typ ?? 'TP1',
+          typ: close.typ ?? (manuellGetrackt ? 'Manuell' : 'TP1'),
           datum: close.datum,
           ausstiegspreis: close.ausstiegspreis ?? undefined,
           anteil: close.anteil != null ? Math.round(close.anteil * 100) : undefined,
           bemerkungen: close.bemerkungen ?? undefined,
         }
       : {
-          typ: 'TP1',
+          typ: manuellGetrackt ? 'Manuell' : 'TP1',
           datum: new Date().toISOString().split('T')[0],
         },
   })
@@ -123,7 +131,7 @@ export function TradeCloseForm({ tradeFk, close, onSuccess }: TradeCloseFormProp
       <div className="grid grid-cols-2 gap-3">
         <Field label="Typ *" error={errors.typ?.message}>
           <Select
-            defaultValue={close?.typ ?? 'TP1'}
+            defaultValue={close?.typ ?? (manuellGetrackt ? 'Manuell' : 'TP1')}
             onValueChange={(v) => setValue('typ', v as any)}
           >
             <SelectTrigger>
@@ -131,7 +139,7 @@ export function TradeCloseForm({ tradeFk, close, onSuccess }: TradeCloseFormProp
             </SelectTrigger>
             <SelectContent>
               {CLOSE_TYPES.map((t) => (
-                <SelectItem key={t} value={t}>{t}</SelectItem>
+                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -142,7 +150,7 @@ export function TradeCloseForm({ tradeFk, close, onSuccess }: TradeCloseFormProp
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Ausstiegspreis" error={errors.ausstiegspreis?.message}>
+        <Field label="Schließkurs" error={errors.ausstiegspreis?.message}>
           <Input
             type="number"
             step="any"
@@ -150,7 +158,7 @@ export function TradeCloseForm({ tradeFk, close, onSuccess }: TradeCloseFormProp
             {...register('ausstiegspreis', { valueAsNumber: true })}
           />
         </Field>
-        <Field label="Anteil (%)" error={errors.anteil?.message}>
+        <Field label="Anteil geschlossen (%)" error={errors.anteil?.message}>
           <div className="flex items-center gap-1">
             <Input
               type="number"

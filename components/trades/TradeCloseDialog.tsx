@@ -14,10 +14,11 @@ import type { TradeClose } from '@/lib/types'
 interface TradeCloseDialogProps {
   tradeFk: string
   close: TradeClose
+  manuellGetrackt?: boolean
   trigger: React.ReactNode
 }
 
-export function TradeCloseDialog({ tradeFk, close, trigger }: TradeCloseDialogProps) {
+export function TradeCloseDialog({ tradeFk, close, manuellGetrackt, trigger }: TradeCloseDialogProps) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -30,6 +31,7 @@ export function TradeCloseDialog({ tradeFk, close, trigger }: TradeCloseDialogPr
         <TradeCloseForm
           tradeFk={tradeFk}
           close={close}
+          manuellGetrackt={manuellGetrackt}
           onSuccess={() => setOpen(false)}
         />
       </DialogContent>
