@@ -31,18 +31,18 @@ const tiles = [
     color: '#b45309',
   },
   {
-    href: '/eilmeldungen',
-    title: 'Eilmeldungen',
-    description: 'Alle versendeten Trade-Signale mit Einstieg, SL und Take-Profit.',
-    icon: Zap,
-    color: '#e67e22',
-  },
-  {
     href: '/ausgaben',
     title: 'Ausgaben-Archiv',
     description: 'Alle bisherigen Wochenausgaben zum Nachlesen und Nachhandeln.',
     icon: FileText,
     color: '#6366f1',
+  },
+  {
+    href: '/eilmeldungen',
+    title: 'Eilmeldungen',
+    description: 'Alle versendeten Trade-Signale mit Einstieg, SL und Take-Profit.',
+    icon: Zap,
+    color: '#e67e22',
   },
 ]
 
