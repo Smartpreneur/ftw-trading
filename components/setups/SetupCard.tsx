@@ -84,17 +84,17 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
   }
 
   const [isSendingTest, setIsSendingTest] = useState(false)
-  async function handleTestEmail() {
+  async function handleCreateDraft() {
     setIsSendingTest(true)
     try {
-      const result = await sendEilmeldung(setup.id)
+      const result = await sendEilmeldung(setup.id, { draftOnly: true })
       if (result.ok) {
-        toast.success('Test-Mail versendet')
+        toast.success('Mailchimp-Entwurf erstellt — bitte in Mailchimp prüfen')
       } else {
-        toast.error(result.error ?? 'Fehler beim Versenden')
+        toast.error(result.error ?? 'Fehler beim Erstellen')
       }
     } catch (err: any) {
-      toast.error(err?.message ?? 'Fehler beim Versenden')
+      toast.error(err?.message ?? 'Fehler beim Erstellen')
     } finally {
       setIsSendingTest(false)
     }
@@ -448,14 +448,14 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
               {isLoadingPreview ? 'Wird geladen...' : 'E-Mail Vorschau'}
             </Button>
             <Button
-              onClick={handleTestEmail}
+              onClick={handleCreateDraft}
               disabled={isSendingTest}
               variant="outline"
               className="w-full"
               size="sm"
             >
               <Mail className="h-3.5 w-3.5 mr-1.5" />
-              {isSendingTest ? 'Wird gesendet...' : 'Nur Test-Mail senden'}
+              {isSendingTest ? 'Wird erstellt...' : 'Mailchimp-Entwurf erstellen'}
             </Button>
             <div
               className={`flex items-center justify-between rounded-lg border px-4 py-3 cursor-pointer transition-colors ${
