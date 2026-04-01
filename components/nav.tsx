@@ -16,13 +16,13 @@ import {
 } from '@/components/ui/sheet'
 
 const allLinks = [
-  { href: '/uebersicht', label: 'Übersicht', icon: Home },
+  { href: '/uebersicht', label: 'Übersicht', icon: Home, previewOnly: true },
   { href: '/performance', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/trades', label: 'Trades', icon: BookOpen },
   { href: '/setups', label: 'Trade-Setups', icon: TrendingUp, adminOnly: true },
-  { href: '/start', label: 'So startest du', icon: Rocket },
-  { href: '/wissen', label: 'Wissensdatenbank', icon: Library },
-  { href: '/ausgaben', label: 'Ausgaben', icon: FileText },
+  { href: '/start', label: 'So startest du', icon: Rocket, previewOnly: true },
+  { href: '/wissen', label: 'Wissensdatenbank', icon: Library, previewOnly: true },
+  { href: '/ausgaben', label: 'Ausgaben', icon: FileText, previewOnly: true },
 ]
 
 export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
@@ -32,6 +32,7 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
   const preview = searchParams.get('preview') === '1'
   const links = allLinks.filter((l) => {
     if (l.adminOnly && !isAdmin) return false
+    if (l.previewOnly && !preview) return false
     return true
   })
 
@@ -61,7 +62,7 @@ export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center gap-2 sm:gap-4">
           {/* Logo */}
-          <Link href={buildHref('/uebersicht')} className="flex items-center shrink-0">
+          <Link href={buildHref(preview ? '/uebersicht' : '/performance')} className="flex items-center shrink-0">
             <Image
               src="/fmw-logo.svg"
               alt="FMW Logo"
