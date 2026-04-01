@@ -51,7 +51,7 @@ const STEPS = [
     detail: `<p>Das Setup sagt dir <em>was</em> du handeln sollst und <em>wo</em> du ein-/aussteigst. Das <em>wie</em> — also mit welchem Instrument — entscheidest du selbst:</p>
 <table class="w-full my-3 text-[13px] border-collapse">
 <tr class="border-b"><td class="py-2 pr-3 font-semibold align-top w-[140px]">Aktie direkt</td><td class="py-2 text-muted-foreground">Kein Hebel, kein Zeitwertverfall. Ideal für mittelfristige Setups und Einsteiger.</td></tr>
-<tr class="border-b"><td class="py-2 pr-3 font-semibold align-top">CFD</td><td class="py-2 text-muted-foreground">Gehebelter Handel auf steigende und fallende Kurse. Flexibel, aber höheres Risiko.</td></tr>
+<tr class="border-b"><td class="py-2 pr-3 font-semibold align-top">CFD</td><td class="py-2 text-muted-foreground">Gehebelter Handel auf steigende und fallende Kurse. Flexibel, aber höheres Risiko. Vor allem für die Setups von Stefan empfohlen.</td></tr>
 <tr class="border-b"><td class="py-2 pr-3 font-semibold align-top">Zertifikat / OS</td><td class="py-2 text-muted-foreground">Gehebeltes Produkt mit WKN — z.B. Knock-Outs oder Optionsscheine. Eigenen Hebel und Laufzeit wählen.</td></tr>
 <tr><td class="py-2 pr-3 font-semibold align-top">ETF / ETP</td><td class="py-2 text-muted-foreground">Für Indizes und Krypto. Kein Emittentenrisiko, börsentäglich handelbar.</td></tr>
 </table>
