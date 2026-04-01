@@ -43,7 +43,13 @@ const STEPS = [
 <li><strong>Chart:</strong> Zeigt Zonen, Formationen, Widerstände und Unterstützungen — die visuelle Orientierung</li>
 <li><strong>Text:</strong> Enthält exakte Marken (Einstieg, Stop-Loss, Take-Profit), WKN/ISIN, CRV und die Begründung</li>
 </ul>
-<p><strong>Wichtig:</strong> Immer beides lesen! Im Text stehen oft entscheidende Details, die im Chart allein nicht erkennbar sind.</p>`,
+<p><strong>Wichtig:</strong> Immer beides lesen! Im Text stehen oft entscheidende Details, die im Chart allein nicht erkennbar sind.</p>
+<p style="margin-top:16px"><strong>Unsere Analysten:</strong></p>
+<table class="w-full my-3 text-[13px] border-collapse">
+<tr class="border-b"><td class="py-2 pr-3 font-semibold align-top w-[180px]">Stefan J&auml;ger</td><td class="py-2 text-muted-foreground"><strong>Indizes, Rohstoffe &amp; Devisen</strong> — Stefan liefert Setups auf M&auml;rkte wie DAX, S&amp;P 500, Nasdaq, Gold, &Ouml;l und W&auml;hrungspaare. Seine Trades sind oft k&uuml;rzer angelegt — von wenigen Stunden bis zu einigen Tagen. Viele seiner Setups lassen sich am besten &uuml;ber CFDs umsetzen, da es f&uuml;r Indizes und Rohstoffe nicht immer passende WKN-Produkte gibt.</td></tr>
+<tr class="border-b"><td class="py-2 pr-3 font-semibold align-top">Michael Borgmann</td><td class="py-2 text-muted-foreground"><strong>Aktien &amp; Krypto</strong> — Michael konzentriert sich auf Einzelaktien aus den USA und Europa sowie auf Kryptow&auml;hrungen wie Bitcoin und ausgew&auml;hlte Altcoins. Sein Stil ist Swing-Trading mit einer durchschnittlichen Haltedauer von rund 8 Wochen — er kauft gerne g&uuml;nstig ein und l&auml;sst Positionen in Richtung Kursziel laufen. Seine Setups enthalten in der Regel eine konkrete WKN oder ISIN, sodass du sie direkt &uuml;ber deinen Broker handeln kannst.</td></tr>
+</table>
+<p>Beide Analysten setzen auf charttechnisch fundierte Setups mit klar definierten Einstiegs-, Stopp- und Zielmarken. W&auml;hle die Setups aus, die zu deinem Stil und deiner Assetklasse passen.</p>`,
   },
   {
     nr: 3,
