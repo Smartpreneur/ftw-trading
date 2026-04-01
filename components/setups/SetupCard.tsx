@@ -31,6 +31,7 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
   const [sendEmail, setSendEmail] = useState(false)
+  const [draftOnly, setDraftOnly] = useState(false)
 
   const date = new Date(setup.datum_eroeffnung)
   const formattedDate = `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`
@@ -39,13 +40,13 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
     setIsConverting(true)
     try {
       if (sendEmail) {
-        const result = await sendEilmeldung(setup.id)
+        const result = await sendEilmeldung(setup.id, { draftOnly })
         if (!result.ok) {
           toast.error(result.error ?? 'E-Mail-Versand fehlgeschlagen')
           setIsConverting(false)
           return
         }
-        toast.success('Eilmeldung versendet')
+        toast.success(draftOnly ? 'Kampagne als Entwurf in Mailchimp erstellt' : 'Eilmeldung versendet')
       }
       await updateTrade(setup.id, { status: 'Aktiv', published_at: new Date().toISOString() })
       // Fetch current price immediately so it shows in active trades
@@ -364,10 +365,21 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
               <div className="flex flex-col items-center gap-0.5">
                 <Switch
                   checked={sendEmail}
-                  onCheckedChange={setSendEmail}
+                  onCheckedChange={(v) => { setSendEmail(v); if (!v) setDraftOnly(false) }}
                 />
                 <span className="text-[10px] text-muted-foreground">E-Mail</span>
               </div>
+              {sendEmail && (
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={draftOnly}
+                    onChange={(e) => setDraftOnly(e.target.checked)}
+                    className="rounded border-input"
+                  />
+                  <span className="text-xs text-muted-foreground">Nur Entwurf</span>
+                </label>
+              )}
               <Button
                 onClick={() => {
                   setShowPreview(false)
@@ -381,7 +393,9 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
                 {isConverting
                   ? 'Wird veröffentlicht...'
                   : sendEmail
-                    ? 'Veröffentlichen & E-Mail senden'
+                    ? draftOnly
+                      ? 'Veröffentlichen & Entwurf erstellen'
+                      : 'Veröffentlichen & E-Mail senden'
                     : 'Trade veröffentlichen'}
               </Button>
               <div className="ml-auto flex items-center rounded-md border bg-muted/30">

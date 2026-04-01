@@ -9,7 +9,7 @@ import type { Trade } from '@/lib/types'
  * Send a trade alert via Mailchimp Campaign to the configured audience.
  * Returns { ok, error } instead of throwing, to prevent Server Components crash.
  */
-export async function sendEilmeldung(tradeId: string): Promise<{ ok: boolean; error?: string }> {
+export async function sendEilmeldung(tradeId: string, options?: { draftOnly?: boolean }): Promise<{ ok: boolean; error?: string }> {
   try {
     const apiKey = process.env.MAILCHIMP_API_KEY?.trim()
     if (!apiKey) return { ok: false, error: 'MAILCHIMP_API_KEY nicht konfiguriert' }
@@ -109,7 +109,7 @@ export async function sendEilmeldung(tradeId: string): Promise<{ ok: boolean; er
     }
 
     // 3. Draft-only mode: create campaign but don't send (for review in Mailchimp)
-    const draftOnly = process.env.MAILCHIMP_DRAFT_ONLY === 'true'
+    const draftOnly = options?.draftOnly ?? process.env.MAILCHIMP_DRAFT_ONLY === 'true'
 
     if (draftOnly) {
       return { ok: true, error: `Kampagne als Entwurf erstellt (ID: ${campaignId}). Bitte in Mailchimp prüfen und manuell versenden.` }
