@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { tradeSchema, toNullableNumber, toNullableString, type TradeSchemaValues } from '@/lib/schemas'
-import { createTrade, updateTrade, deleteTradeClose } from '@/lib/actions'
+import { createTrade, updateTrade } from '@/lib/actions'
 import { ASSET_CLASSES, TRADE_DIRECTIONS, TRADE_STATUSES, TRADING_PROFILES } from '@/lib/constants'
 import { INSTRUMENTS } from '@/lib/asset-mapping'
 import { Button } from '@/components/ui/button'
@@ -21,9 +21,6 @@ import { Switch } from '@/components/ui/switch'
 import type { Trade } from '@/lib/types'
 import { toast } from 'sonner'
 import { useState, useRef } from 'react'
-import { TradeCloseForm } from './TradeCloseForm'
-import { Plus, Trash2 } from 'lucide-react'
-import { formatPrice } from '@/lib/formatters'
 
 interface TradeFormProps {
   trade?: Trade
@@ -60,7 +57,25 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
   const [manuell, setManuell] = useState(trade?.manuell_getrackt ?? false)
   const [datumSchliessung, setDatumSchliessung] = useState(trade?.datum_schliessung?.split('T')[0] ?? '')
   const [currentStatus, setCurrentStatus] = useState(trade?.status ?? 'Aktiv')
-  const [showCloseForm, setShowCloseForm] = useState(false)
+  const [closeMode, setCloseMode] = useState<'tp' | 'manuell'>(() => {
+    // If existing closes are type 'Manuell', default to manuell mode
+    if (trade?.closes?.some(c => c.typ === 'Manuell')) return 'manuell'
+    return 'tp'
+  })
+  const [manualCloses, setManualCloses] = useState<Array<{ kurs: string; anteil: string; datum: string }>>(() => {
+    // Pre-fill from existing manual closes
+    const existing = (trade?.closes ?? [])
+      .filter(c => c.typ === 'Manuell')
+      .sort((a, b) => (a.nummer ?? 0) - (b.nummer ?? 0))
+      .map(c => ({
+        kurs: c.ausstiegspreis != null ? String(c.ausstiegspreis) : '',
+        anteil: c.anteil != null ? String(Math.round(c.anteil * 100)) : '',
+        datum: c.datum ?? '',
+      }))
+    // Pad to 4 slots
+    while (existing.length < 4) existing.push({ kurs: '', anteil: '', datum: '' })
+    return existing
+  })
   const [assetName, setAssetName] = useState(trade?.asset_name ?? '')
   const [tickerValue, setTickerValue] = useState(() => {
     if (!trade?.asset) return ''
@@ -175,6 +190,31 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
       }
       if (trade) {
         await updateTrade(trade.id, payload as any)
+
+        // Save manual closes if in manuell + manuell close mode
+        if (manuell && closeMode === 'manuell') {
+          const { createTradeClose: createClose, deleteTradeClose: deleteClose } = await import('@/lib/actions')
+          // Delete existing manual closes first
+          const existingManual = (trade.closes ?? []).filter(c => c.typ === 'Manuell')
+          for (const c of existingManual) {
+            await deleteClose(c.id)
+          }
+          // Create new manual closes
+          const validCloses = manualCloses
+            .map((c, i) => ({ kurs: parseFloat(c.kurs), anteil: parseFloat(c.anteil), datum: c.datum, nummer: i + 1 }))
+            .filter(c => !isNaN(c.kurs) && c.kurs > 0 && !isNaN(c.anteil) && c.anteil > 0)
+          for (const c of validCloses) {
+            await createClose({
+              trade_fk: trade.id,
+              typ: 'Manuell',
+              nummer: c.nummer,
+              ausstiegspreis: c.kurs,
+              anteil: c.anteil / 100,
+              datum: c.datum || null,
+            } as any)
+          }
+        }
+
         toast.success('Trade aktualisiert')
       } else {
         await createTrade(payload as any)
@@ -393,7 +433,7 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
         />
       </Field>
 
-      {/* Manual tracking toggle + Schließungen */}
+      {/* Manual tracking toggle */}
       <div className="border-t pt-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
@@ -404,63 +444,112 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
           </div>
           <Switch checked={manuell} onCheckedChange={setManuell} />
         </div>
-      </div>
 
-      {/* Schließungen — bei bestehendem Trade */}
-      {trade && (
-        <div className="border-t pt-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs font-medium">Schließungen</Label>
-            <button
-              type="button"
-              onClick={() => setShowCloseForm(prev => !prev)}
-              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-            >
-              <Plus className="h-3 w-3" />
-              Schließung hinzufügen
-            </button>
-          </div>
+        {manuell && (
+          <div className="space-y-3">
+            {/* Mode toggle: TP/SL or manual closes */}
+            <div className="flex items-center rounded-md border bg-muted/30 w-fit">
+              <button
+                type="button"
+                onClick={() => setCloseMode('tp')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-l-md transition-colors ${closeMode === 'tp' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                TP / SL erreicht
+              </button>
+              <button
+                type="button"
+                onClick={() => setCloseMode('manuell')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-r-md transition-colors ${closeMode === 'manuell' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                Manuelle Schließung
+              </button>
+            </div>
 
-          {/* Existing closes */}
-          {(trade.closes ?? []).length > 0 && (
-            <div className="rounded-lg border bg-muted/30 overflow-hidden divide-y divide-border/50">
-              {[...(trade.closes ?? [])].sort((a, b) => (a.nummer ?? 0) - (b.nummer ?? 0)).map(c => (
-                <div key={c.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center text-xs px-3 py-2">
-                  <span className="font-medium">{c.typ === 'Manuell' ? 'Schließung' : c.typ}</span>
-                  <span className="tabular-nums font-semibold">{c.ausstiegspreis != null ? formatPrice(c.ausstiegspreis) : '–'}</span>
-                  <span className="tabular-nums text-muted-foreground">{c.anteil != null ? `${Math.round(c.anteil * 100)}%` : '–'}</span>
-                  <span className="text-muted-foreground">{c.datum ? new Date(c.datum).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '–'}</span>
+            {closeMode === 'tp' && (
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">Kurs bereits oben definiert — hier nur Datum eintragen</Label>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {(['tp1', 'tp2', 'tp3', 'tp4', 'sl'] as const).map((key) => {
+                    const field = `${key}_erreicht_am` as keyof typeof tpSlTimestamps
+                    const label = key === 'sl' ? 'SL erreicht am' : `${key.toUpperCase()} erreicht am`
+                    return (
+                      <Field key={field} label={label}>
+                        <Input
+                          type="date"
+                          value={tpSlTimestamps[field]}
+                          onChange={(e) =>
+                            setTpSlTimestamps((prev) => ({ ...prev, [field]: e.target.value }))
+                          }
+                        />
+                      </Field>
+                    )
+                  })}
                 </div>
-              ))}
-              {(() => {
-                const sum = (trade.closes ?? []).reduce((s, c) => s + (c.anteil ?? 0), 0)
-                return sum > 0 ? (
-                  <div className="px-3 py-1.5 text-xs text-right">
-                    <span className={`font-semibold ${Math.round(sum * 100) === 100 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                      Gesamt: {Math.round(sum * 100)}%
-                    </span>
-                  </div>
-                ) : null
-              })()}
-            </div>
-          )}
+              </div>
+            )}
 
-          {(trade.closes ?? []).length === 0 && !showCloseForm && (
-            <p className="text-xs text-muted-foreground">Noch keine Schließungen eingetragen.</p>
-          )}
-
-          {/* New close form */}
-          {showCloseForm && (
-            <div className="rounded-lg border bg-muted/20 p-3">
-              <TradeCloseForm
-                tradeFk={trade.id}
-                manuellGetrackt={manuell}
-                onSuccess={() => { setShowCloseForm(false); onSuccess() }}
-              />
-            </div>
-          )}
-        </div>
-      )}
+            {closeMode === 'manuell' && (
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">Schließkurs, Anteil und Datum pro Teilschließung</Label>
+                <div className="grid grid-cols-4 gap-3">
+                  {([0, 1, 2, 3] as const).map((i) => (
+                    <div key={i} className="space-y-1">
+                      <Field label={`Kurs ${i + 1}`}>
+                        <Input
+                          type="number"
+                          step="any"
+                          placeholder="0.00"
+                          value={manualCloses[i]?.kurs ?? ''}
+                          onChange={(e) => setManualCloses(prev => {
+                            const next = [...prev]
+                            next[i] = { ...next[i], kurs: e.target.value }
+                            return next
+                          })}
+                        />
+                      </Field>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="1"
+                          placeholder="%"
+                          className="h-7 text-xs"
+                          value={manualCloses[i]?.anteil ?? ''}
+                          onChange={(e) => setManualCloses(prev => {
+                            const next = [...prev]
+                            next[i] = { ...next[i], anteil: e.target.value }
+                            return next
+                          })}
+                        />
+                        <span className="text-xs text-muted-foreground">%</span>
+                      </div>
+                      <Input
+                        type="date"
+                        className="h-7 text-xs"
+                        value={manualCloses[i]?.datum ?? ''}
+                        onChange={(e) => setManualCloses(prev => {
+                          const next = [...prev]
+                          next[i] = { ...next[i], datum: e.target.value }
+                          return next
+                        })}
+                      />
+                    </div>
+                  ))}
+                </div>
+                {(() => {
+                  const sum = manualCloses.reduce((s, c) => s + (parseFloat(c.anteil) || 0), 0)
+                  return sum > 0 ? (
+                    <p className={`text-xs ${sum === 100 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      Summe: {sum}% {sum !== 100 && '— muss 100% ergeben'}
+                    </p>
+                  ) : null
+                })()}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onSuccess}>
