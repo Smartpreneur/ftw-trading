@@ -32,10 +32,10 @@ export default async function TradesPage({
   try {
     const SETUP_STATUSES = ['Entwurf']
     const allTrades = await getTrades(profilesToLoad)
-    // Only show trades opened or closed in 2026+, exclude setup statuses
+    // Admin sees all trades; public only sees trades from 2026+
     trades = allTrades.filter(
       (t) => !SETUP_STATUSES.includes(t.status) &&
-             (t.datum_eroeffnung >= '2026-01-01' || (t.datum_schliessung ?? '') >= '2026-01-01')
+             (isAdmin || t.datum_eroeffnung >= '2026-01-01' || (t.datum_schliessung ?? '') >= '2026-01-01')
     )
   } catch (e: any) {
     error = e?.message ?? 'Fehler beim Laden'
