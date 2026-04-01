@@ -494,16 +494,15 @@ async function checkAndUpdateTPSL(
     }
   }
 
-  // Only write to DB if something changed
-  if (Object.keys(updates).length === 0) return false
-
   const supabase = createAdminClient()
 
-  // Update TP/SL timestamps on trade
-  await supabase
-    .from('trades')
-    .update(updates)
-    .eq('id', trade.id)
+  // Write new TP/SL timestamps if anything changed
+  if (Object.keys(updates).length > 0) {
+    await supabase
+      .from('trades')
+      .update(updates)
+      .eq('id', trade.id)
+  }
 
   // Auto-create trade_close entries for newly hit TPs.
   // Uses insert with conflict handling — the unique partial index
@@ -595,9 +594,10 @@ async function checkAndUpdateTPSL(
         .update({ status: 'Geschlossen', datum_schliessung: latestDate, performance_pct: perfPct })
         .eq('id', trade.id)
     }
+    return true
   }
 
-  return true
+  return Object.keys(updates).length > 0
 }
 
 // Check entry-point levels: detect when planned entry prices are reached.
