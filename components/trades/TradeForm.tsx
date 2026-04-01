@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { tradeSchema, toNullableNumber, toNullableString, type TradeSchemaValues } from '@/lib/schemas'
-import { createTrade, updateTrade } from '@/lib/actions'
+import { createTrade, updateTrade, deleteTradeClose } from '@/lib/actions'
 import { ASSET_CLASSES, TRADE_DIRECTIONS, TRADE_STATUSES, TRADING_PROFILES } from '@/lib/constants'
 import { INSTRUMENTS } from '@/lib/asset-mapping'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,9 @@ import { Switch } from '@/components/ui/switch'
 import type { Trade } from '@/lib/types'
 import { toast } from 'sonner'
 import { useState, useRef } from 'react'
+import { TradeCloseForm } from './TradeCloseForm'
+import { Plus, Trash2 } from 'lucide-react'
+import { formatPrice } from '@/lib/formatters'
 
 interface TradeFormProps {
   trade?: Trade
@@ -57,6 +60,7 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
   const [manuell, setManuell] = useState(trade?.manuell_getrackt ?? false)
   const [datumSchliessung, setDatumSchliessung] = useState(trade?.datum_schliessung?.split('T')[0] ?? '')
   const [currentStatus, setCurrentStatus] = useState(trade?.status ?? 'Aktiv')
+  const [showCloseForm, setShowCloseForm] = useState(false)
   const [assetName, setAssetName] = useState(trade?.asset_name ?? '')
   const [tickerValue, setTickerValue] = useState(() => {
     if (!trade?.asset) return ''
@@ -421,6 +425,48 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
           </div>
         )}
       </div>
+
+      {/* Schließungen — nur bei bestehendem Trade */}
+      {trade && (
+        <div className="border-t pt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-medium">Schließungen ({(trade.closes ?? []).length})</Label>
+            <button
+              type="button"
+              onClick={() => setShowCloseForm(prev => !prev)}
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              <Plus className="h-3 w-3" />
+              Schließung hinzufügen
+            </button>
+          </div>
+
+          {/* Existing closes */}
+          {(trade.closes ?? []).length > 0 && (
+            <div className="space-y-1.5">
+              {[...(trade.closes ?? [])].sort((a, b) => (a.nummer ?? 0) - (b.nummer ?? 0)).map(c => (
+                <div key={c.id} className="flex items-center justify-between text-xs bg-muted/30 rounded px-3 py-1.5">
+                  <span className="font-medium">{c.typ}</span>
+                  <span className="tabular-nums">{c.ausstiegspreis != null ? formatPrice(c.ausstiegspreis) : '–'}</span>
+                  <span className="tabular-nums">{c.anteil != null ? `${Math.round(c.anteil * 100)}%` : '–'}</span>
+                  <span className="text-muted-foreground">{c.datum ?? '–'}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* New close form */}
+          {showCloseForm && (
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <TradeCloseForm
+                tradeFk={trade.id}
+                manuellGetrackt={manuell}
+                onSuccess={() => { setShowCloseForm(false); onSuccess() }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onSuccess}>
