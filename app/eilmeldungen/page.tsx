@@ -186,33 +186,30 @@ function TradeCard({ trade }: { trade: Trade }) {
 // ── Mailchimp-only campaign card (historical) ────────────────
 
 function MailchimpCard({ campaign }: { campaign: { id: string; title: string; subject: string; sent_at: string; archive_url: string; emails_sent: number } }) {
-  const sentDate = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }).format(new Date(campaign.sent_at))
+  const d = new Date(campaign.sent_at)
+  const date = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Berlin' }).format(d)
+  const time = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }).format(d)
 
-  // Try to extract trader + asset from title like "Eilmeldung Michael B. 20260324 - Wolters Beiersdorf UNH"
+  // Extract trader + asset from subject like "Eilmeldung von Stefan Jäger - DAX"
+  // or from title like "Eilmeldung Michael B. 20260324 - Wolters Beiersdorf UNH"
+  const subjectMatch = campaign.subject.match(/Eilmeldung von\s+(.+?)(?:\s*-\s*(.+))?$/)
   const titleMatch = campaign.title.match(/Eilmeldung\s+(.*?)\s+\d{8}\s*-\s*(.+)/)
-  const trader = titleMatch?.[1] ?? ''
-  const assets = titleMatch?.[2] ?? campaign.subject.replace(/^Eilmeldung von\s*/, '').replace(/\s*-\s*/, ' – ')
+  const trader = subjectMatch?.[1] ?? titleMatch?.[1] ?? ''
+  const asset = subjectMatch?.[2] ?? titleMatch?.[2] ?? ''
+  const label = asset
+    ? `Eilmeldung von ${trader}${asset ? ` – ${asset}` : ''}`
+    : `Eilmeldung von ${trader}`
 
   return (
     <a
       href={campaign.archive_url}
       target="_blank"
       rel="noopener noreferrer"
-      className="block rounded-xl border bg-card overflow-hidden hover:shadow-md transition-shadow"
+      className="flex items-center gap-3 px-4 py-2.5 rounded-lg border bg-card hover:bg-muted/50 transition-colors group"
     >
-      <div className="flex items-center justify-between px-4 py-2.5 bg-muted/50 border-b">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">{assets || campaign.title}</span>
-        </div>
-        <span className="text-xs text-muted-foreground">{trader}</span>
-      </div>
-
-      <div className="px-4 py-3 flex items-center justify-between">
-        <div className="text-xs text-muted-foreground">{sentDate}</div>
-        <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
-          <ExternalLink className="h-3 w-3" /> E-Mail ansehen
-        </span>
-      </div>
+      <span className="text-xs text-muted-foreground tabular-nums shrink-0">{date}, {time}</span>
+      <span className="text-sm font-medium group-hover:text-primary transition-colors">{label}</span>
+      <ExternalLink className="h-3 w-3 text-muted-foreground/40 group-hover:text-primary ml-auto shrink-0 transition-colors" />
     </a>
   )
 }
