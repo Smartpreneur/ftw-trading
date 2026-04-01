@@ -228,10 +228,8 @@ export default async function DashboardPage({
     })
 
   const pfColor =
-    kpis.profit_factor >= 1.5
+    kpis.profit_factor >= 1
       ? 'text-emerald-600'
-      : kpis.profit_factor >= 1
-      ? 'text-yellow-600'
       : 'text-rose-600'
 
   return (
