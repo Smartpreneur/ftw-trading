@@ -393,44 +393,24 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
         />
       </Field>
 
-      {/* Manual tracking toggle */}
+      {/* Manual tracking toggle + Schließungen */}
       <div className="border-t pt-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
             <Label className="text-xs font-medium">Manuell tracken</Label>
             <p className="text-[10px] text-muted-foreground">
-              Auto-Erkennung deaktivieren, TP/SL manuell pflegen
+              Auto-Erkennung deaktivieren, Schließungen manuell pflegen
             </p>
           </div>
           <Switch checked={manuell} onCheckedChange={setManuell} />
         </div>
-
-        {manuell && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {(['tp1', 'tp2', 'tp3', 'tp4', 'sl'] as const).map((key) => {
-              const field = `${key}_erreicht_am` as keyof typeof tpSlTimestamps
-              const label = key === 'sl' ? 'SL erreicht am' : `${key.toUpperCase()} erreicht am`
-              return (
-                <Field key={field} label={label}>
-                  <Input
-                    type="date"
-                    value={tpSlTimestamps[field]}
-                    onChange={(e) =>
-                      setTpSlTimestamps((prev) => ({ ...prev, [field]: e.target.value }))
-                    }
-                  />
-                </Field>
-              )
-            })}
-          </div>
-        )}
       </div>
 
-      {/* Schließungen — nur bei bestehendem Trade */}
+      {/* Schließungen — bei bestehendem Trade */}
       {trade && (
         <div className="border-t pt-4 space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="text-xs font-medium">Schließungen ({(trade.closes ?? []).length})</Label>
+            <Label className="text-xs font-medium">Schließungen</Label>
             <button
               type="button"
               onClick={() => setShowCloseForm(prev => !prev)}
@@ -443,16 +423,30 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
 
           {/* Existing closes */}
           {(trade.closes ?? []).length > 0 && (
-            <div className="space-y-1.5">
+            <div className="rounded-lg border bg-muted/30 overflow-hidden divide-y divide-border/50">
               {[...(trade.closes ?? [])].sort((a, b) => (a.nummer ?? 0) - (b.nummer ?? 0)).map(c => (
-                <div key={c.id} className="flex items-center justify-between text-xs bg-muted/30 rounded px-3 py-1.5">
-                  <span className="font-medium">{c.typ}</span>
-                  <span className="tabular-nums">{c.ausstiegspreis != null ? formatPrice(c.ausstiegspreis) : '–'}</span>
-                  <span className="tabular-nums">{c.anteil != null ? `${Math.round(c.anteil * 100)}%` : '–'}</span>
-                  <span className="text-muted-foreground">{c.datum ?? '–'}</span>
+                <div key={c.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center text-xs px-3 py-2">
+                  <span className="font-medium">{c.typ === 'Manuell' ? 'Schließung' : c.typ}</span>
+                  <span className="tabular-nums font-semibold">{c.ausstiegspreis != null ? formatPrice(c.ausstiegspreis) : '–'}</span>
+                  <span className="tabular-nums text-muted-foreground">{c.anteil != null ? `${Math.round(c.anteil * 100)}%` : '–'}</span>
+                  <span className="text-muted-foreground">{c.datum ? new Date(c.datum).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '–'}</span>
                 </div>
               ))}
+              {(() => {
+                const sum = (trade.closes ?? []).reduce((s, c) => s + (c.anteil ?? 0), 0)
+                return sum > 0 ? (
+                  <div className="px-3 py-1.5 text-xs text-right">
+                    <span className={`font-semibold ${Math.round(sum * 100) === 100 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      Gesamt: {Math.round(sum * 100)}%
+                    </span>
+                  </div>
+                ) : null
+              })()}
             </div>
+          )}
+
+          {(trade.closes ?? []).length === 0 && !showCloseForm && (
+            <p className="text-xs text-muted-foreground">Noch keine Schließungen eingetragen.</p>
           )}
 
           {/* New close form */}
