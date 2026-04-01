@@ -213,6 +213,17 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
               datum: c.datum || null,
             } as any)
           }
+
+          // Auto-close: if manual closes sum to 100%, set status to Geschlossen
+          const totalAnteil = validCloses.reduce((s, c) => s + c.anteil, 0)
+          if (totalAnteil >= 100) {
+            const latestDatum = validCloses
+              .filter(c => c.datum)
+              .map(c => c.datum)
+              .sort()
+              .pop() ?? new Date().toISOString().split('T')[0]
+            await updateTrade(trade.id, { status: 'Geschlossen', datum_schliessung: latestDatum } as any)
+          }
         }
 
         toast.success('Trade aktualisiert')
