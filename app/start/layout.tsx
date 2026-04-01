@@ -1,6 +1,4 @@
 import type { Metadata } from 'next'
-import { checkAuth } from '@/lib/auth'
-import { PasswordGate } from '@/components/password-gate'
 
 export const metadata: Metadata = {
   title: 'So startest du | FTW Trading',
@@ -12,8 +10,5 @@ export default async function StartLayout({
 }: {
   children: React.ReactNode
 }) {
-  const isAuthed = await checkAuth()
-  if (!isAuthed) return <PasswordGate />
-
   return <>{children}</>
 }

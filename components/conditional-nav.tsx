@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { Nav } from './nav'
 
-export function ConditionalNav({ isAdmin = false }: { isAdmin?: boolean }) {
+export function ConditionalNav({ isAdmin = false, isAuthed = false }: { isAdmin?: boolean; isAuthed?: boolean }) {
   const pathname = usePathname()
 
   // Don't show Nav on landing pages, intern area, and admin page
@@ -18,5 +18,5 @@ export function ConditionalNav({ isAdmin = false }: { isAdmin?: boolean }) {
     return null
   }
 
-  return <Nav isAdmin={isAdmin} />
+  return <Nav isAdmin={isAdmin} isAuthed={isAuthed} />
 }

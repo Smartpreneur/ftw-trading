@@ -4,7 +4,7 @@ import './globals.css'
 import { ConditionalNav } from '@/components/conditional-nav'
 import { ConditionalMain } from '@/components/conditional-main'
 import { Toaster } from '@/components/ui/sonner'
-import { checkAdmin } from '@/lib/auth'
+import { checkAdmin, checkAuth } from '@/lib/auth'
 import { AdminBar } from '@/components/AdminBar'
 
 const geist = Geist({
@@ -23,12 +23,13 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const isAdmin = await checkAdmin()
+  const isAuthed = await checkAuth()
 
   return (
     <html lang="de">
       <body className={`${geist.variable} font-sans antialiased`} suppressHydrationWarning>
         {isAdmin && <AdminBar />}
-        <ConditionalNav isAdmin={isAdmin} />
+        <ConditionalNav isAdmin={isAdmin} isAuthed={isAuthed} />
         <ConditionalMain>{children}</ConditionalMain>
         <Toaster richColors position="bottom-right" />
       </body>

@@ -26,18 +26,27 @@ const allLinks = [
   { href: '/ausgaben', label: 'Ausgaben', icon: FileText, previewOnly: true },
 ]
 
-export function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
+// Public onboarding routes accessible without login
+const publicRoutes = ['/start', '/wissen']
+
+export function Nav({ isAdmin = false, isAuthed = false }: { isAdmin?: boolean; isAuthed?: boolean }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [open, setOpen] = useState(false)
   const preview = searchParams.get('preview') === '1'
   const userView = searchParams.get('view') === 'user'
   const effectiveAdmin = isAdmin && !userView
-  const links = allLinks.filter((l) => {
-    if (l.adminOnly && !effectiveAdmin) return false
-    if (l.previewOnly && !preview) return false
-    return true
-  })
+
+  // On public onboarding pages without login: only show onboarding links
+  const isPublicOnboarding = publicRoutes.includes(pathname) && !isAuthed
+
+  const links = isPublicOnboarding
+    ? allLinks.filter((l) => publicRoutes.includes(l.href))
+    : allLinks.filter((l) => {
+        if (l.adminOnly && !effectiveAdmin) return false
+        if (l.previewOnly && !preview) return false
+        return true
+      })
 
   // Preserve embed token and performance tab across navigation
   const token = searchParams.get('token')
