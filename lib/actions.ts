@@ -172,35 +172,56 @@ export async function createTrade(formData: TradeFormData): Promise<string> {
 export async function updateTrade(id: string, formData: Partial<TradeFormData>): Promise<void> {
   const supabase = createAdminClient()
 
+  // Fetch current values for audit log + TP/SL history
+  const auditFields = ['status', 'einstiegspreis', 'stop_loss', 'tp1', 'tp2', 'tp3', 'tp4', 'performance_pct', 'datum_schliessung', 'manuell_getrackt'] as const
+  const { data: current } = await supabase
+    .from('trades')
+    .select('trade_id, ' + auditFields.join(', '))
+    .eq('id', id)
+    .single()
+
   // Track previous TP/SL values when levels change
   const tpSlFields = ['tp1', 'tp2', 'tp3', 'tp4', 'stop_loss'] as const
-  const hasTpSlUpdate = tpSlFields.some((f) => f in formData)
-
-  if (hasTpSlUpdate) {
-    const { data: current } = await supabase
-      .from('trades')
-      .select('tp1, tp2, tp3, tp4, stop_loss')
-      .eq('id', id)
-      .single()
-
-    if (current) {
-      const vorher: Record<string, number | null> = {}
-      for (const field of tpSlFields) {
-        if (!(field in formData)) continue
-        const oldVal = current[field] ?? null
-        const newVal = (formData as Record<string, unknown>)[field] ?? null
-        if (oldVal !== newVal && oldVal !== null) {
-          vorher[`${field}_vorher`] = oldVal
-        }
+  if (current) {
+    const vorher: Record<string, number | null> = {}
+    for (const field of tpSlFields) {
+      if (!(field in formData)) continue
+      const oldVal = (current as unknown as Record<string, unknown>)[field] ?? null
+      const newVal = (formData as Record<string, unknown>)[field] ?? null
+      if (oldVal !== newVal && oldVal !== null) {
+        vorher[`${field}_vorher`] = oldVal as number | null
       }
-      if (Object.keys(vorher).length > 0) {
-        Object.assign(formData, vorher)
-      }
+    }
+    if (Object.keys(vorher).length > 0) {
+      Object.assign(formData, vorher)
     }
   }
 
   const { error } = await supabase.from('trades').update(formData).eq('id', id)
   if (error) throw new Error(error.message)
+
+  // Write audit log for changed fields
+  if (current) {
+    const logEntries: Array<{ trade_id: string; trade_nr: number; feld: string; alter_wert: string | null; neuer_wert: string | null; quelle: string }> = []
+    for (const field of auditFields) {
+      if (!(field in formData)) continue
+      const oldVal = (current as unknown as Record<string, unknown>)[field]
+      const newVal = (formData as Record<string, unknown>)[field]
+      if (String(oldVal ?? '') !== String(newVal ?? '')) {
+        logEntries.push({
+          trade_id: id,
+          trade_nr: (current as unknown as Record<string, unknown>).trade_id as number,
+          feld: field,
+          alter_wert: oldVal != null ? String(oldVal) : null,
+          neuer_wert: newVal != null ? String(newVal) : null,
+          quelle: 'admin',
+        })
+      }
+    }
+    if (logEntries.length > 0) {
+      await supabase.from('trade_audit_log').insert(logEntries)
+    }
+  }
   revalidateTag('trades', 'max')
   revalidateTag('prices', 'max')
   revalidatePath('/')
