@@ -55,6 +55,8 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
     Math.round((trade?.gewichtung ?? 1) * 100)
   )
   const [manuell, setManuell] = useState(trade?.manuell_getrackt ?? false)
+  const [datumSchliessung, setDatumSchliessung] = useState(trade?.datum_schliessung?.split('T')[0] ?? '')
+  const [currentStatus, setCurrentStatus] = useState(trade?.status ?? 'Aktiv')
   const [assetName, setAssetName] = useState(trade?.asset_name ?? '')
   const [tickerValue, setTickerValue] = useState(() => {
     if (!trade?.asset) return ''
@@ -147,11 +149,13 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
         }
       }
 
+      const isClosed = values.status === 'Geschlossen' || values.status === 'Ausgestoppt'
       const payload = {
         ...values,
         asset_name: assetName.trim() || null,
         gewichtung: gewichtungPct / 100,
         manuell_getrackt: manuell,
+        datum_schliessung: isClosed && datumSchliessung ? datumSchliessung : null,
         tp1_gewichtung: tpGewichtung.tp1 !== '' ? Number(tpGewichtung.tp1) / 100 : null,
         tp2_gewichtung: tpGewichtung.tp2 !== '' ? Number(tpGewichtung.tp2) / 100 : null,
         tp3_gewichtung: tpGewichtung.tp3 !== '' ? Number(tpGewichtung.tp3) / 100 : null,
@@ -291,7 +295,7 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
         <Field label="Status *" error={errors.status?.message}>
           <Select
             defaultValue={trade?.status ?? 'Aktiv'}
-            onValueChange={(v) => setValue('status', v as any)}
+            onValueChange={(v) => { setValue('status', v as any); setCurrentStatus(v as typeof currentStatus) }}
           >
             <SelectTrigger>
               <SelectValue />
@@ -304,6 +308,19 @@ export function TradeForm({ trade, onSuccess }: TradeFormProps) {
           </Select>
         </Field>
       </div>
+
+      {/* Schließdatum — nur bei Geschlossen/Ausgestoppt */}
+      {(currentStatus === 'Geschlossen' || currentStatus === 'Ausgestoppt') && (
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Schließdatum">
+            <Input
+              type="date"
+              value={datumSchliessung}
+              onChange={(e) => setDatumSchliessung(e.target.value)}
+            />
+          </Field>
+        </div>
+      )}
 
       {/* TP targets with percentage */}
       <div className="space-y-1">
