@@ -24,7 +24,7 @@ export function RefreshPricesButton({ lastUpdatedAt, lastDataAt }: RefreshPrices
   // Display the time the price DATA is from, not when we fetched it
   const displayTime = lastDataAt ?? lastUpdatedAt
   const timeLabel = displayTime
-    ? new Date(displayTime).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr'
+    ? new Date(displayTime).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }) + ' Uhr'
     : null
 
   if (isFresh || justRefreshed) {

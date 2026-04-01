@@ -92,16 +92,17 @@ export default async function DashboardPage({
   // Each API introduces a known delay between real market price and what we receive.
   // We show the MINIMUM (oldest) effective data time so the user knows how old
   // the least-current price in the table is (conservative, accurate for Yahoo assets).
+  // Show the most recent fetch time minus API data delay for that source
   const latestPriceDataAt = activePrices.length > 0
     ? (() => {
-        let oldest: number | null = null
+        let newest: number | null = null
         for (const p of activePrices) {
           const mapping = getApiSymbol(p.asset)
           const delay = mapping ? PRICE_API_DATA_DELAY_MINUTES[mapping.type] : 0
           const dataTime = new Date(p.updated_at).getTime() - delay * 60 * 1000
-          if (oldest === null || dataTime < oldest) oldest = dataTime
+          if (newest === null || dataTime > newest) newest = dataTime
         }
-        return oldest !== null ? new Date(oldest).toISOString() : null
+        return newest !== null ? new Date(newest).toISOString() : null
       })()
     : null
 
