@@ -39,18 +39,45 @@ export async function sendEilmeldung(tradeId: string): Promise<{ ok: boolean; er
     const traderName = TRADER_NAMES[trade.profil] ?? trade.profil
     const subject = `Eilmeldung von ${traderName} – ${trade.asset_name || trade.asset} ${dirLabel}`
 
-    // 1. Create campaign
+    // 1. Create campaign with segment conditions + folder
+    const segmentIncludeId = process.env.MAILCHIMP_SEGMENT_INCLUDE_ID // Tag "Order Created"
+    const segmentExcludeId = process.env.MAILCHIMP_SEGMENT_EXCLUDE_ID // Tag "Order Canceled"
+    const folderId = process.env.MAILCHIMP_EILMELDUNG_FOLDER_ID
+
+    const recipients: Record<string, unknown> = { list_id: audienceId }
+    if (segmentIncludeId || segmentExcludeId) {
+      const conditions: Array<Record<string, unknown>> = []
+      if (segmentIncludeId) {
+        conditions.push({
+          condition_type: 'StaticSegment',
+          field: 'static_segment',
+          op: 'static_is',
+          value: parseInt(segmentIncludeId, 10),
+        })
+      }
+      if (segmentExcludeId) {
+        conditions.push({
+          condition_type: 'StaticSegment',
+          field: 'static_segment',
+          op: 'static_not',
+          value: parseInt(segmentExcludeId, 10),
+        })
+      }
+      recipients.segment_opts = { match: 'all', conditions }
+    }
+
     const createRes = await fetch(`${baseUrl}/campaigns`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
         type: 'regular',
-        recipients: { list_id: audienceId },
+        recipients,
         settings: {
           subject_line: subject,
           from_name: process.env.MAILCHIMP_FROM_NAME || 'Fugmanns Trading Woche',
           reply_to: process.env.MAILCHIMP_REPLY_TO || 'premium@finanzmarktwelt.de',
           title: `Eilmeldung ${trade.asset_name || trade.asset} ${dirLabel} – ${new Date().toISOString().split('T')[0]}`,
+          ...(folderId ? { folder_id: folderId } : {}),
         },
       }),
     })
@@ -81,7 +108,14 @@ export async function sendEilmeldung(tradeId: string): Promise<{ ok: boolean; er
       return { ok: false, error: `Content setzen: ${err.detail || err.title || contentRes.status}` }
     }
 
-    // 3. Check readiness before sending
+    // 3. Draft-only mode: create campaign but don't send (for review in Mailchimp)
+    const draftOnly = process.env.MAILCHIMP_DRAFT_ONLY === 'true'
+
+    if (draftOnly) {
+      return { ok: true, error: `Kampagne als Entwurf erstellt (ID: ${campaignId}). Bitte in Mailchimp prüfen und manuell versenden.` }
+    }
+
+    // 4. Check readiness before sending
     const checkRes = await fetch(`${baseUrl}/campaigns/${campaignId}/send-checklist`, { headers })
     if (checkRes.ok) {
       const checklist = await checkRes.json()
@@ -94,7 +128,7 @@ export async function sendEilmeldung(tradeId: string): Promise<{ ok: boolean; er
       }
     }
 
-    // 4. Send campaign
+    // 5. Send campaign
     const sendRes = await fetch(`${baseUrl}/campaigns/${campaignId}/actions/send`, {
       method: 'POST',
       headers,
