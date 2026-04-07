@@ -71,8 +71,18 @@ export function SetupReadOnly({ setup }: SetupReadOnlyProps) {
 
       {/* Entry points */}
       <div className="rounded-lg border p-3 space-y-2">
-        <span className="text-xs font-semibold text-muted-foreground uppercase">Einstieg</span>
-        {entries.length > 1 ? (
+        <span className="text-xs font-semibold text-muted-foreground uppercase">
+          {entries.length === 1 && entries[0].typ === 'stop' ? 'Stop Buy' : 'Einstieg'}
+        </span>
+        {entries.length === 1 && entries[0].typ === 'stop' ? (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-mono font-semibold">{formatPrice(entries[0].preis)}</span>
+            <span className="text-xs text-muted-foreground">
+              Trigger {setup.richtung === 'LONG' ? '↑' : '↓'}
+            </span>
+            {entries[0].erreicht_am && <Check className="h-3 w-3 text-emerald-600" />}
+          </div>
+        ) : entries.length > 1 ? (
           <div className="space-y-1">
             {entries.map(e => (
               <div key={e.id} className="flex items-center gap-2 text-sm">

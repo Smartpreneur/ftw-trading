@@ -142,8 +142,16 @@ export async function getCachedTrades() {
         .from('trades')
         .select('*, closes:trade_closes(*), notes:trade_notes(*), entries:trade_entries(*)')
         .order('datum_eroeffnung', { ascending: false })
-      if (error) throw new Error(error.message)
-      return ((data as Trade[]) ?? []).map(enrichTrade)
+      if (error) {
+        console.error('[getCachedTrades] Supabase query failed:', error)
+        throw new Error(error.message)
+      }
+      try {
+        return ((data as Trade[]) ?? []).map(enrichTrade)
+      } catch (err) {
+        console.error('[getCachedTrades] enrichTrade failed:', err)
+        throw err
+      }
     },
     ['trades', 'all'],
     { revalidate: 86400, tags: ['trades'] }
@@ -153,7 +161,10 @@ export async function getCachedTrades() {
 export async function createTrade(formData: TradeFormData): Promise<string> {
   const supabase = createAdminClient()
   const { data, error } = await supabase.from('trades').insert([formData]).select('id').single()
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.error('[createTrade] Supabase insert failed:', { fields: Object.keys(formData), error })
+    throw new Error(error.message)
+  }
   revalidateTag('trades', 'max')
   revalidateTag('prices', 'max')
   revalidatePath('/')
@@ -198,28 +209,38 @@ export async function updateTrade(id: string, formData: Partial<TradeFormData>):
   }
 
   const { error } = await supabase.from('trades').update(formData).eq('id', id)
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.error('[updateTrade] Supabase update failed:', { id, fields: Object.keys(formData), error })
+    throw new Error(error.message)
+  }
 
-  // Write audit log for changed fields
+  // Write audit log for changed fields — never let logging crash the request
   if (current) {
-    const logEntries: Array<{ trade_id: string; trade_nr: number; feld: string; alter_wert: string | null; neuer_wert: string | null; quelle: string }> = []
-    for (const field of auditFields) {
-      if (!(field in formData)) continue
-      const oldVal = (current as unknown as Record<string, unknown>)[field]
-      const newVal = (formData as Record<string, unknown>)[field]
-      if (String(oldVal ?? '') !== String(newVal ?? '')) {
-        logEntries.push({
-          trade_id: id,
-          trade_nr: (current as unknown as Record<string, unknown>).trade_id as number,
-          feld: field,
-          alter_wert: oldVal != null ? String(oldVal) : null,
-          neuer_wert: newVal != null ? String(newVal) : null,
-          quelle: 'admin',
-        })
+    try {
+      const logEntries: Array<{ trade_id: string; trade_nr: number; feld: string; alter_wert: string | null; neuer_wert: string | null; quelle: string }> = []
+      for (const field of auditFields) {
+        if (!(field in formData)) continue
+        const oldVal = (current as unknown as Record<string, unknown>)[field]
+        const newVal = (formData as Record<string, unknown>)[field]
+        if (String(oldVal ?? '') !== String(newVal ?? '')) {
+          logEntries.push({
+            trade_id: id,
+            trade_nr: (current as unknown as Record<string, unknown>).trade_id as number,
+            feld: field,
+            alter_wert: oldVal != null ? String(oldVal) : null,
+            neuer_wert: newVal != null ? String(newVal) : null,
+            quelle: 'admin',
+          })
+        }
       }
-    }
-    if (logEntries.length > 0) {
-      await supabase.from('trade_audit_log').insert(logEntries)
+      if (logEntries.length > 0) {
+        const { error: logError } = await supabase.from('trade_audit_log').insert(logEntries)
+        if (logError) {
+          console.error('[updateTrade] Audit log insert failed (non-fatal):', logError)
+        }
+      }
+    } catch (err) {
+      console.error('[updateTrade] Audit log block crashed (non-fatal):', err)
     }
   }
   revalidateTag('trades', 'max')
@@ -414,7 +435,10 @@ export async function deleteTradeEntry(entryId: string): Promise<void> {
 }
 
 /** Bulk-save entries for a trade: deletes existing, inserts new ones */
-export async function saveTradeEntries(tradeFk: string, entries: Array<{ preis: number; anteil: number }>): Promise<void> {
+export async function saveTradeEntries(
+  tradeFk: string,
+  entries: Array<{ preis: number; anteil: number; typ?: 'limit' | 'stop' }>
+): Promise<void> {
   const supabase = createAdminClient()
   // Delete existing entries
   const { error: delError } = await supabase.from('trade_entries').delete().eq('trade_fk', tradeFk)
@@ -427,6 +451,7 @@ export async function saveTradeEntries(tradeFk: string, entries: Array<{ preis: 
     const rows = entries.map((e, i) => ({
       trade_fk: tradeFk,
       nummer: i + 1,
+      typ: e.typ ?? 'limit',
       preis: e.preis,
       anteil: e.anteil,
     }))

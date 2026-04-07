@@ -13,7 +13,7 @@ import { DirectionBadge } from './DirectionBadge'
 import { formatDate, formatPrice } from '@/lib/formatters'
 import { getCurrencySymbol, getApiSymbol, getExchangeLabel } from '@/lib/asset-mapping'
 import { cn } from '@/lib/utils'
-import { Check, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hand, Trash2 } from 'lucide-react'
+import { Check, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hand, Trash2, Hourglass } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { TradeDialog } from './TradeDialog'
 import { Button } from '@/components/ui/button'
@@ -115,8 +115,16 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
           const tradeCurrency = priceData?.currency || trade.currency
           const entryPrice = trade.einstiegspreis
 
+          // Pending entries: trade has planned entries but none have triggered yet.
+          // Such trades are "waiting" — no real position, no performance.
+          const tradeEntries = trade.entries ?? []
+          const hasEntries = tradeEntries.length > 0
+          const triggeredEntries = tradeEntries.filter(e => e.erreicht_am)
+          const isPending = hasEntries && triggeredEntries.length === 0
+          const pendingTyp = isPending ? tradeEntries[0]?.typ : null
+
           let unrealizedPct: number | null = null
-          if (currentPrice && entryPrice && trade.richtung) {
+          if (!isPending && currentPrice && entryPrice && trade.richtung) {
             if (trade.richtung === 'LONG') {
               unrealizedPct = ((currentPrice - entryPrice) / entryPrice) * 100
             } else {
@@ -142,6 +150,23 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
               <TableCell>
                 <div>
                   <span className="font-medium" title={trade.asset}>{trade.asset_name || trade.asset}</span>
+                  {isPending && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button type="button" className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] text-amber-600 hover:text-amber-800 transition-colors align-middle">
+                          <Hourglass className="h-3 w-3" />
+                          wartend
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent side="bottom" align="start" className="text-sm max-w-[260px]">
+                        <p>
+                          {pendingTyp === 'stop'
+                            ? 'Stop-Buy-Order — Einstieg erfolgt erst, wenn der Trigger-Kurs durchbrochen wird.'
+                            : 'Limit-Order — Einstieg erfolgt erst, wenn der Limit-Kurs erreicht wird.'}
+                        </p>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                   {trade.manuell_getrackt && (
                     <Popover>
                       <PopoverTrigger asChild>
@@ -190,11 +215,25 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
                 {trade.richtung && <DirectionBadge direction={trade.richtung} />}
               </TableCell>
               <TableCell className="text-right">
-                <span className="font-mono text-sm">
-                  {entryPrice
-                    ? `${getCurrencySymbol(trade.asset, trade.asset_klasse, tradeCurrency)}${formatPrice(entryPrice)}`
-                    : '—'}
-                </span>
+                {isPending ? (
+                  <span
+                    className="font-mono text-sm text-amber-600 underline decoration-dotted decoration-amber-400 underline-offset-2"
+                    title={
+                      pendingTyp === 'stop'
+                        ? `Stop-Buy bei ${formatPrice(entryPrice)} — noch nicht ausgelöst`
+                        : `Limit bei ${formatPrice(entryPrice)} — noch nicht ausgelöst`
+                    }
+                  >
+                    {pendingTyp === 'stop' ? 'Stop @ ' : 'Limit @ '}
+                    {entryPrice ? formatPrice(entryPrice) : '—'}
+                  </span>
+                ) : (
+                  <span className="font-mono text-sm">
+                    {entryPrice
+                      ? `${getCurrencySymbol(trade.asset, trade.asset_klasse, tradeCurrency)}${formatPrice(entryPrice)}`
+                      : '—'}
+                  </span>
+                )}
               </TableCell>
               <TableCell className="text-right">
                 <span className="font-mono text-sm">
@@ -263,7 +302,12 @@ export function ActiveTradesTable({ trades, activePrices, isAdmin = false }: Act
                 </TableCell>
               ))}
               <TableCell>
-                {!highestHit ? (
+                {isPending ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 whitespace-nowrap">
+                    <Hourglass className="h-3 w-3" />
+                    Wartend
+                  </span>
+                ) : !highestHit ? (
                   <span className="text-sm text-muted-foreground">Offen</span>
                 ) : (
                   <span className={cn(

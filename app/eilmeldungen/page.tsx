@@ -11,10 +11,23 @@ export const metadata = {
 }
 
 export default async function EilmeldungenPage() {
-  const [allTrades, mailchimpCampaigns] = await Promise.all([
-    getCachedTrades(),
-    getCachedEilmeldungCampaigns(),
-  ])
+  // Both fetches are wrapped: a Mailchimp API hiccup must NOT crash this page
+  let allTrades: Awaited<ReturnType<typeof getCachedTrades>> = []
+  let mailchimpCampaigns: Awaited<ReturnType<typeof getCachedEilmeldungCampaigns>> = []
+  try {
+    ;[allTrades, mailchimpCampaigns] = await Promise.all([
+      getCachedTrades().catch((err) => {
+        console.error('[EilmeldungenPage] getCachedTrades failed:', err)
+        return [] as Awaited<ReturnType<typeof getCachedTrades>>
+      }),
+      getCachedEilmeldungCampaigns().catch((err) => {
+        console.error('[EilmeldungenPage] getCachedEilmeldungCampaigns failed:', err)
+        return [] as Awaited<ReturnType<typeof getCachedEilmeldungCampaigns>>
+      }),
+    ])
+  } catch (err) {
+    console.error('[EilmeldungenPage] outer fetch failed:', err)
+  }
 
   // Trade-based Eilmeldungen (sent via our system)
   const tradeEilmeldungen = allTrades.filter((t) => t.eilmeldung_sent_at)

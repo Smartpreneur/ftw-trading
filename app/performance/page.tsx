@@ -106,11 +106,16 @@ export default async function DashboardPage({
       })()
     : null
 
-  // Aggregate unrealized P&L across active trades with known prices
+  // Aggregate unrealized P&L across active trades with known prices.
+  // Skip "wartend" trades — those have entries but none triggered yet,
+  // so there is no real position and no performance to count.
   const activePriceMap = new Map(activePrices.map((p) => [p.trade_id, p.current_price]))
   let totalUnrealizedPct = 0
   let pricedCount = 0
   for (const trade of activeTrades) {
+    const tradeEntries = trade.entries ?? []
+    const isPending = tradeEntries.length > 0 && tradeEntries.every((e) => !e.erreicht_am)
+    if (isPending) continue
     const currentPrice = activePriceMap.get(trade.id)
     if (!currentPrice || !trade.einstiegspreis || !trade.richtung) continue
     const pct = trade.richtung === 'LONG'

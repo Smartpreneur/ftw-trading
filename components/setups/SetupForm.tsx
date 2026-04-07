@@ -105,14 +105,22 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
   }
 
   // Einstiegstyp: derive from existing data or default
-  const [einstiegsTyp, setEinstiegsTyp] = useState<'Direkteinstieg' | 'Limit'>(() => {
-    if (setup?.entries && setup.entries.length > 0) return 'Limit'
+  const [einstiegsTyp, setEinstiegsTyp] = useState<'Direkteinstieg' | 'Limit' | 'Stop'>(() => {
+    if (setup?.entries && setup.entries.length > 0) {
+      return setup.entries[0].typ === 'stop' ? 'Stop' : 'Limit'
+    }
     return 'Direkteinstieg'
   })
   const [maximalkurs, setMaximalkurs] = useState<string>('')
+  const [stopBuyKurs, setStopBuyKurs] = useState<string>(() => {
+    if (setup?.entries && setup.entries.length === 1 && setup.entries[0].typ === 'stop') {
+      return String(setup.entries[0].preis)
+    }
+    return ''
+  })
 
   const [entryPoints, setEntryPoints] = useState<Array<{ preis: string; anteil: string }>>(() => {
-    if (setup?.entries && setup.entries.length > 0) {
+    if (setup?.entries && setup.entries.length > 0 && setup.entries[0].typ !== 'stop') {
       return setup.entries
         .sort((a, b) => a.nummer - b.nummer)
         .map(e => ({ preis: String(e.preis), anteil: String(Math.round(e.anteil * 100)) }))
@@ -167,6 +175,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
 
   // Auto-calculate blended einstiegspreis from entry points
   useEffect(() => {
+    if (einstiegsTyp !== 'Limit') return
     if (entryPoints.length === 0) return
     const valid = entryPoints
       .map(e => ({ preis: parseFloat(e.preis), anteil: parseFloat(e.anteil) }))
@@ -177,7 +186,16 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
     const blended = valid.reduce((s, e) => s + e.preis * (e.anteil / totalAnteil), 0)
     const decimals = Math.abs(blended) < 10 ? 4 : 2
     setValue('einstiegspreis', Math.round(blended * 10 ** decimals) / 10 ** decimals, { shouldDirty: true })
-  }, [entryPoints, setValue])
+  }, [entryPoints, einstiegsTyp, setValue])
+
+  // Stop Buy: einstiegspreis mirrors the stop trigger price
+  useEffect(() => {
+    if (einstiegsTyp !== 'Stop') return
+    const n = parseFloat(stopBuyKurs)
+    if (isNaN(n) || n <= 0) return
+    const decimals = Math.abs(n) < 10 ? 4 : 2
+    setValue('einstiegspreis', Math.round(n * 10 ** decimals) / 10 ** decimals, { shouldDirty: true })
+  }, [stopBuyKurs, einstiegsTyp, setValue])
 
   const watchTp1 = watch('tp1')
   const watchTp2 = watch('tp2')
@@ -288,6 +306,26 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       toast.error('Bezeichnung darf nicht leer sein')
       return
     }
+    // Stop Buy validation: trigger price must be on the breakout side
+    if (einstiegsTyp === 'Stop') {
+      const stopN = parseFloat(stopBuyKurs)
+      if (isNaN(stopN) || stopN <= 0) {
+        toast.error('Stop-Kurs ist erforderlich')
+        return
+      }
+      const cur = values.aktueller_kurs
+      if (cur != null) {
+        const ok = values.richtung === 'LONG' ? stopN > cur : stopN < cur
+        if (!ok) {
+          toast.error(
+            values.richtung === 'LONG'
+              ? 'Stop-Kurs muss bei LONG über dem aktuellen Kurs liegen'
+              : 'Stop-Kurs muss bei SHORT unter dem aktuellen Kurs liegen'
+          )
+          return
+        }
+      }
+    }
     setIsSubmitting(true)
     try {
       // Build bemerkungen with optional Einstiegstyp/Maximalkurs prefix
@@ -323,17 +361,29 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
         chart_bild_url: imageUrl,
         currency: fetchedCurrency,
       }
-      // Parse entry points for saving
-      const parsedEntries = entryPoints
-        .map(e => ({ preis: parseFloat(e.preis), anteil: parseFloat(e.anteil) / 100 }))
-        .filter(e => !isNaN(e.preis) && e.preis > 0 && !isNaN(e.anteil) && e.anteil > 0)
+      // Build entries payload depending on Einstiegstyp
+      let parsedEntries: Array<{ preis: number; anteil: number; typ: 'limit' | 'stop' }> = []
+      if (einstiegsTyp === 'Limit') {
+        parsedEntries = entryPoints
+          .map(e => ({
+            preis: parseFloat(e.preis),
+            anteil: parseFloat(e.anteil) / 100,
+            typ: 'limit' as const,
+          }))
+          .filter(e => !isNaN(e.preis) && e.preis > 0 && !isNaN(e.anteil) && e.anteil > 0)
+      } else if (einstiegsTyp === 'Stop') {
+        const stopN = parseFloat(stopBuyKurs)
+        if (!isNaN(stopN) && stopN > 0) {
+          parsedEntries = [{ preis: stopN, anteil: 1, typ: 'stop' }]
+        }
+      }
 
       if (setup) {
         if (setup.chart_bild_url && setup.chart_bild_url !== imageUrl) {
           await deleteChartImage(setup.chart_bild_url)
         }
         await updateTrade(setup.id, payload)
-        // Only save entries if the user has defined entry points
+        // Persist entries (also clears existing rows when switching to Direkteinstieg)
         if (parsedEntries.length > 0 || (setup.entries && setup.entries.length > 0)) {
           await saveTradeEntries(setup.id, parsedEntries)
         }
@@ -347,7 +397,10 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
       }
       onSuccess()
     } catch (err: any) {
-      toast.error(err?.message ?? 'Fehler beim Speichern')
+      console.error('SetupForm submit failed:', err)
+      // Show real error so admins can debug instead of a generic message
+      const detail = err?.message || err?.error?.message || String(err)
+      toast.error(`Fehler beim Speichern: ${detail}`, { duration: 8000 })
     } finally {
       setIsSubmitting(false)
     }
@@ -545,12 +598,18 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
           <Select
             value={einstiegsTyp}
             onValueChange={(v) => {
-              const typ = v as 'Direkteinstieg' | 'Limit'
+              const typ = v as 'Direkteinstieg' | 'Limit' | 'Stop'
               setEinstiegsTyp(typ)
               if (typ === 'Direkteinstieg') {
                 setEntryPoints([])
-              } else if (entryPoints.length === 0) {
-                setEntryPoints([{ preis: '', anteil: '50' }, { preis: '', anteil: '50' }])
+                setStopBuyKurs('')
+              } else if (typ === 'Limit') {
+                setStopBuyKurs('')
+                if (entryPoints.length === 0) {
+                  setEntryPoints([{ preis: '', anteil: '50' }, { preis: '', anteil: '50' }])
+                }
+              } else if (typ === 'Stop') {
+                setEntryPoints([])
               }
             }}
           >
@@ -560,6 +619,7 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
             <SelectContent>
               <SelectItem value="Direkteinstieg">Direkteinstieg</SelectItem>
               <SelectItem value="Limit">Limit Order</SelectItem>
+              <SelectItem value="Stop">Stop Buy Order</SelectItem>
             </SelectContent>
           </Select>
         </Field>
@@ -669,6 +729,42 @@ export function SetupForm({ setup, onSuccess }: SetupFormProps) {
               {...register('einstiegspreis', { valueAsNumber: true })}
             />
           </Field>
+        </div>
+      )}
+
+      {/* Stop Buy Order: einzelner Trigger-Kurs */}
+      {einstiegsTyp === 'Stop' && (
+        <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-semibold">Stop-Buy-Kurs</Label>
+            <span className="text-xs text-muted-foreground">
+              Einstieg erst bei Durchbruch
+            </span>
+          </div>
+          <Field label="Stop-Kurs *" error={errors.einstiegspreis?.message}>
+            <Input
+              type="number"
+              step="any"
+              placeholder={watchRichtung === 'LONG' ? 'Über aktuellem Kurs' : 'Unter aktuellem Kurs'}
+              value={stopBuyKurs}
+              onChange={(e) => setStopBuyKurs(e.target.value)}
+            />
+          </Field>
+          {(() => {
+            const stopN = parseFloat(stopBuyKurs)
+            const cur = watch('aktueller_kurs')
+            if (isNaN(stopN) || stopN <= 0 || cur == null) return null
+            const ok = watchRichtung === 'LONG' ? stopN > cur : stopN < cur
+            return ok ? (
+              <p className="text-xs text-muted-foreground">
+                Der Trade wird ausgelöst, sobald der Kurs {watchRichtung === 'LONG' ? '≥' : '≤'} <span className="font-mono font-semibold">{stopN}</span> erreicht.
+              </p>
+            ) : (
+              <p className="text-xs text-amber-600">
+                Stop-Kurs muss bei {watchRichtung} {watchRichtung === 'LONG' ? 'über' : 'unter'} dem aktuellen Kurs ({cur}) liegen.
+              </p>
+            )
+          })()}
         </div>
       )}
 

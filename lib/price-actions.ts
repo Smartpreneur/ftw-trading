@@ -613,7 +613,7 @@ async function checkAndUpdateEntries(
     status: string
     asset?: string
   },
-  entries: Array<{ id: string; nummer: number; preis: number; anteil: number; erreicht_am: string | null; created_at?: string }>,
+  entries: Array<{ id: string; nummer: number; typ?: 'limit' | 'stop'; preis: number; anteil: number; erreicht_am: string | null; created_at?: string }>,
   ohlcData: DailyOHLC[],
   currentPrice?: number
 ): Promise<boolean> {
@@ -684,11 +684,16 @@ async function checkAndUpdateEntries(
         effectiveLow = day.low
       }
 
-      // LONG: buy triggered when price dips to or below entry level
-      // SHORT: sell triggered when price rises to or above entry level
+      // Limit: triggered when price reaches level from the "favorable" side
+      //   LONG limit:  low  <= preis (buy when price dips)
+      //   SHORT limit: high >= preis (sell when price rises)
+      // Stop:  triggered when price breaks through level
+      //   LONG stop:   high >= preis (buy on breakout up)
+      //   SHORT stop:  low  <= preis (sell on breakdown)
+      const isStop = entry.typ === 'stop'
       const hit = trade.richtung === 'LONG'
-        ? effectiveLow <= entry.preis
-        : effectiveHigh >= entry.preis
+        ? (isStop ? effectiveHigh >= entry.preis : effectiveLow <= entry.preis)
+        : (isStop ? effectiveLow <= entry.preis : effectiveHigh >= entry.preis)
 
       if (hit) {
         const hitTimestamp = `${day.date}T16:00:00+00:00`
@@ -734,7 +739,7 @@ export async function updateAllActiveTradePrices(): Promise<{ updated: number; e
   // Get active trades only — Entwurf trades are NOT monitored
   const { data: activeTrades, error: tradesError } = await supabase
     .from('trades')
-    .select('id, asset, status, datum_eroeffnung, created_at, einstiegspreis, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, tp1_gewichtung, tp2_gewichtung, tp3_gewichtung, tp4_gewichtung, manuell_getrackt, entries:trade_entries(id, nummer, preis, anteil, erreicht_am, created_at)')
+    .select('id, asset, status, datum_eroeffnung, created_at, einstiegspreis, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, tp1_gewichtung, tp2_gewichtung, tp3_gewichtung, tp4_gewichtung, manuell_getrackt, entries:trade_entries(id, nummer, typ, preis, anteil, erreicht_am, created_at)')
     .eq('status', 'Aktiv')
 
   if (tradesError || !activeTrades) {
@@ -850,7 +855,7 @@ export async function refreshActiveTrade(tradeId: string): Promise<void> {
 
   const { data: trade } = await supabase
     .from('trades')
-    .select('id, asset, status, datum_eroeffnung, created_at, einstiegspreis, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, tp1_gewichtung, tp2_gewichtung, tp3_gewichtung, tp4_gewichtung, manuell_getrackt, entries:trade_entries(id, nummer, preis, anteil, erreicht_am, created_at)')
+    .select('id, asset, status, datum_eroeffnung, created_at, einstiegspreis, richtung, tp1, tp2, tp3, tp4, stop_loss, tp1_erreicht_am, tp2_erreicht_am, tp3_erreicht_am, tp4_erreicht_am, sl_erreicht_am, tp_sl_geaendert_am, tp1_gewichtung, tp2_gewichtung, tp3_gewichtung, tp4_gewichtung, manuell_getrackt, entries:trade_entries(id, nummer, typ, preis, anteil, erreicht_am, created_at)')
     .eq('id', tradeId)
     .eq('status', 'Aktiv')
     .single()

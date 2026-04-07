@@ -30,10 +30,13 @@ export interface TradeClose {
   created_at: string
 }
 
+export type TradeEntryTyp = 'limit' | 'stop'
+
 export interface TradeEntry {
   id: string
   trade_fk: string
   nummer: number
+  typ: TradeEntryTyp
   preis: number
   anteil: number
   datum: string | null
@@ -45,6 +48,7 @@ export interface TradeEntry {
 export type TradeEntryFormData = {
   trade_fk: string
   nummer?: number
+  typ?: TradeEntryTyp
   preis: number
   anteil: number
   bemerkungen?: string | null

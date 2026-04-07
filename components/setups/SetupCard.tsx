@@ -205,7 +205,15 @@ export function SetupCard({ setup, isAdmin = false, devMode = false }: SetupCard
               {setup.richtung}
             </span>
           </p>
-          {setup.entries && setup.entries.length > 1 ? (
+          {setup.entries && setup.entries.length === 1 && setup.entries[0].typ === 'stop' ? (
+            <p className="text-sm">
+              <span className="font-medium">Stop Buy:</span>{' '}
+              <span className="font-mono font-semibold">
+                {formatPrice(setup.entries[0].preis)}
+              </span>
+              {setup.entries[0].erreicht_am && <Check className="inline h-3 w-3 text-emerald-600 ml-1" />}
+            </p>
+          ) : setup.entries && setup.entries.length > 1 ? (
             <div className="text-sm space-y-0.5">
               <span className="font-medium">Einstiege:</span>
               {setup.entries
